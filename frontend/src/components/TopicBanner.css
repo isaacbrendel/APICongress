@@ -1,0 +1,29 @@
+/* src/components/TopicBanner.css */
+.topic-banner {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 200px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 3;
+    /* No box-shadow to keep it clean */
+    
+    display: flex;
+    align-items: center;    /* vertically center */
+    justify-content: center; /* horizontally center */
+  }
+  
+  .banner-text {
+    color: #000;          /* Black text */
+    font-size: 1.8rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    transform: translateY(-30px); /* Slightly higher than center */
+  }
+  

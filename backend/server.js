@@ -1,9 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-// Using node-fetch; ensure it's installed (npm install node-fetch)
-const fetch = require('node-fetch');
-
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -14,17 +11,23 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
+ * Dynamically import node-fetch to work with ES Modules in a CommonJS context.
+ */
+async function myFetch(...args) {
+  const { default: fetch } = await import('node-fetch');
+  return fetch(...args);
+}
+
+/**
  * Call the appropriate LLM API based on the model parameter.
- * Uses a prompt: "In one short paragraph, argue for the {party} viewpoint on the topic of "{topic}""
+ * Prompt: "In one short paragraph, argue for the {party} viewpoint on the topic of "{topic}""
  */
 async function callLLM(model, party, topic) {
   const prompt = `In one short paragraph, argue for the ${party} viewpoint on the topic of "${topic}".`;
   switch (model) {
-    // Accept both "OpenAI" and "ChatGPT" as valid inputs for OpenAI's API
     case 'OpenAI':
     case 'ChatGPT': {
-      // Call OpenAI API (example using text-davinci-003)
-      const response = await fetch("https://api.openai.com/v1/completions", {
+      const response = await myFetch("https://api.openai.com/v1/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,19 +48,15 @@ async function callLLM(model, party, topic) {
       }
     }
     case 'Claude': {
-      // Simulated response for Claude – replace with actual API call if available
       return `Simulated Claude response: ${prompt}`;
     }
     case 'Cohere': {
-      // Simulated response for Cohere
       return `Simulated Cohere response: ${prompt}`;
     }
     case 'Grok': {
-      // Simulated response for Grok
       return `Simulated Grok response: ${prompt}`;
     }
     case 'Gemini': {
-      // Simulated response for Gemini
       return `Simulated Gemini response: ${prompt}`;
     }
     default:
@@ -73,7 +72,7 @@ app.get('/api/llm', async (req, res) => {
   }
   try {
     const result = await callLLM(model, party, topic);
-    res.json({ model: model, response: result });
+    res.json({ model, response: result });
   } catch (error) {
     console.error("Error calling LLM:", error);
     res.status(500).json({ error: "Error calling model" });

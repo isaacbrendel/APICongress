@@ -14,41 +14,28 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          timeout: 1800s           # 30 minutes total session timeout
-          command_timeout: 600s    # 10 minutes per command
+          timeout: 1800s
+          command_timeout: 600s
           script: |
-            # 1) Create a backup folder
-            mkdir -p /tmp/apicongress_backup
+            # Go to the deployment directory
+            cd /opt/apicongress/APICongress || mkdir -p /opt/apicongress/APICongress && cd /opt/apicongress/APICongress
 
-            # 2) Backup critical files (e.g., .env)
-            cd /opt/apicongress/APICongress
-            [ -f .env ] && cp .env /tmp/apicongress_backup/
+            # If a git repository exists, update it; otherwise, clone it
+            if [ -d ".git" ]; then
+              echo "Updating existing repository..."
+              git fetch --all
+              git reset --hard origin/main
+            else
+              echo "Cloning repository..."
+              git clone git@github.com:isaacbrendel/APICongress.git .
+            fi
 
-            # 3) Stop and remove existing containers
+            # Build and deploy the new containers
             docker compose down --remove-orphans || true
-
-            # 4) Remove old code
-            rm -rf .* * || true
-
-            # 5) Clone the latest code from GitHub (ensure the URL is correct)
-            echo "Cloning APICongress repository..."
-            git clone git@github.com:isaacbrendel/APICongress.git .
-
-            # 6) Restore critical files
-            [ -f /tmp/apicongress_backup/.env ] && cp /tmp/apicongress_backup/.env .
-
-            # 7) Build and run new containers
-            echo "Building and running new containers..."
             docker compose build --no-cache
             docker compose up -d
 
-            # 8) Wait for services to start
             sleep 10
 
-            # 9) Display Docker Compose status and logs for the apicongress container
-            echo "===== Docker Compose Status ====="
             docker compose ps
             docker compose logs --tail=50 apicongress
-
-            # 10) Cleanup backup
-            rm -rf /tmp/apicongress_backup

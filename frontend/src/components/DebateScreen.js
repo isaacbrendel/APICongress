@@ -150,7 +150,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
       const startingSpeaker = majorityGroup[0];
 
       // Fetch chat bubble message from the backend for the starting speaker.
-      fetch(`http://localhost:5000/api/llm?model=${startingSpeaker.name}`)
+      fetch(`/api/llm?model=${model}`)
         .then((res) => res.json())
         .then((data) => {
           setCurrentChat({ model: startingSpeaker.name, message: data.response });

@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-// For Node versions < 18, install node-fetch (npm install node-fetch) and import it:
+// Using node-fetch; ensure it's installed in your backend dependencies.
 const fetch = require('node-fetch');
 
 const app = express();

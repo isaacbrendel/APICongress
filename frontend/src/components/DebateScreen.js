@@ -1,13 +1,15 @@
+// src/components/DebateScreen.js
 import React, { useEffect, useState } from 'react';
 import DebaterCard from './DebaterCard';
 import TopicBanner from './TopicBanner';
+import LLMChatBubble from './LLMChatBubble';
 import './DebateScreen.css';
 
 const DebateScreen = ({ topic, models, setModels }) => {
   const [finalPositions, setFinalPositions] = useState({});
+  const [currentChat, setCurrentChat] = useState(null);
 
-  // Updated seat arrays:
-  // Democrats now land more left.
+  // Adjusted seat arrays (less overlap, more spread out)
   const demSeats = [
     { top: 55, left: 5 },
     { top: 60, left: 8 },
@@ -17,26 +19,26 @@ const DebateScreen = ({ topic, models, setModels }) => {
   ];
   const repSeats = [
     { top: 55, left: 90 },
-    { top: 60, left: 82 },
-    { top: 65, left: 84 },
-    { top: 57, left: 85 },
-    { top: 63, left: 75 },
+    { top: 60, left: 88 },
+    { top: 65, left: 86 },
+    { top: 57, left: 89 },
+    { top: 63, left: 87 },
   ];
   const indSeats = [
     { top: 60, left: 48 },
-    { top: 65, left: 50 },
-    { top: 65, left: 55 },
+    { top: 63, left: 50 },
+    { top: 63, left: 52 },
     { top: 66, left: 49 },
-    { top: 66, left: 52 },
+    { top: 66, left: 51 },
   ];
 
-  // Use a small random offset (±1%) for slight variation.
+  // Small random offset (±1%)
   const randomOffset = () => Math.floor(Math.random() * 3) - 1;
 
-  // Initially scatter debaters within a defined band.
+  // Initially scatter debaters (narrow range to reduce overlap)
   const scatteredPositions = models.reduce((acc, model) => {
     const randTop = Math.floor(Math.random() * 15 + 55);
-    const randLeft = Math.floor(Math.random() * 40 + 30); // narrower range (30-70)
+    const randLeft = Math.floor(Math.random() * 20 + 40); // 40%-60%
     acc[model.id] = { top: randTop, left: randLeft };
     return acc;
   }, {});
@@ -78,7 +80,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
     };
   }, [setModels]);
 
-  // After roulette, ensure each party has at least one member, then assign positions.
+  // After roulette, ensure each party has at least one member and assign positions.
   useEffect(() => {
     if (models.length > 0 && models.every((m) => m.isFinalized)) {
       let updatedModels = [...models];
@@ -134,6 +136,29 @@ const DebateScreen = ({ topic, models, setModels }) => {
         };
       });
       setFinalPositions(newPositions);
+
+      // Determine starting speaker: choose from the party with the most members.
+      const partyCounts = {
+        Democrat: demModels.length,
+        Republican: repModels.length,
+        Independent: indModels.length,
+      };
+      const majorityParty = Object.keys(partyCounts).reduce((a, b) =>
+        partyCounts[a] >= partyCounts[b] ? a : b
+      );
+      const majorityGroup = updatedModels.filter((m) => m.affiliation === majorityParty);
+      const startingSpeaker = majorityGroup[0];
+
+      // Fetch chat bubble message from the backend for the starting speaker.
+      fetch(`http://localhost:5000/api/llm?model=${startingSpeaker.name}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setCurrentChat({ model: startingSpeaker.name, message: data.response });
+        })
+        .catch((err) => {
+          console.error(err);
+          setCurrentChat({ model: startingSpeaker.name, message: 'Error fetching message.' });
+        });
     }
   }, [models, setModels]);
 
@@ -143,7 +168,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
         className="debate-background"
         style={{
           backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
-          backgroundSize: 'cover', // ensures full coverage
+          backgroundSize: 'cover',
         }}
       ></div>
       <TopicBanner topic={topic} />
@@ -190,6 +215,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
           );
         })}
       </div>
+      {currentChat && <LLMChatBubble model={currentChat.model} message={currentChat.message} />}
     </div>
   );
 };

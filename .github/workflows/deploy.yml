@@ -1,0 +1,48 @@
+name: Deploy APICongress
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-apicongress:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy APICongress
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: isaac
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 1) Backup
+            mkdir -p /tmp/apicongress_backup
+            cd /opt/apicongress
+            [ -f .env ] && cp .env /tmp/apicongress_backup/
+
+            # 2) Stop containers
+            docker compose down --remove-orphans
+
+            # 3) Remove old code
+            rm -rf .* * || true
+
+            # 4) Clone fresh
+            git clone git@github.com:YourUser/APICongress.git .
+            # If private, ensure SSH keys are set up
+
+            # 5) Restore .env if needed
+            [ -f /tmp/apicongress_backup/.env ] && cp /tmp/apicongress_backup/.env .
+
+            # 6) Build and run
+            docker compose build --no-cache
+            docker compose up -d
+
+            # 7) Wait
+            sleep 10
+
+            # 8) Logs
+            docker compose ps
+            docker compose logs --tail=50 apicongress
+
+            # 9) Cleanup
+            rm -rf /tmp/apicongress_backup

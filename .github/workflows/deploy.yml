@@ -14,27 +14,39 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          timeout: 1800           # 30 minutes total session timeout
-          command_timeout: 600    # 10 minutes per command
+          timeout: 1800s           # 1800 seconds (30 minutes)
+          command_timeout: 600s    # 600 seconds (10 minutes) per command
           script: |
+            # 1) Backup
+            mkdir -p /tmp/apicongress_backup
             cd /opt/apicongress
+            [ -f .env ] && cp .env /tmp/apicongress_backup/
 
-            # Stop old containers
-            docker compose down --remove-orphans || true
+            # 2) Stop containers 
+            docker compose down --remove-orphans
 
-            # Remove old code
+            # 3) Remove old code
             rm -rf .* * || true
 
-            # Clone fresh
+            # 4) Clone fresh
+            echo "Cloning APICongress repository..."
             git clone git@github.com:YourUser/APICongress.git .
 
-            # Build and run
+            # 5) Restore .env if needed
+            [ -f /tmp/apicongress_backup/.env ] && cp /tmp/apicongress_backup/.env .
+
+            # 6) Build and run
+            echo "Building and running new containers..."
             docker compose build --no-cache
             docker compose up -d
 
-            # Wait
+            # 7) Wait for containers to start
             sleep 10
 
-            # Logs
+            # 8) Show logs
+            echo "===== Docker Compose Status ====="
             docker compose ps
             docker compose logs --tail=50 apicongress
+
+            # 9) Cleanup
+            rm -rf /tmp/apicongress_backup

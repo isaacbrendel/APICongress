@@ -27,7 +27,7 @@ jobs:
             rm -rf .* * || true
 
             # 4) Clone fresh
-            git clone git@github.com:YourUser/APICongress.git .
+            git clone git@github.com:IsaacBrendel/APICongress.git .
             # If private, ensure SSH keys are set up
 
             # 5) Restore .env if needed

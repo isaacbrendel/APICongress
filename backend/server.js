@@ -7,7 +7,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the "public" folder (the React build)
+// Serve static files from the "public" folder (React build)
 app.use(express.static(path.join(__dirname, 'public')));
 
 const mockLLMResponses = {
@@ -18,13 +18,14 @@ const mockLLMResponses = {
   Gemini: "Hey there, I'm Gemini from Google!",
 };
 
+// API endpoint to test LLM calls
 app.get('/api/llm', (req, res) => {
   const model = req.query.model;
   const response = mockLLMResponses[model] || mockLLMResponses.OpenAI;
   res.json({ model: model, response });
 });
 
-// For any other route, serve the React app's index.html
+// Catch-all route: serve index.html for any other route (for React Router)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

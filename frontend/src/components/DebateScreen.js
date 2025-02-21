@@ -149,7 +149,8 @@ const DebateScreen = ({ topic, models, setModels }) => {
       const startingSpeaker = majorityGroup[0];
 
       // Use a relative URL for the API call to avoid CORS issues.
-      fetch(`/api/llm?model=${startingSpeaker.name}`)
+      // Pass both party and topic to the backend.
+      fetch(`/api/llm?model=${startingSpeaker.name}&party=${startingSpeaker.affiliation}&topic=${encodeURIComponent(topic)}`)
         .then((res) => res.json())
         .then((data) => {
           setCurrentChat({ model: startingSpeaker.name, message: data.response });
@@ -159,7 +160,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
           setCurrentChat({ model: startingSpeaker.name, message: 'Error fetching message.' });
         });
     }
-  }, [models, setModels]);
+  }, [models, setModels, topic]);
 
   return (
     <div className="debate-screen">

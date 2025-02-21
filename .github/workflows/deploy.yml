@@ -20,7 +20,7 @@ jobs:
             cd /opt/apicongress
             [ -f .env ] && cp .env /tmp/apicongress_backup/
 
-            # 2) Stop containers
+            # 2) Stop containers 
             docker compose down --remove-orphans
 
             # 3) Remove old code

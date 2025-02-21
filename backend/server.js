@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+// Using node-fetch; ensure it's installed (npm install node-fetch)
+const fetch = require('node-fetch');
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -11,23 +14,17 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
- * Dynamically import node-fetch so we can use it in a CommonJS module.
- */
-async function myFetch(...args) {
-  const { default: fetch } = await import('node-fetch');
-  return fetch(...args);
-}
-
-/**
  * Call the appropriate LLM API based on the model parameter.
  * Uses a prompt: "In one short paragraph, argue for the {party} viewpoint on the topic of "{topic}""
  */
 async function callLLM(model, party, topic) {
   const prompt = `In one short paragraph, argue for the ${party} viewpoint on the topic of "${topic}".`;
   switch (model) {
-    case 'OpenAI': {
+    // Accept both "OpenAI" and "ChatGPT" as valid inputs for OpenAI's API
+    case 'OpenAI':
+    case 'ChatGPT': {
       // Call OpenAI API (example using text-davinci-003)
-      const response = await myFetch("https://api.openai.com/v1/completions", {
+      const response = await fetch("https://api.openai.com/v1/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

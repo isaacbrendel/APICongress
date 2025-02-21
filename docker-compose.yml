@@ -13,5 +13,5 @@ services:
       - GROK_API_KEY=${GROK_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
-      - "8080:5000"  # Host port 8080 -> Container port 5000
+      - "8080:5000"  # Host port 8080 → Container port 5000
     restart: unless-stopped

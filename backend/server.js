@@ -48,16 +48,85 @@ async function callLLM(model, party, topic) {
       }
     }
     case 'Claude': {
-      return `Simulated Claude response: ${prompt}`;
+      const response = await myFetch("https://api.anthropic.com/v1/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.CLAUDE_API_KEY
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          max_tokens_to_sample: 150,
+          model: "claude-v1"
+        })
+      });
+      const data = await response.json();
+      if (data.completion) {
+        return data.completion.trim();
+      } else {
+        throw new Error("No completion returned from Claude.");
+      }
     }
     case 'Cohere': {
-      return `Simulated Cohere response: ${prompt}`;
+      const response = await myFetch("https://api.cohere.ai/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.COHERE_API_KEY}`
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          max_tokens: 150,
+          temperature: 0.7,
+          model: "command-xlarge-nightly"
+        })
+      });
+      const data = await response.json();
+      if (data.generations && data.generations.length > 0) {
+        return data.generations[0].text.trim();
+      } else {
+        throw new Error("No completion returned from Cohere.");
+      }
     }
     case 'Grok': {
-      return `Simulated Grok response: ${prompt}`;
+      const response = await myFetch("https://api.grok.ai/v1/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.GROK_API_KEY}`
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          max_tokens: 150,
+          temperature: 0.7
+        })
+      });
+      const data = await response.json();
+      if (data.completion) {
+        return data.completion.trim();
+      } else {
+        throw new Error("No completion returned from Grok.");
+      }
     }
     case 'Gemini': {
-      return `Simulated Gemini response: ${prompt}`;
+      const response = await myFetch("https://api.gemini.ai/v1/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          max_tokens: 150,
+          temperature: 0.7
+        })
+      });
+      const data = await response.json();
+      if (data.completion) {
+        return data.completion.trim();
+      } else {
+        throw new Error("No completion returned from Gemini.");
+      }
     }
     default:
       throw new Error(`Model ${model} is not supported.`);

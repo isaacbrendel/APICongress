@@ -1,4 +1,3 @@
-// src/components/DebateScreen.js
 import React, { useEffect, useState } from 'react';
 import DebaterCard from './DebaterCard';
 import TopicBanner from './TopicBanner';
@@ -35,10 +34,10 @@ const DebateScreen = ({ topic, models, setModels }) => {
   // Small random offset (±1%)
   const randomOffset = () => Math.floor(Math.random() * 3) - 1;
 
-  // Initially scatter debaters (narrow range to reduce overlap)
+  // Initially scatter debaters within a narrow range (40%-60% left)
   const scatteredPositions = models.reduce((acc, model) => {
     const randTop = Math.floor(Math.random() * 15 + 55);
-    const randLeft = Math.floor(Math.random() * 20 + 40); // 40%-60%
+    const randLeft = Math.floor(Math.random() * 20 + 40);
     acc[model.id] = { top: randTop, left: randLeft };
     return acc;
   }, {});
@@ -80,7 +79,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
     };
   }, [setModels]);
 
-  // After roulette, ensure each party has at least one member and assign positions.
+  // After roulette finalizes, ensure each party is represented and assign final positions.
   useEffect(() => {
     if (models.length > 0 && models.every((m) => m.isFinalized)) {
       let updatedModels = [...models];
@@ -137,7 +136,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
       });
       setFinalPositions(newPositions);
 
-      // Determine starting speaker: choose from the party with the most members.
+      // Determine the starting speaker: choose from the party with the most members.
       const partyCounts = {
         Democrat: demModels.length,
         Republican: repModels.length,
@@ -149,8 +148,8 @@ const DebateScreen = ({ topic, models, setModels }) => {
       const majorityGroup = updatedModels.filter((m) => m.affiliation === majorityParty);
       const startingSpeaker = majorityGroup[0];
 
-      // Fetch chat bubble message from the backend for the starting speaker.
-      fetch(`/api/llm?model=${model}`)
+      // Use a relative URL for the API call to avoid CORS issues.
+      fetch(`/api/llm?model=${startingSpeaker.name}`)
         .then((res) => res.json())
         .then((data) => {
           setCurrentChat({ model: startingSpeaker.name, message: data.response });

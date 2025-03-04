@@ -11,6 +11,42 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
+ * Generate mock responses when API keys are not available
+ * @param {string} model - The AI model that was requested
+ * @param {string} party - The political party perspective
+ * @param {string} topic - The debate topic
+ * @returns {string} - A mock response
+ */
+function getMockResponse(model, party, topic) {
+  console.log(`[MOCK MODE] Generating mock response for ${model}, ${party} viewpoint on ${topic}`);
+  
+  // Base responses by party
+  const responses = {
+    Republican: `From a Republican perspective, ${topic} should be addressed through free-market solutions, individual liberty, and limited government intervention. Citizens and businesses, not government bureaucracy, will drive the most effective and sustainable solutions through innovation and personal responsibility.`,
+    
+    Democrat: `From a Democratic viewpoint, ${topic} requires thoughtful government action to ensure equity and opportunity for all Americans. We support policies that protect vulnerable communities, expand access to essential services, and promote collective solutions to shared challenges through smart regulation and strategic public investments.`,
+    
+    Independent: `Taking an Independent stance on ${topic} means looking beyond partisan divides to find practical, evidence-based solutions. This issue requires balancing personal freedoms with community needs, considering long-term impacts over short-term political wins, and incorporating diverse perspectives to reach sensible compromises.`
+  };
+  
+  // Model-specific variations (each model has slight stylistic differences)
+  const modelStyle = {
+    OpenAI: (text) => text, // Base style
+    ChatGPT: (text) => text, // Same as OpenAI
+    Claude: (text) => text.replace(/we support/gi, "I believe in").replace(/Republicans|Democrats/g, match => `${match} typically`),
+    Cohere: (text) => text.replace(/\./g, ". ").trim(), // Add extra space after periods
+    Gemini: (text) => `Here's a perspective: ${text}`,
+    Grok: (text) => text + " This approach balances pragmatism with our core principles."
+  };
+  
+  // Get base response and apply model-specific style
+  const baseResponse = responses[party] || `Discussing ${topic} from a ${party} perspective requires careful consideration of various factors.`;
+  const styleFunc = modelStyle[model] || ((text) => text);
+  
+  return styleFunc(baseResponse);
+}
+
+/**
  * Dynamically import node-fetch to work with ES Modules in a CommonJS context.
  */
 async function myFetch(...args) {
@@ -42,6 +78,35 @@ async function callLLM(model, party, topic) {
     topic,
     promptLength: prompt.length
   });
+  
+  // Check for required API key
+  let apiKeyName;
+  switch (model) {
+    case 'OpenAI':
+    case 'ChatGPT':
+      apiKeyName = 'OPENAI_API_KEY';
+      break;
+    case 'Claude':
+      apiKeyName = 'CLAUDE_API_KEY';
+      break;
+    case 'Cohere':
+      apiKeyName = 'COHERE_API_KEY';
+      break;
+    case 'Gemini':
+      apiKeyName = 'GEMINI_API_KEY';
+      break;
+    case 'Grok':
+      apiKeyName = 'GROK_API_KEY';
+      break;
+    default:
+      apiKeyName = null;
+  }
+  
+  // If API key is missing, use mock response
+  if (apiKeyName && !process.env[apiKeyName]) {
+    console.log(`[MOCK MODE] API key for ${model} is missing (${apiKeyName}), using mock response`);
+    return getMockResponse(model, party, topic);
+  }
   
   // Set a timeout for all API calls (30 seconds)
   const controller = new AbortController();
@@ -134,11 +199,11 @@ async function callLLM(model, party, topic) {
       }
       
       case 'Cohere': {
-        // Updated Cohere API implementation based on provided docs
+        // Updated Cohere API implementation
         console.log(`[COHERE REQUEST] Calling Cohere API`);
         
         const requestBody = {
-          model: "command-r-plus", // Updated model name
+          model: "command-r-plus",
           messages: [
             { role: "user", content: prompt }
           ],
@@ -146,7 +211,7 @@ async function callLLM(model, party, topic) {
           temperature: 0.7
         };
         
-        const response = await myFetch("https://api.cohere.ai/v1/chat", { // Updated endpoint
+        const response = await myFetch("https://api.cohere.ai/v1/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -174,7 +239,7 @@ async function callLLM(model, party, topic) {
       }
       
       case 'Grok': {
-        // Updated Grok API implementation based on provided docs
+        // Updated Grok API implementation
         console.log(`[GROK REQUEST] Calling xAI Grok API`);
         
         const requestBody = {
@@ -198,7 +263,7 @@ async function callLLM(model, party, topic) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.XAI_API_KEY}` // Updated env variable name
+            "Authorization": `Bearer ${process.env.GROK_API_KEY}`
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal
@@ -222,7 +287,7 @@ async function callLLM(model, party, topic) {
       }
       
       case 'Gemini': {
-        // Updated Gemini API implementation based on provided docs
+        // Updated Gemini API implementation
         console.log(`[GEMINI REQUEST] Calling Google Gemini API`);
         
         const requestBody = {
@@ -464,7 +529,7 @@ app.listen(port, () => {
     'Claude': !!process.env.CLAUDE_API_KEY,
     'Cohere': !!process.env.COHERE_API_KEY,
     'Gemini': !!process.env.GEMINI_API_KEY,
-    'Grok': !!process.env.XAI_API_KEY
+    'Grok': !!process.env.GROK_API_KEY
   };
   
   console.log('Available API configurations:', availableAPIs);

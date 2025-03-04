@@ -1,0 +1,93 @@
+.debate-chat-bubble {
+    position: absolute;
+    max-width: 40%;
+    min-width: 25%;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    transition: all 0.3s ease;
+    animation: bubbleFadeIn 0.5s ease;
+  }
+  
+  @keyframes bubbleFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Pointer styles to connect bubble to speaker */
+  .debate-chat-bubble::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 12px solid transparent;
+  }
+  
+  .debate-chat-bubble.pointer-left::after {
+    top: 85%;
+    left: -12px;
+    border-right-color: inherit;
+  }
+  
+  .debate-chat-bubble.pointer-right::after {
+    top: 85%;
+    right: -12px;
+    border-left-color: inherit;
+  }
+  
+  .debate-chat-bubble.pointer-bottom::after {
+    bottom: -12px;
+    left: 48%;
+    border-top-color: inherit;
+  }
+  
+  .speaker-name {
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    border-bottom: 1px solid;
+    padding-bottom: 4px;
+  }
+  
+  .message-content {
+    font-size: 1rem;
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+  
+  .countdown-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding-top: 8px;
+    margin-top: 8px;
+  }
+  
+  .countdown-timer {
+    font-size: 1.4rem;
+    font-weight: bold;
+  }
+  
+  .next-speaker {
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .debate-chat-bubble {
+      max-width: 70%;
+      min-width: 50%;
+    }
+  }

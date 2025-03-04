@@ -58,42 +58,9 @@ const DebateScreen = ({ topic, models, setModels }) => {
     setFinalPositions(scatteredPositions);
   }, [models]);
 
-  // Roulette effect: randomize affiliation every 100ms for 3 seconds
+  // Assign fixed party affiliations instead of random
   useEffect(() => {
-    const affiliations = ['Republican', 'Democrat', 'Independent'];
-    const getRandomAffiliation = () =>
-      affiliations[Math.floor(Math.random() * affiliations.length)];
-
-    const interval = setInterval(() => {
-      setModels((prev) =>
-        prev.map((m) => ({
-          ...m,
-          affiliation: getRandomAffiliation(),
-          isFinalized: false,
-        }))
-      );
-    }, 100);
-
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-      setModels((prev) =>
-        prev.map((m) => ({
-          ...m,
-          affiliation: getRandomAffiliation(),
-          isFinalized: true,
-        }))
-      );
-    }, 3000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [setModels]);
-
-  // After roulette finalizes, ensure each party is represented and assign final positions
-  useEffect(() => {
-    if (models.length > 0 && models.every((m) => m.isFinalized)) {
+    if (models.length > 0) {
       // Reset debate state when models change
       setDebateMessages([]);
       setCurrentSpeakerIndex(0);
@@ -107,34 +74,73 @@ const DebateScreen = ({ topic, models, setModels }) => {
         countdownInterval.current = null;
       }
       
-      let updatedModels = [...models];
-      const count = {
-        Democrat: updatedModels.filter((m) => m.affiliation === 'Democrat').length,
-        Republican: updatedModels.filter((m) => m.affiliation === 'Republican').length,
-        Independent: updatedModels.filter((m) => m.affiliation === 'Independent').length,
+      const updatedModels = [...models];
+      
+      // Create desired party distribution
+      // Ensure at least 2 Republicans, 2 Democrats, and 1 Independent if possible
+      
+      // First try to find predefined model names that are commonly used
+      const partyAssignments = {
+        // Models that are often made Republican
+        'Grok': 'Republican',
+        'Cohere': 'Republican',
+        // Models that are often made Democrat
+        'Claude': 'Democrat',
+        'Gemini': 'Democrat',
+        // Models that are often made Independent
+        'OpenAI': 'Independent', 
+        'ChatGPT': 'Independent'
       };
       
-      // Ensure each party has at least one representative
-      const parties = ['Democrat', 'Republican', 'Independent'];
-      parties.forEach((party) => {
-        if (count[party] === 0) {
-          let donor = parties.reduce((max, cur) =>
-            count[cur] > count[max] ? cur : max,
-            parties[0]
-          );
-          if (count[donor] > 1) {
-            for (let i = 0; i < updatedModels.length; i++) {
-              if (updatedModels[i].affiliation === donor) {
-                updatedModels[i].affiliation = party;
-                count[donor]--;
-                count[party]++;
-                break;
-              }
-            }
-          }
+      // Assign parties based on the model name, with a fallback system
+      let repubCount = 0;
+      let demCount = 0;
+      let indepCount = 0;
+      
+      // First pass - assign parties based on the mapping
+      updatedModels.forEach((model, index) => {
+        if (partyAssignments[model.name]) {
+          model.affiliation = partyAssignments[model.name];
+          model.isFinalized = true;
+          
+          if (model.affiliation === 'Republican') repubCount++;
+          else if (model.affiliation === 'Democrat') demCount++;
+          else if (model.affiliation === 'Independent') indepCount++;
         }
       });
-
+      
+      // Second pass - ensure we have at least 2 Republicans and 2 Democrats
+      updatedModels.forEach((model, index) => {
+        if (!model.isFinalized) {
+          if (repubCount < 2) {
+            model.affiliation = 'Republican';
+            repubCount++;
+          } else if (demCount < 2) {
+            model.affiliation = 'Democrat';
+            demCount++;
+          } else if (indepCount < 1) {
+            model.affiliation = 'Independent';
+            indepCount++;
+          } else {
+            // If we have the minimum distribution, assign remaining to balance distribution
+            if (repubCount <= demCount && repubCount <= indepCount) {
+              model.affiliation = 'Republican';
+              repubCount++;
+            } else if (demCount <= repubCount && demCount <= indepCount) {
+              model.affiliation = 'Democrat';
+              demCount++;
+            } else {
+              model.affiliation = 'Independent';
+              indepCount++;
+            }
+          }
+          model.isFinalized = true;
+        }
+      });
+      
+      // Update models with new affiliations
+      setModels(updatedModels);
+      
       // Assign seating positions based on party affiliation
       let newPositions = {};
       const demModels = updatedModels.filter((m) => m.affiliation === 'Democrat');
@@ -164,55 +170,28 @@ const DebateScreen = ({ topic, models, setModels }) => {
       });
       setFinalPositions(newPositions);
 
-      // Create a speaking order that alternates between parties when possible
-      // Try to ensure we have at least 2 from each major party and 1 independent
+      // Create a speaking order that alternates between parties
       let order = [];
       
-      // Add first Democrat
-      if (demModels.length > 0) order.push(demModels[0]);
-      
-      // Add first Republican
+      // Start with a Republican
       if (repModels.length > 0) order.push(repModels[0]);
+      
+      // Then a Democrat
+      if (demModels.length > 0) order.push(demModels[0]);
       
       // Add Independent if available
       if (indModels.length > 0) order.push(indModels[0]);
       
-      // Add second Democrat if available
-      if (demModels.length > 1) order.push(demModels[1]);
-      
       // Add second Republican if available
       if (repModels.length > 1) order.push(repModels[1]);
       
-      // Add remaining speakers to reach at least 5 if possible, prioritizing balance
-      while (order.length < 5 && order.length < updatedModels.length) {
-        // Count current speakers by party
-        const currentCounts = {
-          Democrat: order.filter(m => m.affiliation === 'Democrat').length,
-          Republican: order.filter(m => m.affiliation === 'Republican').length,
-          Independent: order.filter(m => m.affiliation === 'Independent').length
-        };
-        
-        // Find party with fewest speakers
-        const fewestParty = Object.keys(currentCounts).reduce((a, b) => 
-          currentCounts[a] <= currentCounts[b] ? a : b
-        );
-        
-        // Try to add a speaker from that party
-        const partyModels = updatedModels.filter(m => 
-          m.affiliation === fewestParty && !order.includes(m)
-        );
-        
-        if (partyModels.length > 0) {
-          order.push(partyModels[0]);
-        } else {
-          // If no more from fewest party, add any remaining speaker
-          const remainingModels = updatedModels.filter(m => !order.includes(m));
-          if (remainingModels.length > 0) {
-            order.push(remainingModels[0]);
-          } else {
-            break; // No more speakers to add
-          }
-        }
+      // Add second Democrat if available
+      if (demModels.length > 1) order.push(demModels[1]);
+      
+      // Add remaining speakers to reach at least 5 if possible
+      const remainingModels = updatedModels.filter(m => !order.includes(m));
+      for (let i = 0; i < remainingModels.length && order.length < 5; i++) {
+        order.push(remainingModels[i]);
       }
       
       setSpeakingOrder(order);
@@ -228,7 +207,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
         }, 1000);
       }
     }
-  }, [models, setModels, topic]);
+  }, [models, topic]);
   
   // Function to call the next speaker in the debate
   const callSpeaker = async (speaker, speakerIndex, previousMessages) => {
@@ -300,7 +279,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
       // Fallback response in case of error
       const errorMessage = {
         model: speaker.name,
-        message: `I apologize, but I'm having technical difficulties presenting my views on ${topic}.`,
+        message: `I'll keep it short: ${topic} needs practical solutions, not partisan games.`,
         affiliation: speaker.affiliation
       };
       
@@ -376,31 +355,23 @@ const DebateScreen = ({ topic, models, setModels }) => {
       topic(newTopic);
     }
     
-    // Restart the affiliation roulette
-    const affiliations = ['Republican', 'Democrat', 'Independent'];
-    const getRandomAffiliation = () =>
-      affiliations[Math.floor(Math.random() * affiliations.length)];
-      
-    const interval = setInterval(() => {
-      setModels((prev) =>
-        prev.map((m) => ({
-          ...m,
-          affiliation: getRandomAffiliation(),
-          isFinalized: false,
-        }))
-      );
-    }, 100);
-    
-    setTimeout(() => {
-      clearInterval(interval);
-      setModels((prev) =>
-        prev.map((m) => ({
-          ...m,
-          affiliation: getRandomAffiliation(),
-          isFinalized: true,
-        }))
-      );
-    }, 3000);
+    // Keep current party affiliations but mark as not finalized to trigger reassignment
+    setModels((prev) =>
+      prev.map((m) => ({
+        ...m,
+        isFinalized: false,
+      }))
+    );
+  };
+
+  // Handle manual party reassignment
+  const handleReassignParties = () => {
+    setModels((prev) =>
+      prev.map((m) => ({
+        ...m,
+        isFinalized: false,
+      }))
+    );
   };
 
   return (
@@ -417,30 +388,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
       {!debateCompleted && (
         <button
           className="reassign-button"
-          onClick={() => {
-            const affiliations = ['Republican', 'Democrat', 'Independent'];
-            const getRandomAffiliation = () =>
-              affiliations[Math.floor(Math.random() * affiliations.length)];
-            const interval = setInterval(() => {
-              setModels((prev) =>
-                prev.map((m) => ({
-                  ...m,
-                  affiliation: getRandomAffiliation(),
-                  isFinalized: false,
-                }))
-              );
-            }, 100);
-            setTimeout(() => {
-              clearInterval(interval);
-              setModels((prev) =>
-                prev.map((m) => ({
-                  ...m,
-                  affiliation: getRandomAffiliation(),
-                  isFinalized: true,
-                }))
-              );
-            }, 3000);
-          }}
+          onClick={handleReassignParties}
         >
           Reassign Affiliations
         </button>

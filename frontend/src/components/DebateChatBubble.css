@@ -1,8 +1,8 @@
 .debate-chat-bubble {
     position: absolute;
-    max-width: 40%;
-    min-width: 25%;
-    padding: 15px;
+    max-width: 30%;
+    min-width: 20%;
+    padding: 12px;
     border-radius: 10px;
     border: 2px solid;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -53,16 +53,16 @@
   
   .speaker-name {
     font-weight: bold;
-    font-size: 1.2rem;
-    margin-bottom: 8px;
+    font-size: 1rem;
+    margin-bottom: 6px;
     border-bottom: 1px solid;
-    padding-bottom: 4px;
+    padding-bottom: 3px;
   }
   
   .message-content {
-    font-size: 1rem;
-    line-height: 1.4;
-    margin-bottom: 12px;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    margin-bottom: 8px;
   }
   
   .countdown-container {
@@ -70,24 +70,41 @@
     justify-content: space-between;
     align-items: center;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
-    padding-top: 8px;
-    margin-top: 8px;
+    padding-top: 6px;
+    margin-top: 6px;
   }
   
   .countdown-timer {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: bold;
   }
   
   .next-speaker {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     opacity: 0.8;
+  }
+  
+  /* Make debate cards pulse when speaking */
+  .debater-position.speaking {
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
   
   /* Responsive design */
   @media (max-width: 768px) {
     .debate-chat-bubble {
-      max-width: 70%;
-      min-width: 50%;
+      max-width: 60%;
+      min-width: 40%;
     }
   }

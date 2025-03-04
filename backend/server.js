@@ -11,39 +11,157 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
- * Generate mock responses when API keys are not available
+ * Generate mock responses that are brief and character-driven
  * @param {string} model - The AI model that was requested
  * @param {string} party - The political party perspective
  * @param {string} topic - The debate topic
+ * @param {Array} context - Previous debate messages
  * @returns {string} - A mock response
  */
-function getMockResponse(model, party, topic) {
+function getMockResponse(model, party, topic, context = []) {
   console.log(`[MOCK MODE] Generating mock response for ${model}, ${party} viewpoint on ${topic}`);
   
-  // Base responses by party
-  const responses = {
-    Republican: `From a Republican perspective, ${topic} should be addressed through free-market solutions, individual liberty, and limited government intervention. Citizens and businesses, not government bureaucracy, will drive the most effective and sustainable solutions through innovation and personal responsibility.`,
-    
-    Democrat: `From a Democratic viewpoint, ${topic} requires thoughtful government action to ensure equity and opportunity for all Americans. We support policies that protect vulnerable communities, expand access to essential services, and promote collective solutions to shared challenges through smart regulation and strategic public investments.`,
-    
-    Independent: `Taking an Independent stance on ${topic} means looking beyond partisan divides to find practical, evidence-based solutions. This issue requires balancing personal freedoms with community needs, considering long-term impacts over short-term political wins, and incorporating diverse perspectives to reach sensible compromises.`
+  // Sample brief, punchy responses by party and topic
+  const responsesByPartyAndTopic = {
+    Republican: {
+      // Gun control
+      'gun control': [
+        "Guns don't kill people. People kill people. Protect the Second Amendment!",
+        "Law-abiding citizens need protection. More guns, less crime!",
+        "Our founding fathers knew tyranny. That's why we have the Second Amendment."
+      ],
+      'taxes': [
+        "Lower taxes mean more jobs. Government isn't the solution to our problems.",
+        "Your money belongs in your pocket, not Washington's!",
+        "Cut taxes. Cut spending. Let the free market thrive!"
+      ],
+      'healthcare': [
+        "Free market healthcare drives innovation. Government plans destroy quality.",
+        "We need choice in healthcare, not government mandates!",
+        "Private insurance creates competition. Single-payer kills innovation."
+      ],
+      'immigration': [
+        "Secure our borders first! Legal immigration, yes. Illegal? Absolutely not.",
+        "A nation without borders isn't a nation at all!",
+        "We welcome legal immigrants. But our laws must be respected!"
+      ],
+      'climate': [
+        "Climate regulations kill jobs. Innovation, not regulation, is the answer!",
+        "American energy independence first! We won't sacrifice our economy.",
+        "Let's not destroy our economy for unproven climate theories."
+      ]
+    },
+    Democrat: {
+      // Gun control
+      'gun control': [
+        "Background checks save lives. Why oppose common-sense gun safety?",
+        "No one needs assault weapons for hunting. Children need protection from guns!",
+        "Gun violence is preventable. We need action, not thoughts and prayers."
+      ],
+      'taxes': [
+        "The wealthy must pay their fair share! Our infrastructure demands investment.",
+        "Tax cuts for billionaires? We need to invest in working families!",
+        "Corporate tax breaks don't trickle down. They flood offshore accounts!"
+      ],
+      'healthcare': [
+        "Healthcare is a right, not a privilege for the wealthy!",
+        "No one should go bankrupt from medical bills. Medicare for All!",
+        "Insurance companies shouldn't decide who lives and who dies!"
+      ],
+      'immigration': [
+        "Dreamers belong here. Immigration makes America stronger!",
+        "Separating families is cruel and un-American. We can do better!",
+        "We need comprehensive immigration reform, not walls and cages!"
+      ],
+      'climate': [
+        "Climate change is an existential threat. We need action now!",
+        "Green jobs are the future. Let's lead the clean energy revolution!",
+        "Our planet is burning. Science demands we act on climate change!"
+      ]
+    },
+    Independent: {
+      // Gun control
+      'gun control': [
+        "Both gun rights AND safety measures can coexist. Stop the false choice!",
+        "Responsible gun ownership with practical safeguards. It's not either-or.",
+        "Mental health resources AND background checks. Let's find common ground."
+      ],
+      'taxes': [
+        "Smart taxation balances growth with essential services. Both extremes fail us.",
+        "Neither tax-and-spend nor trickle-down works. We need practical solutions.",
+        "Fair taxes and responsible spending. Neither party has it right."
+      ],
+      'healthcare': [
+        "Let's take the best healthcare ideas from both sides. Ideology helps no one.",
+        "Public options AND private insurance can coexist. Stop the all-or-nothing debate!",
+        "Universal coverage with choice is possible. Let's be pragmatic."
+      ],
+      'immigration': [
+        "Border security AND humane policies. We don't need to choose!",
+        "Both parties use immigration as a wedge issue. Americans deserve solutions.",
+        "Strong borders with fair, efficient legal pathways. It's not complicated."
+      ],
+      'climate': [
+        "Market-based climate solutions work. Carbon pricing, not endless regulations.",
+        "Both denial and alarmism are wrong. Let's take practical climate action.",
+        "Clean energy innovation creates jobs AND protects our planet."
+      ]
+    }
   };
   
-  // Model-specific variations (each model has slight stylistic differences)
-  const modelStyle = {
-    OpenAI: (text) => text, // Base style
-    ChatGPT: (text) => text, // Same as OpenAI
-    Claude: (text) => text.replace(/we support/gi, "I believe in").replace(/Republicans|Democrats/g, match => `${match} typically`),
-    Cohere: (text) => text.replace(/\./g, ". ").trim(), // Add extra space after periods
-    Gemini: (text) => `Here's a perspective: ${text}`,
-    Grok: (text) => text + " This approach balances pragmatism with our core principles."
+  // Generic brief responses by party (for topics not specifically covered)
+  const genericBriefResponses = {
+    Republican: [
+      "Freedom works. Government doesn't. Keep Washington out of our lives!",
+      "Free markets. Strong military. Traditional values. That's what works!",
+      "Cut regulations. Cut taxes. Let Americans build their dreams!",
+      "Individual liberty, not big government! The Constitution is clear.",
+      "America first! We won't apologize for our exceptional nation!"
+    ],
+    Democrat: [
+      "People over profits! The economy should work for everyone.",
+      "Progress requires investment. We can't cut our way to prosperity!",
+      "Diversity makes us stronger. Inclusion isn't optional!",
+      "Government can solve problems. We're all in this together!",
+      "Equal rights and justice for all. No exceptions, no compromises!"
+    ],
+    Independent: [
+      "Both parties fail America. We need practical solutions, not ideology!",
+      "Get past partisan politics. Solutions lie in the sensible center.",
+      "Extremism solves nothing. Compromise isn't weakness—it's wisdom.",
+      "End the partisan warfare. Americans deserve better than this gridlock!",
+      "Common ground exists. Let's focus on results, not rhetoric."
+    ]
   };
   
-  // Get base response and apply model-specific style
-  const baseResponse = responses[party] || `Discussing ${topic} from a ${party} perspective requires careful consideration of various factors.`;
-  const styleFunc = modelStyle[model] || ((text) => text);
+  // Find topic category by looking for keywords
+  let topicCategory = 'general';
+  const topicLower = topic.toLowerCase();
   
-  return styleFunc(baseResponse);
+  if (topicLower.includes('gun') || topicLower.includes('firearm') || topicLower.includes('weapon') || topicLower.includes('second amendment')) {
+    topicCategory = 'gun control';
+  } else if (topicLower.includes('tax') || topicLower.includes('spend') || topicLower.includes('budget') || topicLower.includes('deficit')) {
+    topicCategory = 'taxes';
+  } else if (topicLower.includes('health') || topicLower.includes('medic') || topicLower.includes('doctor') || topicLower.includes('insurance')) {
+    topicCategory = 'healthcare';
+  } else if (topicLower.includes('immigra') || topicLower.includes('border') || topicLower.includes('alien') || topicLower.includes('refugee')) {
+    topicCategory = 'immigration';
+  } else if (topicLower.includes('climate') || topicLower.includes('environ') || topicLower.includes('green') || topicLower.includes('carbon')) {
+    topicCategory = 'climate';
+  }
+  
+  // Select appropriate response
+  let responseOptions;
+  
+  if (responsesByPartyAndTopic[party] && responsesByPartyAndTopic[party][topicCategory]) {
+    responseOptions = responsesByPartyAndTopic[party][topicCategory];
+  } else {
+    responseOptions = genericBriefResponses[party];
+  }
+  
+  // Randomly select a response from the options
+  const randomIndex = Math.floor(Math.random() * responseOptions.length);
+  return responseOptions[randomIndex];
 }
 
 /**
@@ -65,10 +183,23 @@ async function myFetch(...args) {
 
 /**
  * Call the appropriate LLM API based on the model parameter.
- * Prompt: "In one short paragraph, argue for the {party} viewpoint on the topic of "{topic}""
+ * Enhanced prompt for character-based responses that are concise and first-person.
  */
-async function callLLM(model, party, topic) {
-  const prompt = `In one short paragraph, argue for the ${party} viewpoint on the topic of "${topic}".`;
+async function callLLM(model, party, topic, context = []) {
+  // Generate a character-based prompt for personalized, first-person, brief responses
+  let systemPrompt = `You are a ${party} politician in a heated debate. Speak in the FIRST PERSON ONLY.`;
+  systemPrompt += ` Your response MUST BE UNDER 20 WORDS. Be direct, passionate, and authentic.`;
+  systemPrompt += ` DO NOT say "As a ${party}..." or "I believe..." - just make your point forcefully.`;
+  systemPrompt += ` NEVER explain what your party thinks - speak AS a member of that party.`;
+
+  // Create user prompt based on context
+  let userPrompt = `Make a bold, direct statement about ${topic} that a passionate ${party} would say. Keep it under 20 words, punchy and memorable.`;
+  
+  // Add context about previous speakers if available
+  if (context && context.length > 0) {
+    const lastMessage = context[context.length - 1];
+    userPrompt += ` Respond to what ${lastMessage.speaker} just said: "${lastMessage.message}"`;
+  }
   
   // Log request attempt
   console.log(`[LLM REQUEST]`, {
@@ -76,7 +207,8 @@ async function callLLM(model, party, topic) {
     model,
     party,
     topic,
-    promptLength: prompt.length
+    contextLength: context ? context.length : 0,
+    promptLength: userPrompt.length
   });
   
   // Check for required API key
@@ -105,7 +237,7 @@ async function callLLM(model, party, topic) {
   // If API key is missing, use mock response
   if (apiKeyName && !process.env[apiKeyName]) {
     console.log(`[MOCK MODE] API key for ${model} is missing (${apiKeyName}), using mock response`);
-    return getMockResponse(model, party, topic);
+    return getMockResponse(model, party, topic, context);
   }
   
   // Set a timeout for all API calls (30 seconds)
@@ -118,16 +250,16 @@ async function callLLM(model, party, topic) {
     switch (model) {
       case 'OpenAI':
       case 'ChatGPT': {
-        // Using chat completions API (gpt-3.5-turbo) instead of deprecated text-davinci-003
+        // Using chat completions API with character-based prompting
         console.log(`[OPENAI REQUEST] Calling OpenAI chat completions API`);
         
         const requestBody = {
           model: "gpt-3.5-turbo",
           messages: [
-            { role: "system", content: "You are a political analyst who can present arguments from different political perspectives." },
-            { role: "user", content: prompt }
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
           ],
-          max_tokens: 150,
+          max_tokens: 50, // Reduced token limit for shorter responses
           temperature: 0.7
         };
         
@@ -159,14 +291,15 @@ async function callLLM(model, party, topic) {
       }
       
       case 'Claude': {
-        // Using Claude's current API format (v1/messages)
+        // Using Claude's current API format with character-based prompting
         console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API`);
         
         const requestBody = {
           model: "claude-3-haiku-20240307",
-          max_tokens: 150,
+          max_tokens: 50,
           messages: [
-            { role: "user", content: prompt }
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
           ]
         };
         
@@ -199,15 +332,16 @@ async function callLLM(model, party, topic) {
       }
       
       case 'Cohere': {
-        // Updated Cohere API implementation
+        // Using Cohere's API with character-based prompting
         console.log(`[COHERE REQUEST] Calling Cohere API`);
         
         const requestBody = {
           model: "command-r-plus",
           messages: [
-            { role: "user", content: prompt }
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
           ],
-          max_tokens: 150,
+          max_tokens: 50,
           temperature: 0.7
         };
         
@@ -239,7 +373,7 @@ async function callLLM(model, party, topic) {
       }
       
       case 'Grok': {
-        // Updated Grok API implementation
+        // Using Grok API with character-based prompting
         console.log(`[GROK REQUEST] Calling xAI Grok API`);
         
         const requestBody = {
@@ -247,15 +381,15 @@ async function callLLM(model, party, topic) {
           messages: [
             { 
               role: "system", 
-              content: "You are a political analyst who can present arguments from different political perspectives."
+              content: systemPrompt
             },
             { 
               role: "user", 
-              content: prompt 
+              content: userPrompt 
             }
           ],
           temperature: 0.7,
-          max_tokens: 150,
+          max_tokens: 50,
           stream: false
         };
         
@@ -287,19 +421,22 @@ async function callLLM(model, party, topic) {
       }
       
       case 'Gemini': {
-        // Updated Gemini API implementation
+        // Using Gemini API with character-based prompting
         console.log(`[GEMINI REQUEST] Calling Google Gemini API`);
+        
+        // Gemini doesn't support system messages the same way, so combine them
+        const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
         
         const requestBody = {
           contents: [
             {
               parts: [
-                { text: prompt }
+                { text: combinedPrompt }
               ]
             }
           ],
           generationConfig: {
-            maxOutputTokens: 150,
+            maxOutputTokens: 50,
             temperature: 0.7
           }
         };
@@ -347,11 +484,27 @@ async function callLLM(model, party, topic) {
     // Clear the timeout
     clearTimeout(timeoutId);
     
+    // Ensure response is concise (under 20 words)
+    if (result) {
+      // Check if response is longer than 20 words
+      const words = result.split(' ');
+      if (words.length > 20) {
+        console.log(`[RESPONSE TRIMMING] Trimming response from ${words.length} words to 20 words`);
+        result = words.slice(0, 20).join(' ');
+        
+        // Add period if needed
+        if (!result.endsWith('.') && !result.endsWith('!') && !result.endsWith('?')) {
+          result += '.';
+        }
+      }
+    }
+    
     // Log successful result
     console.log(`[LLM SUCCESS]`, {
       model, 
       resultLength: result.length,
-      resultPreview: result.substring(0, 50) + (result.length > 50 ? '...' : '')
+      wordCount: result.split(' ').length,
+      resultPreview: result
     });
     
     return result;
@@ -390,7 +543,18 @@ async function callLLM(model, party, topic) {
 // API endpoint to call an LLM with the given parameters
 app.get('/api/llm', async (req, res) => {
   const startTime = Date.now();
-  const { model, party, topic } = req.query;
+  const { model, party, topic, context } = req.query;
+  
+  // Parse context if provided
+  let parsedContext = [];
+  if (context) {
+    try {
+      parsedContext = JSON.parse(context);
+    } catch (e) {
+      console.error('[CONTEXT PARSE ERROR]', e);
+      // Continue with empty context if parsing fails
+    }
+  }
   
   // Log incoming request
   console.log(`[API REQUEST] /api/llm`, {
@@ -399,6 +563,7 @@ app.get('/api/llm', async (req, res) => {
     model,
     party, 
     topic,
+    contextSize: parsedContext.length,
     userAgent: req.get('User-Agent')
   });
   
@@ -436,8 +601,8 @@ app.get('/api/llm', async (req, res) => {
   }
   
   try {
-    // Call the LLM
-    const result = await callLLM(model, party, topic);
+    // Call the LLM with context
+    const result = await callLLM(model, party, topic, parsedContext);
     
     // Calculate response time
     const responseTime = Date.now() - startTime;
@@ -447,7 +612,8 @@ app.get('/api/llm', async (req, res) => {
       model,
       party,
       topic,
-      responseLength: result.length
+      responseLength: result.length,
+      wordCount: result.split(' ').length
     });
     
     res.json({ 
@@ -487,6 +653,26 @@ app.get('/api/llm', async (req, res) => {
     } else if (error.message.includes('not supported')) {
       userMessage = `${model} is not currently supported`;
       statusCode = 400;
+    }
+    
+    // If all else fails, provide a mock response in production
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        const mockResponse = getMockResponse(model, party, topic, parsedContext);
+        console.log(`[FALLBACK] Using mock response after API error`);
+        
+        return res.json({
+          model,
+          response: mockResponse,
+          party,
+          topic,
+          timestamp: new Date().toISOString(),
+          mock: true
+        });
+      } catch (mockError) {
+        console.error(`[MOCK FALLBACK ERROR]`, mockError);
+        // Continue to error response if mock fails
+      }
     }
     
     // Provide informative error response

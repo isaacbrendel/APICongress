@@ -23,7 +23,7 @@ const DebateScreen = ({ topic, models, setModels }) => {
   // Seat positions for different parties
   const demSeats = [
     { top: 55, left: 5 },
-    { top: 60, left: 8 },
+    { top: 60, left: 8 }, 
     { top: 65, left: 12 },
     { top: 57, left: 7 },
     { top: 63, left: 10 },

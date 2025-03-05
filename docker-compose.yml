@@ -12,3 +12,16 @@ services:
     ports:
       - "8080:5000" # Host port 8080 → Container port 5000
     restart: unless-stopped
+  
+  nginx:
+    image: nginx:alpine
+    container_name: congress-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - apicongress
+    restart: unless-stopped

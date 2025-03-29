@@ -53,12 +53,24 @@ function App() {
     setDebateStarted(true);
   };
 
+  // Function to return to home screen
+  const handleReturnHome = () => {
+    setDebateStarted(false);
+    setTopic('');
+    setModels([]);
+  };
+
   return (
     <div className="App">
       {!debateStarted ? (
         <HomeScreen onBeginDebate={startDebate} />
       ) : (
-        <DebateScreen topic={topic} models={models} setModels={setModels} />
+        <DebateScreen 
+          topic={topic} 
+          models={models} 
+          setModels={setModels} 
+          onReturnHome={handleReturnHome}
+        />
       )}
     </div>
   );

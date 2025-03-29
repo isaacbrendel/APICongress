@@ -2,8 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const app = express();
-const port = process.env.PORT || 5000;
+const portFallbacks = [5000, 5001, 5002, 5003, 5004, 5005]; // Multiple port options
 
+// Express middleware
 app.use(cors());
 app.use(express.json());
 
@@ -705,18 +706,39 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+// Function to start the server with fallback ports
+function startServer(portOptions) {
+  const port = process.env.PORT || portOptions[0];
   
-  // Log available API keys (without exposing the actual keys)
-  const availableAPIs = {
-    'OpenAI': !!process.env.OPENAI_API_KEY,
-    'Claude': !!process.env.CLAUDE_API_KEY,
-    'Cohere': !!process.env.COHERE_API_KEY,
-    'Gemini': !!process.env.GEMINI_API_KEY,
-    'Grok': !!process.env.GROK_API_KEY
-  };
-  
-  console.log('Available API configurations:', availableAPIs);
-});
+  const server = app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    // Log available API keys (without exposing the actual keys)
+    const availableAPIs = {
+      'OpenAI': !!process.env.OPENAI_API_KEY,
+      'Claude': !!process.env.CLAUDE_API_KEY,
+      'Cohere': !!process.env.COHERE_API_KEY,
+      'Gemini': !!process.env.GEMINI_API_KEY,
+      'Grok': !!process.env.GROK_API_KEY
+    };
+    
+    console.log('Available API configurations:', availableAPIs);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${port} is busy, trying next available port...`);
+      if (portOptions.length > 1) {
+        startServer(portOptions.slice(1)); // Try next port
+      } else {
+        console.error('All ports are busy. Please specify a different port via PORT environment variable.');
+        process.exit(1);
+      }
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+}
+
+// Start the server with port fallbacks
+startServer(portFallbacks);

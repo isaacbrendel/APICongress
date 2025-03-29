@@ -11,17 +11,17 @@ import './DebateChatBubble.css';
  * @param {number} props.countdown - Seconds remaining before next speaker (null if not counting)
  * @param {string} props.nextSpeaker - Name of the next AI to speak
  */
-const DebateChatBubble = ({ 
-  model, 
-  message, 
-  affiliation, 
-  position, 
-  countdown, 
+const DebateChatBubble = ({
+  model,
+  message,
+  affiliation,
+  position,
+  countdown,
   nextSpeaker
 }) => {
   // Set bubble position relative to speaker position
   const getBubblePosition = () => {
-    if (!position) return { top: '30%', left: '50%' };
+    if (!position) return { top: '30vh', left: '50vw' };
     
     // Position bubble above the speaker with some offset
     const bubbleTop = Math.max(10, position.top - 15); // At least 10% from top
@@ -37,55 +37,92 @@ const DebateChatBubble = ({
       bubbleLeft = position.left < 50 ? position.left + 8 : position.left - 28;
     }
     
-    return { top: `${bubbleTop}%`, left: `${bubbleLeft}%` };
+    return { top: `${bubbleTop}vh`, left: `${bubbleLeft}vw` };
   };
-  
+
   // Get colors based on affiliation
   const getColors = () => {
     switch (affiliation) {
       case 'Democrat':
-        return { borderColor: '#3373CC', backgroundColor: 'rgba(51, 115, 204, 0.1)' };
+        return { 
+          borderColor: '#3373CC', 
+          backgroundColor: 'rgba(51, 115, 204, 0.1)',
+          gradientStart: '#3373CC',
+          gradientEnd: '#2a5ca3'
+        };
       case 'Republican':
-        return { borderColor: '#CC3333', backgroundColor: 'rgba(204, 51, 51, 0.1)' };
+        return { 
+          borderColor: '#CC3333', 
+          backgroundColor: 'rgba(204, 51, 51, 0.1)',
+          gradientStart: '#CC3333',
+          gradientEnd: '#a32929'
+        };
       case 'Independent':
-        return { borderColor: '#8033CC', backgroundColor: 'rgba(128, 51, 204, 0.1)' };
+        return { 
+          borderColor: '#8033CC', 
+          backgroundColor: 'rgba(128, 51, 204, 0.1)',
+          gradientStart: '#8033CC',
+          gradientEnd: '#6629a3'
+        };
       default:
-        return { borderColor: '#333333', backgroundColor: 'rgba(51, 51, 51, 0.1)' };
+        return { 
+          borderColor: '#333333', 
+          backgroundColor: 'rgba(51, 51, 51, 0.1)',
+          gradientStart: '#333333',
+          gradientEnd: '#222222'
+        };
     }
   };
-  
+
   // Get pointer direction based on affiliation
   const getPointerClass = () => {
     if (affiliation === 'Democrat') return 'pointer-left';
     if (affiliation === 'Republican') return 'pointer-right';
     return 'pointer-bottom'; // Independent
   };
-  
+
   const bubblePosition = getBubblePosition();
   const colors = getColors();
   const pointerClass = getPointerClass();
-  
+
   return (
-    <div 
+    <div
       className={`debate-chat-bubble ${pointerClass}`}
       style={{
         ...bubblePosition,
         borderColor: colors.borderColor,
-        backgroundColor: colors.backgroundColor
+        backgroundColor: colors.backgroundColor,
+        boxShadow: `0 6px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px ${colors.borderColor}`
       }}
     >
-      <div className="speaker-name" style={{ color: colors.borderColor }}>
-        {model}
+      <div 
+        className="speaker-header" 
+        style={{ 
+          background: `linear-gradient(135deg, ${colors.gradientStart}, ${colors.gradientEnd})` 
+        }}
+      >
+        <div className="speaker-name">
+          {model} <span className="speaker-affiliation">({affiliation})</span>
+        </div>
       </div>
-      <div className="message-content">{message}</div>
+      
+      <div className="message-content">"{message}"</div>
       
       {countdown !== null && (
         <div className="countdown-container">
-          <div className="countdown-timer" style={{ color: colors.borderColor }}>
-            {countdown}
+          <div className="countdown-info">
+            <div className="next-speaker">
+              Next: <span style={{ fontWeight: 'bold' }}>{nextSpeaker}</span>
+            </div>
           </div>
-          <div className="next-speaker">
-            Next: <span style={{ fontWeight: 'bold' }}>{nextSpeaker}</span>
+          <div 
+            className="countdown-timer" 
+            style={{ 
+              color: 'white',
+              background: `linear-gradient(135deg, ${colors.gradientStart}, ${colors.gradientEnd})` 
+            }}
+          >
+            {countdown}
           </div>
         </div>
       )}

@@ -2,10 +2,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
- * Hook for party assignment that uses the working methodology from original code
+ * Hook for party assignment with guaranteed constraints:
+ * - 2 Republicans
+ * - 2 Democrats
+ * - 1 Independent (for 5 models)
  */
 const usePartyAssignment = (initialModels, setModels) => {
   const [isAssigning, setIsAssigning] = useState(false);
+  const [assignmentComplete, setAssignmentComplete] = useState(false);
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
   
@@ -23,8 +27,18 @@ const usePartyAssignment = (initialModels, setModels) => {
     };
   }, []);
   
+  // Auto-assign parties when models are available
+  useEffect(() => {
+    if (initialModels && initialModels.length > 0 && !assignmentComplete) {
+      // Apply balanced constraints immediately
+      const balancedModels = enforcePartyConstraints(initialModels);
+      setModels(balancedModels);
+      setAssignmentComplete(true);
+    }
+  }, [initialModels]);
+  
   /**
-   * Start party assignment - simple roulette like in original working code
+   * Start party assignment - simple roulette animation
    */
   const startPartyRoulette = useCallback(() => {
     console.log("Starting party assignment");
@@ -34,6 +48,7 @@ const usePartyAssignment = (initialModels, setModels) => {
     
     // Set assigning state
     setIsAssigning(true);
+    setAssignmentComplete(false);
     
     // Define party options
     const affiliations = ['Republican', 'Democrat', 'Independent'];
@@ -67,68 +82,126 @@ const usePartyAssignment = (initialModels, setModels) => {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
       
-      // Set final affiliations
+      // Set final, properly balanced affiliations
       setModels((prev) => {
-        const finalModels = prev.map((m) => ({
-          ...m,
-          affiliation: getRandomAffiliation(),
-          isFinalized: true,
-        }));
-        return finalModels;
+        // Apply balanced distribution
+        const balancedModels = enforcePartyConstraints(prev);
+        return balancedModels;
       });
       
-      // Mark as no longer assigning
+      // Mark as no longer assigning and assignment as complete
       setIsAssigning(false);
-    }, 3000);
+      setAssignmentComplete(true);
+    }, 1500); // Reduced time for faster animation
   }, [setModels, isAssigning]);
   
   /**
-   * Balance party distribution
+   * Apply strict party distribution rules:
+   * - Exactly 2 Republicans
+   * - Exactly 2 Democrats
+   * - Remaining as Independents
+   */
+  const enforcePartyConstraints = useCallback((models) => {
+    if (!models || models.length === 0) return models;
+    
+    console.log("Enforcing party constraints");
+    
+    // Clone to avoid mutations
+    const updatedModels = JSON.parse(JSON.stringify(models));
+    
+    // Define target counts based on total models
+    let targetRep = 2;
+    let targetDem = 2;
+    
+    // Adjust for smaller groups
+    if (models.length < 5) {
+      if (models.length === 4) {
+        targetRep = 2;
+        targetDem = 2;
+      } else if (models.length === 3) {
+        targetRep = 1;
+        targetDem = 1;
+      } else if (models.length === 2) {
+        targetRep = 1;
+        targetDem = 1;
+      } else { // just one model
+        targetRep = 1;
+        targetDem = 0;
+      }
+    }
+    
+    // Calculate target Independent count
+    const targetInd = updatedModels.length - targetRep - targetDem;
+    
+    // First reset all affiliations
+    updatedModels.forEach(model => {
+      model.affiliation = '';
+    });
+    
+    // We'll use a preference map - some models have natural affiliations
+    const preferredAffiliations = {
+      'ChatGPT': 'Democrat',
+      'Claude': 'Democrat',
+      'Gemini': 'Republican',
+      'Grok': 'Republican',
+      'Cohere': 'Independent'
+    };
+    
+    // Apply preferred affiliations first (up to targets)
+    let currentRep = 0;
+    let currentDem = 0;
+    let currentInd = 0;
+    
+    // Process models in order of preference first
+    for (const model of updatedModels) {
+      const preferred = preferredAffiliations[model.name];
+      
+      if (preferred === 'Republican' && currentRep < targetRep) {
+        model.affiliation = 'Republican';
+        currentRep++;
+      } else if (preferred === 'Democrat' && currentDem < targetDem) {
+        model.affiliation = 'Democrat';
+        currentDem++;
+      } else if (preferred === 'Independent' && currentInd < targetInd) {
+        model.affiliation = 'Independent';
+        currentInd++;
+      }
+    }
+    
+    // Now fill in the remaining unassigned models
+    for (const model of updatedModels) {
+      if (!model.affiliation) {
+        if (currentRep < targetRep) {
+          model.affiliation = 'Republican';
+          currentRep++;
+        } else if (currentDem < targetDem) {
+          model.affiliation = 'Democrat';
+          currentDem++;
+        } else {
+          model.affiliation = 'Independent';
+          currentInd++;
+        }
+      }
+    }
+    
+    // Ensure all models are finalized
+    updatedModels.forEach(model => {
+      model.isFinalized = true;
+    });
+    
+    console.log(`Final party distribution - Rep: ${currentRep}, Dem: ${currentDem}, Ind: ${currentInd}`);
+    return updatedModels;
+  }, []);
+  
+  /**
+   * Balance distribution to ensure each party has at least one member
    */
   const balancePartyDistribution = useCallback((models) => {
     if (!models || models.length === 0) return models;
     
-    // Only process finalized models
-    if (!models.every(m => m.isFinalized)) return models;
-    
-    // Clone to avoid mutations
-    let updatedModels = JSON.parse(JSON.stringify(models));
-    
-    // Count parties
-    const count = {
-      Democrat: updatedModels.filter(m => m.affiliation === 'Democrat').length,
-      Republican: updatedModels.filter(m => m.affiliation === 'Republican').length,
-      Independent: updatedModels.filter(m => m.affiliation === 'Independent').length
-    };
-    
-    // Ensure at least one per party
-    const parties = ['Democrat', 'Republican', 'Independent'];
-    let changed = false;
-    
-    parties.forEach(party => {
-      if (count[party] === 0) {
-        changed = true;
-        // Find donor party with most members
-        let donor = parties.reduce((max, curr) => 
-          count[curr] > count[max] ? curr : max, parties[0]);
-        
-        // Only donate if has more than 1
-        if (count[donor] > 1) {
-          // Find and change first model of donor party
-          for (let i = 0; i < updatedModels.length; i++) {
-            if (updatedModels[i].affiliation === donor) {
-              updatedModels[i].affiliation = party;
-              count[donor]--;
-              count[party]++;
-              break;
-            }
-          }
-        }
-      }
-    });
-    
-    return changed ? updatedModels : models;
-  }, []);
+    // Just apply our strict constraints
+    return enforcePartyConstraints(models);
+  }, [enforcePartyConstraints]);
   
   /**
    * Request manual reassignment
@@ -146,6 +219,7 @@ const usePartyAssignment = (initialModels, setModels) => {
     
     // Reset state
     setIsAssigning(false);
+    setAssignmentComplete(false);
     
     // Start with small delay
     setTimeout(startPartyRoulette, 50);
@@ -153,9 +227,11 @@ const usePartyAssignment = (initialModels, setModels) => {
   
   return {
     isAssigning,
+    assignmentComplete,
     startPartyRoulette,
     balancePartyDistribution,
-    reassignParties
+    reassignParties,
+    enforcePartyConstraints
   };
 };
 

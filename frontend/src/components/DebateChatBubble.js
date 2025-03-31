@@ -9,7 +9,7 @@ import './DebateChatBubble.css';
  * @param {string} props.affiliation - Political affiliation (Democrat, Republican, Independent)
  * @param {Object} props.position - {top, left} position of the speaker
  * @param {number} props.countdown - Seconds remaining before next speaker (null if not counting)
- * @param {string} props.nextSpeaker - Name of the next AI to speak
+ * @param {Object} props.nextSpeaker - The next speaker object
  */
 const DebateChatBubble = ({
   model,
@@ -21,7 +21,7 @@ const DebateChatBubble = ({
 }) => {
   // Set bubble position relative to speaker position
   const getBubblePosition = () => {
-    if (!position) return { top: '30vh', left: '50vw' };
+    if (!position) return { top: '30%', left: '50%' };
     
     // Position bubble above the speaker with some offset
     const bubbleTop = Math.max(10, position.top - 15); // At least 10% from top
@@ -37,7 +37,7 @@ const DebateChatBubble = ({
       bubbleLeft = position.left < 50 ? position.left + 8 : position.left - 28;
     }
     
-    return { top: `${bubbleTop}vh`, left: `${bubbleLeft}vw` };
+    return { top: `${bubbleTop}%`, left: `${bubbleLeft}%` };
   };
 
   // Get colors based on affiliation
@@ -108,11 +108,11 @@ const DebateChatBubble = ({
       
       <div className="message-content">"{message}"</div>
       
-      {countdown !== null && (
+      {countdown !== null && nextSpeaker && (
         <div className="countdown-container">
           <div className="countdown-info">
             <div className="next-speaker">
-              Next: <span style={{ fontWeight: 'bold' }}>{nextSpeaker}</span>
+              Next: <span style={{ fontWeight: 'bold' }}>{nextSpeaker.name}</span>
             </div>
           </div>
           <div 

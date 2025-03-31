@@ -1,26 +1,32 @@
 .debate-chat-bubble {
   position: absolute;
-  width: 300px;
+  width: 350px; /* Increased width for better readability */
   border-radius: 12px;
   padding: 0;
   border: 1px solid;
-  background-color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.97); /* More opaque for readability */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); /* Stronger shadow for better visibility */
   z-index: 30;
   animation: fadeInBubble 0.4s ease-out forwards;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to ensure countdown is visible */
   will-change: transform; /* Optimize for animation performance */
   transform: translateZ(0); /* Force GPU acceleration */
+  max-height: 60vh; /* Limit height to ensure it fits on screen */
+}
+
+/* Adjust bubble position to be higher up so countdown is visible */
+.debate-chat-bubble {
+  transform: translateY(-30px); /* Move the bubble up by 30px */
 }
 
 @keyframes fadeInBubble {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(-20px); /* Start from higher position */
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(-30px); /* End at higher position */
   }
 }
 
@@ -28,7 +34,7 @@
 .debate-chat-bubble.pointer-left::before {
   content: '';
   position: absolute;
-  bottom: 20px;
+  bottom: 30px; /* Moved up to match the shifted bubble */
   left: -10px;
   width: 20px;
   height: 20px;
@@ -44,7 +50,7 @@
 .debate-chat-bubble.pointer-right::before {
   content: '';
   position: absolute;
-  bottom: 20px;
+  bottom: 30px; /* Moved up to match the shifted bubble */
   right: -10px;
   width: 20px;
   height: 20px;
@@ -60,7 +66,7 @@
 .debate-chat-bubble.pointer-bottom::before {
   content: '';
   position: absolute;
-  bottom: -10px;
+  bottom: 0; /* Adjusted to connect to the shifted bubble */
   left: calc(50% - 10px);
   width: 20px;
   height: 20px;
@@ -75,36 +81,44 @@
 
 .speaker-header {
   color: white;
-  padding: 10px 15px;
+  padding: 12px 16px; /* Slightly larger padding */
   border-radius: 10px 10px 0 0;
   font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for depth */
 }
 
 .speaker-name {
-  font-size: 16px;
+  font-size: 18px; /* Larger font size */
 }
 
 .speaker-affiliation {
   font-weight: normal;
-  font-size: 14px;
+  font-size: 15px; /* Larger font size */
   opacity: 0.9;
 }
 
 .message-content {
-  padding: 15px;
-  font-size: 16px;
-  line-height: 1.4;
-  color: #333;
+  padding: 18px; /* More padding */
+  font-size: 18px; /* Larger font size */
+  line-height: 1.5; /* Better line height for readability */
+  color: #222; /* Darker text color for better contrast */
   font-style: italic;
+  background-color: white; /* Ensure background is white for text */
+  letter-spacing: 0.01em; /* Slight letter spacing for readability */
+  max-height: 40vh; /* Limit height to ensure it fits on screen */
+  overflow-y: auto; /* Allow scrolling if message is too long */
 }
 
 .countdown-container {
+  position: relative; /* Make it a positioning context */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 15px;
+  padding: 12px 16px; /* Larger padding */
   border-top: 1px solid rgba(0, 0, 0, 0.1);
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: #f5f5f5; /* Stronger color for better visibility */
+  border-radius: 0 0 12px 12px; /* Match the top border radius */
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05); /* Top shadow for depth */
 }
 
 .countdown-info {
@@ -112,31 +126,51 @@
 }
 
 .next-speaker {
-  font-size: 14px;
-  color: #555;
+  font-size: 16px; /* Larger font */
+  color: #333; /* Darker for better readability */
+  font-weight: 600; /* Bolder */
+}
+
+.next-speaker-party {
+  margin-left: 5px;
+  font-size: 14px; /* Larger font */
+  font-weight: 600; /* Bolder */
+}
+
+.next-speaker-party.Democrat {
+  color: #3373CC;
+}
+
+.next-speaker-party.Republican {
+  color: #CC3333;
+}
+
+.next-speaker-party.Independent {
+  color: #8033CC;
 }
 
 .countdown-timer {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px; /* Larger size */
+  height: 36px; /* Larger size */
   border-radius: 50%;
   font-weight: bold;
-  font-size: 18px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-size: 20px; /* Larger font */
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25); /* Stronger shadow */
   transform: translateZ(0); /* Force GPU acceleration */
   animation: pulsate 1s infinite alternate;
+  color: white; /* Ensure text is visible */
 }
 
 @keyframes pulsate {
   from {
     transform: scale(1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
   }
   to {
     transform: scale(1.1);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
   }
 }

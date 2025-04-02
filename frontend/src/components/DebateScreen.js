@@ -56,12 +56,20 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     };
   }, []);
   
-  // Basic visibility fix - no special handling
+  // Enhanced visibility fix for all platforms
   useEffect(() => {
+    // Force immediate visibility of background
     const bg = document.querySelector('.debate-background');
     if (bg) {
       bg.style.opacity = '1';
       bg.style.visibility = 'visible';
+      bg.style.display = 'block';
+      
+      // Force redraw/repaint
+      window.requestAnimationFrame(() => {
+        bg.style.display = 'block';
+        bg.style.opacity = '1';
+      });
     }
     
     return () => {
@@ -383,7 +391,10 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
         style={{
           backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center'
+          backgroundPosition: 'center',
+          opacity: 1,
+          visibility: 'visible',
+          display: 'block'
         }}
       ></div>
       

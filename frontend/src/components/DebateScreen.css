@@ -16,6 +16,8 @@
   background-position: center;
   background-size: cover;
   z-index: 0;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .reassign-button {
@@ -120,6 +122,8 @@
   background-position: center;
   background-size: cover;
   z-index: 0;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 
@@ -309,6 +313,10 @@
     height: 100%;
     width: 100%;
     background-position: center center !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 0;
+    display: block !important;
   }
   
   .reassign-button {

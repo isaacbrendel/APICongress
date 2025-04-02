@@ -4,6 +4,8 @@
   flex-direction: column;
   align-items: center;
   margin: 0.5rem;
+  transform: scale(1);
+  transition: transform 0.3s ease;
 }
   
 .debater-circle {
@@ -15,6 +17,8 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 0.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  border: 3px solid transparent;
 }
   
 .debater-logo {
@@ -32,8 +36,39 @@
   color: #fff;
   font-size: 1.2rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
   
 .debater-name {
   margin: 0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .debater-circle {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .debater-banner {
+    width: 100px;
+    padding: 0.3rem;
+    font-size: 1rem;
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 480px) {
+  .debater-circle {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .debater-banner {
+    width: 90px;
+    padding: 0.25rem;
+    font-size: 0.9rem;
+  }
 }

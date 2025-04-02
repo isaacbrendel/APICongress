@@ -269,6 +269,7 @@
     .winner-content {
       padding: 35px;
       max-width: 90%;
+      width: 90%;
     }
     
     .winner-title {
@@ -277,19 +278,122 @@
     
     .winner-party {
       font-size: 3rem;
+      margin: 15px 0;
+    }
+    
+    .winner-message {
+      font-size: 1.1rem;
+      margin-bottom: 25px;
     }
     
     .winner-actions {
       flex-direction: column;
+      gap: 15px;
     }
     
     .view-arguments-btn,
     .new-debate-btn {
       width: 100%;
       padding: 12px 20px;
+      font-size: 1rem;
     }
     
     .trophy {
       height: 100px;
+      width: 100px;
+    }
+    
+    @keyframes spotlightGrow {
+      0% {
+        width: 0;
+        height: 0;
+        opacity: 0;
+      }
+      100% {
+        width: 800px;
+        height: 800px;
+        opacity: 1;
+      }
+    }
+    
+    .confetti {
+      width: 8px;
+      height: 8px;
+    }
+  }
+
+  /* Small screen adjustments */
+  @media (max-width: 480px) {
+    .winner-content {
+      padding: 25px;
+      width: 95%;
+    }
+    
+    .winner-title {
+      font-size: 1.6rem;
+      margin-bottom: 15px;
+    }
+    
+    .winner-party {
+      font-size: 2.5rem;
+      margin: 10px 0;
+    }
+    
+    .winner-message {
+      font-size: 1rem;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+    
+    .view-arguments-btn,
+    .new-debate-btn {
+      padding: 10px 15px;
+      font-size: 0.9rem;
+    }
+    
+    .trophy {
+      height: 80px;
+      width: 80px;
+      margin-bottom: 15px;
+    }
+    
+    .trophy-top {
+      width: 50px;
+      height: 12px;
+    }
+    
+    .trophy-middle {
+      width: 25px;
+      height: 35px;
+    }
+    
+    .trophy-bottom {
+      width: 55px;
+      height: 8px;
+      top: 47px;
+    }
+    
+    .trophy-base {
+      width: 35px;
+      height: 25px;
+      top: 55px;
+    }
+    
+    @keyframes spotlightGrow {
+      0% {
+        width: 0;
+        height: 0;
+        opacity: 0;
+      }
+      100% {
+        width: 600px;
+        height: 600px;
+        opacity: 1;
+      }
+    }
+    
+    .confetti {
+      width: 6px;
+      height: 6px;
     }
   }

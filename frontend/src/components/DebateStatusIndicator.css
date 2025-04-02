@@ -1,53 +1,98 @@
 /* src/components/DebateStatusIndicator.css */
 .debate-status-indicator {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-    max-width: 250px;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  max-width: 250px;
+  backdrop-filter: blur(4px);
+}
+
+.status-label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.speaker-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+}
+
+.speaker-count {
+  opacity: 0.8;
+  margin-bottom: 2px;
+}
+
+.speaker-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.speaker-party {
+  margin-left: 4px;
+}
+
+.speaker-party.Democrat {
+  color: #3373CC;
+}
+
+.speaker-party.Republican {
+  color: #CC3333;
+}
+
+.speaker-party.Independent {
+  color: #8033CC;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .debate-status-indicator {
+    top: 15px;
+    right: 15px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    max-width: 200px;
   }
   
   .status-label {
-    font-weight: bold;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
   }
   
   .speaker-info {
-    display: flex;
-    flex-direction: column;
+    font-size: 0.75rem;
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 480px) {
+  .debate-status-indicator {
+    top: 10px;
+    right: 10px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    max-width: 180px;
+    border-radius: 6px;
+  }
+  
+  .status-label {
+    margin-bottom: 2px;
     font-size: 0.8rem;
   }
   
+  .speaker-info {
+    font-size: 0.7rem;
+  }
+  
   .speaker-count {
-    opacity: 0.8;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
   }
-  
-  .speaker-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  .speaker-party {
-    margin-left: 4px;
-  }
-  
-  .speaker-party.Democrat {
-    color: #3373CC;
-  }
-  
-  .speaker-party.Republican {
-    color: #CC3333;
-  }
-  
-  .speaker-party.Independent {
-    color: #8033CC;
-  }
+}

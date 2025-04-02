@@ -27,12 +27,56 @@ const usePartyAssignment = (initialModels, setModels) => {
     };
   }, []);
   
+  // Helper function inside the hook to avoid dependency issues
+  const applyPartyConstraints = useCallback((models) => {
+    if (!models || models.length === 0) return models;
+    
+    // Define target counts based on total models
+    let targetRep = 2;
+    let targetDem = 2;
+    
+    // Adjust for smaller groups
+    if (models.length < 5) {
+      if (models.length === 4) {
+        targetRep = 2;
+        targetDem = 2;
+      } else if (models.length === 3) {
+        targetRep = 1;
+        targetDem = 1;
+      } else if (models.length === 2) {
+        targetRep = 1;
+        targetDem = 1;
+      } else { // just one model
+        targetRep = 1;
+        targetDem = 0;
+      }
+    }
+    
+    // Create a copy of the models
+    const updatedModels = JSON.parse(JSON.stringify(models));
+    
+    // Force specific assignment
+    for (let i = 0; i < updatedModels.length; i++) {
+      if (i < targetRep) {
+        updatedModels[i].affiliation = 'Republican';
+      } else if (i < targetRep + targetDem) {
+        updatedModels[i].affiliation = 'Democrat';
+      } else {
+        updatedModels[i].affiliation = 'Independent';
+      }
+      updatedModels[i].isFinalized = true;
+    }
+    
+    return updatedModels;
+  }, []);
+
   // Auto-assign parties when models are available
   useEffect(() => {
     if (initialModels && initialModels.length > 0 && !assignmentComplete) {
       console.log("Auto-applying party constraints to initial models");
-      // Apply balanced constraints immediately
-      const balancedModels = enforcePartyConstraints(initialModels);
+      
+      // Apply balanced constraints immediately (using local function to avoid circular dependency)
+      const balancedModels = applyPartyConstraints(initialModels);
       
       // Verify distribution
       const dems = balancedModels.filter(m => m.affiliation === 'Democrat').length;
@@ -40,29 +84,11 @@ const usePartyAssignment = (initialModels, setModels) => {
       const inds = balancedModels.filter(m => m.affiliation === 'Independent').length;
       console.log(`Initial party distribution: D=${dems}, R=${reps}, I=${inds}`);
       
-      // Only update if correct distribution achieved
-      if ((dems === 2 && reps === 2 && inds === 1) || initialModels.length < 5) {
-        setModels(balancedModels);
-        setAssignmentComplete(true);
-      } else {
-        console.warn("Invalid party distribution, will retry");
-        // Retry with deterministic assignment
-        const fixedModels = [...initialModels];
-        for (let i = 0; i < fixedModels.length; i++) {
-          if (i < 2) {
-            fixedModels[i].affiliation = 'Republican';
-          } else if (i < 4) {
-            fixedModels[i].affiliation = 'Democrat';
-          } else {
-            fixedModels[i].affiliation = 'Independent';
-          }
-          fixedModels[i].isFinalized = true;
-        }
-        setModels(fixedModels);
-        setAssignmentComplete(true);
-      }
+      // Always update with the balanced models
+      setModels(balancedModels);
+      setAssignmentComplete(true);
     }
-  }, [initialModels, enforcePartyConstraints]);
+  }, [initialModels, applyPartyConstraints, assignmentComplete, setModels]);
   
   /**
    * Start party assignment - simple roulette animation
@@ -112,7 +138,7 @@ const usePartyAssignment = (initialModels, setModels) => {
       // Set final, properly balanced affiliations
       setModels((prev) => {
         // Apply balanced distribution
-        const balancedModels = enforcePartyConstraints(prev);
+        const balancedModels = applyPartyConstraints(prev);
         return balancedModels;
       });
       
@@ -132,158 +158,9 @@ const usePartyAssignment = (initialModels, setModels) => {
     console.log("⚠️ ENFORCING PARTY CONSTRAINTS");
     if (!models || models.length === 0) return models;
     
-    console.log("Enforcing party constraints with randomization");
-    
-    // Clone to avoid mutations
-    const updatedModels = JSON.parse(JSON.stringify(models));
-    
-    // Define target counts based on total models
-    let targetRep = 2;
-    let targetDem = 2;
-    
-    // Adjust for smaller groups
-    if (models.length < 5) {
-      if (models.length === 4) {
-        targetRep = 2;
-        targetDem = 2;
-      } else if (models.length === 3) {
-        targetRep = 1;
-        targetDem = 1;
-      } else if (models.length === 2) {
-        targetRep = 1;
-        targetDem = 1;
-      } else { // just one model
-        targetRep = 1;
-        targetDem = 0;
-      }
-    }
-    
-    // Calculate target Independent count
-    const targetInd = updatedModels.length - targetRep - targetDem;
-    
-    // First reset all affiliations
-    updatedModels.forEach(model => {
-      model.affiliation = '';
-    });
-    
-    // Shuffle the models array to randomize the order
-    const shuffledModels = [...updatedModels];
-    for (let i = shuffledModels.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledModels[i], shuffledModels[j]] = [shuffledModels[j], shuffledModels[i]];
-    }
-    
-    // Keep Cohere as Independent if available (it works best as Independent)
-    const cohereModel = shuffledModels.find(m => m.name === 'Cohere');
-    if (cohereModel && targetInd > 0) {
-      cohereModel.affiliation = 'Independent';
-      // Remove from array to avoid reassigning
-      const cohereIndex = shuffledModels.findIndex(m => m.id === cohereModel.id);
-      if (cohereIndex !== -1) {
-        shuffledModels.splice(cohereIndex, 1);
-      }
-    }
-    
-    // Track counts
-    let currentRep = 0;
-    let currentDem = 0;
-    let currentInd = cohereModel && cohereModel.affiliation === 'Independent' ? 1 : 0;
-    
-    // FORCE HARDCODED PARTY ASSIGNMENTS
-    // Explicit direct distribution for guaranteed results
-    if (shuffledModels.length >= 5) {
-      // Force first two to be Republican (if available)
-      for (let i = 0; i < 2 && i < shuffledModels.length; i++) {
-        shuffledModels[i].affiliation = 'Republican';
-      }
-      
-      // Force next two to be Democrat (if available)
-      for (let i = 2; i < 4 && i < shuffledModels.length; i++) {
-        shuffledModels[i].affiliation = 'Democrat';
-      }
-      
-      // Force remaining to be Independent (usually just one for 5 models)
-      for (let i = 4; i < shuffledModels.length; i++) {
-        shuffledModels[i].affiliation = 'Independent';
-      }
-      
-      // Update counts
-      currentRep = Math.min(2, shuffledModels.length);
-      currentDem = Math.min(2, Math.max(0, shuffledModels.length - 2));
-      currentInd = Math.max(0, shuffledModels.length - 4);
-      
-      console.log("⚠️⚠️⚠️ HARDCODED PARTY DISTRIBUTION");
-    } else {
-      // Fallback for smaller groups
-      // Hard enforce the distribution - first Republicans
-      for (let i = 0; i < targetRep && i < shuffledModels.length; i++) {
-        if (shuffledModels[i].affiliation === '') {
-          shuffledModels[i].affiliation = 'Republican';
-          currentRep++;
-        }
-      }
-      
-      // Then Democrats
-      for (let i = targetRep; i < targetRep + targetDem && i < shuffledModels.length; i++) {
-        if (shuffledModels[i].affiliation === '') {
-          shuffledModels[i].affiliation = 'Democrat';
-          currentDem++;
-        }
-      }
-      
-      // Then Independent for remaining
-      for (let i = targetRep + targetDem; i < shuffledModels.length; i++) {
-        if (shuffledModels[i].affiliation === '') {
-          shuffledModels[i].affiliation = 'Independent';
-          currentInd++;
-        }
-      }
-    }
-    
-    // Double-check if we need to make adjustments to meet targets
-    if (currentRep < targetRep || currentDem < targetDem || currentInd < targetInd) {
-      console.log(`Party distribution not met, adjusting. Current: R=${currentRep}, D=${currentDem}, I=${currentInd}. Target: R=${targetRep}, D=${targetDem}, I=${targetInd}`);
-      
-      // Reset affiliations and distribute deterministically
-      updatedModels.forEach(model => {
-        model.affiliation = '';
-      });
-      
-      // Shuffle again for a different order but deterministic assignment
-      const reShuffled = [...updatedModels];
-      for (let i = reShuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [reShuffled[i], reShuffled[j]] = [reShuffled[j], reShuffled[i]];
-      }
-      
-      // FORCE EXACTLY 2 Republicans, 2 Democrats, and remaining as Independents
-      // Hardcoded distribution for consistent results
-      reShuffled[0].affiliation = 'Republican';
-      reShuffled[1].affiliation = 'Republican';
-      reShuffled[2].affiliation = 'Democrat';
-      reShuffled[3].affiliation = 'Democrat';
-      
-      // Any remaining are Independent
-      for (let i = 4; i < reShuffled.length; i++) {
-        reShuffled[i].affiliation = 'Independent';
-      }
-      
-      console.log("⚠️⚠️⚠️ EXPLICITLY FORCED PARTY DISTRIBUTION");
-      
-      // Update counts for logging
-      currentRep = targetRep;
-      currentDem = targetDem;
-      currentInd = targetInd;
-    }
-    
-    // Ensure all models are finalized
-    updatedModels.forEach(model => {
-      model.isFinalized = true;
-    });
-    
-    console.log(`Final party distribution - Rep: ${currentRep}, Dem: ${currentDem}, Ind: ${currentInd}`);
-    return updatedModels;
-  }, []);
+    // Just delegate to the applyPartyConstraints function to avoid duplication
+    return applyPartyConstraints(models);
+  }, [applyPartyConstraints]);
   
   /**
    * Balance distribution to ensure each party has at least one member
@@ -292,8 +169,8 @@ const usePartyAssignment = (initialModels, setModels) => {
     if (!models || models.length === 0) return models;
     
     // Just apply our strict constraints
-    return enforcePartyConstraints(models);
-  }, [enforcePartyConstraints]);
+    return applyPartyConstraints(models);
+  }, [applyPartyConstraints]);
   
   /**
    * Request manual reassignment

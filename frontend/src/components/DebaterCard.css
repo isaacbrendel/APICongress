@@ -20,6 +20,19 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   border: 3px solid transparent;
 }
+
+/* Party-specific circle borders */
+.debater-card.republican .debater-circle {
+  border-color: #CC0000;
+}
+
+.debater-card.democrat .debater-circle {
+  border-color: #003366;
+}
+
+.debater-card.independent .debater-circle {
+  border-color: #800080;
+}
   
 .debater-logo {
   width: 60%;
@@ -39,6 +52,19 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Party-specific banner colors - as fallback */
+.debater-card.republican .debater-banner {
+  background-color: #CC0000 !important;
+}
+
+.debater-card.democrat .debater-banner {
+  background-color: #003366 !important;
+}
+
+.debater-card.independent .debater-banner {
+  background-color: #800080 !important;
 }
   
 .debater-name {

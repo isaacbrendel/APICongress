@@ -301,13 +301,28 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     
     // Set up debate speaking order after a reasonable delay for animations to complete
     positioningTimerRef.current = setTimeout(() => {
-      // Use our hook's functions to setup and start the debate
-      setupSpeakingOrder();
+      console.log("Setting up speaking order with finalized models:", updatedModels);
       
-      // Start debate with a small delay to avoid race conditions
-      positioningTimerRef.current = setTimeout(() => {
-        startDebate();
-      }, 800);
+      // Use our hook's functions to setup and start the debate
+      const speakingOrderResult = setupSpeakingOrder();
+      
+      // Verify speaking order was created
+      if (speakingOrderResult && speakingOrderResult.length > 0) {
+        console.log("Speaking order established successfully");
+        
+        // Start debate with a small delay to avoid race conditions
+        positioningTimerRef.current = setTimeout(() => {
+          startDebate();
+        }, 800);
+      } else {
+        console.error("Failed to establish speaking order, will retry");
+        
+        // Try one more time with a delay
+        positioningTimerRef.current = setTimeout(() => {
+          setupSpeakingOrder();
+          startDebate();
+        }, 1500);
+      }
     }, 1000);
   };
 
@@ -452,8 +467,13 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
             currentSpeech?.model === m.name ? 'speaking' : ''
           ].filter(Boolean).join(' ');
           
-          // Add party affiliation class for styling
+          // Add party affiliation class for styling - ensure lowercase for CSS
           const partyClass = m.affiliation ? m.affiliation.toLowerCase() : '';
+          
+          // Ensure cssClass is set for styling
+          if (!m.cssClass && m.affiliation) {
+            m.cssClass = m.affiliation.toLowerCase();
+          }
           
           return (
             <div

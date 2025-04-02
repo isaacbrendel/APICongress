@@ -70,14 +70,28 @@ export default function useDebateFlow(models, topic, positions) {
    * Create a speaking order based on party affiliations that balances the debate
    */
   const setupSpeakingOrder = useCallback(() => {
-    if (!models || models.length === 0) return [];
+    if (!models || models.length === 0) {
+      console.warn("No models available for speaking order");
+      return [];
+    }
     
     console.log("Setting up speaking order from models:", models);
     
+    // Ensure models have affiliations before filtering
+    const modelsWithAffiliations = models.filter(m => m.affiliation && m.affiliation.trim() !== '');
+    if (modelsWithAffiliations.length === 0) {
+      console.warn("No models with affiliations found");
+      // If no affiliations, just use all models in default order
+      setSpeakingOrder([...models]);
+      return models;
+    }
+    
     // Sort models by party for balanced ordering
-    const demModels = models.filter((m) => m.affiliation === 'Democrat');
-    const repModels = models.filter((m) => m.affiliation === 'Republican');
-    const indModels = models.filter((m) => m.affiliation === 'Independent');
+    const demModels = modelsWithAffiliations.filter((m) => m.affiliation === 'Democrat');
+    const repModels = modelsWithAffiliations.filter((m) => m.affiliation === 'Republican');
+    const indModels = modelsWithAffiliations.filter((m) => m.affiliation === 'Independent');
+    
+    console.log(`Party counts for speaking order: D=${demModels.length}, R=${repModels.length}, I=${indModels.length}`);
     
     let order = [];
     let lastParty = null;
@@ -88,77 +102,74 @@ export default function useDebateFlow(models, topic, positions) {
       lastParty = 'Republican';
     }
     
-    // Then a Democrat if available
+    // Add Democrat if available
     if (demModels.length > 0 && lastParty !== 'Democrat') {
       order.push(demModels[0]);
       lastParty = 'Democrat';
-    } else if (repModels.length > 1 && lastParty !== 'Republican') {
-      order.push(repModels[1]);
-      lastParty = 'Republican';
-    } else if (indModels.length > 0 && lastParty !== 'Independent') {
-      order.push(indModels[0]);
-      lastParty = 'Independent';
     }
     
     // Add Independent if available
     if (indModels.length > 0 && lastParty !== 'Independent') {
       order.push(indModels[0]);
       lastParty = 'Independent';
-    } else if (demModels.length > 0 && lastParty !== 'Democrat') {
-      order.push(demModels[0]);
-      lastParty = 'Democrat';
-    } else if (repModels.length > 1 && lastParty !== 'Republican') {
-      order.push(repModels[1]);
-      lastParty = 'Republican';
     }
     
     // Add second Republican if available
-    if (repModels.length > 1 && !order.includes(repModels[1]) && lastParty !== 'Republican') {
+    if (repModels.length > 1 && !order.includes(repModels[1])) {
       order.push(repModels[1]);
       lastParty = 'Republican';
-    } else if (demModels.length > 1 && !order.includes(demModels[1]) && lastParty !== 'Democrat') {
+    }
+    
+    // Add second Democrat if available 
+    if (demModels.length > 1 && !order.includes(demModels[1])) {
       order.push(demModels[1]);
       lastParty = 'Democrat';
-    } else if (indModels.length > 1 && !order.includes(indModels[1]) && lastParty !== 'Independent') {
-      order.push(indModels[1]);
-      lastParty = 'Independent';
     }
     
-    // Add second Democrat if available
-    if (demModels.length > 1 && !order.includes(demModels[1]) && lastParty !== 'Democrat') {
-      order.push(demModels[1]);
-      lastParty = 'Democrat';
-    } else if (repModels.length > 2 && !order.includes(repModels[2]) && lastParty !== 'Republican') {
-      order.push(repModels[2]);
-      lastParty = 'Republican';
-    } else if (indModels.length > 1 && !order.includes(indModels[1]) && lastParty !== 'Independent') {
-      order.push(indModels[1]);
-      lastParty = 'Independent';
+    // Ensure we have at least one member from each represented party
+    const partiesInOrder = [...new Set(order.map(m => m.affiliation))];
+    
+    // Add party members that are missing
+    if (!partiesInOrder.includes('Republican') && repModels.length > 0) {
+      order.push(repModels[0]);
     }
     
-    // Add remaining speakers to reach at least 5 if possible, while maintaining alternating parties
-    const remainingModels = models.filter(m => !order.includes(m));
-    for (let i = 0; i < remainingModels.length && order.length < 5; i++) {
-      // Skip if same party as last speaker
-      if (remainingModels[i].affiliation === lastParty) {
-        continue;
-      }
-      order.push(remainingModels[i]);
-      lastParty = remainingModels[i].affiliation;
+    if (!partiesInOrder.includes('Democrat') && demModels.length > 0) {
+      order.push(demModels[0]);
     }
     
-    // If we still need speakers and had to skip some due to party constraints, add them now
-    if (order.length < 5) {
-      for (let i = 0; i < remainingModels.length && order.length < 5; i++) {
+    if (!partiesInOrder.includes('Independent') && indModels.length > 0) {
+      order.push(indModels[0]);
+    }
+    
+    // If we still don't have enough speakers, add any remaining models
+    if (order.length < models.length) {
+      const remainingModels = models.filter(m => !order.includes(m));
+      for (let i = 0; i < remainingModels.length; i++) {
         if (!order.includes(remainingModels[i])) {
           order.push(remainingModels[i]);
         }
       }
     }
     
+    // Fallback - if we somehow still have no speaking order, use all models
+    if (order.length === 0 && models.length > 0) {
+      console.warn("Creating fallback speaking order with all models");
+      order = [...models];
+    }
+    
     console.log("Speaking order established:", order.map(m => `${m.name} (${m.affiliation})`));
-    setSpeakingOrder(order);
-    setDebateState(DEBATE_STATES.PREPARING);
+    
+    // Ensure we have a valid speaking order before moving on
+    if (order.length > 0) {
+      setSpeakingOrder(order);
+      setDebateState(DEBATE_STATES.PREPARING);
+    } else {
+      console.error("ERROR: Empty speaking order created, will use models directly");
+      setSpeakingOrder([...models]);
+      setDebateState(DEBATE_STATES.PREPARING);
+      return models; // Return models as fallback
+    }
     
     return order;
   }, [models]);
@@ -167,12 +178,27 @@ export default function useDebateFlow(models, topic, positions) {
    * Start the debate process
    */
   const startDebate = useCallback(() => {
-    if (speakingOrder.length === 0) {
-      console.warn("Cannot start debate: No speaking order established");
-      return;
+    if (!speakingOrder || speakingOrder.length === 0) {
+      console.warn("Cannot start debate: No speaking order established. Creating a fallback order.");
+      
+      // Create a fallback speaking order if none exists
+      if (models && models.length > 0) {
+        console.log("Setting up fallback speaking order with all models");
+        setSpeakingOrder([...models]);
+        
+        // Continue with the fallback order
+        setCurrentSpeakerIndex(0);
+        setDebateMessages([]);
+        setNextSpeaker(models[0].name);
+        setDebateState(DEBATE_STATES.SPEAKING);
+        return;
+      } else {
+        console.error("CRITICAL ERROR: No models available for debate");
+        return;
+      }
     }
     
-    console.log("Starting debate");
+    console.log("Starting debate with speaking order:", speakingOrder.map(m => m.name));
     setCurrentSpeakerIndex(0);
     setDebateMessages([]);
     
@@ -182,7 +208,7 @@ export default function useDebateFlow(models, topic, positions) {
     
     // Move to speaking state to trigger the first API call
     setDebateState(DEBATE_STATES.SPEAKING);
-  }, [speakingOrder]);
+  }, [speakingOrder, models]);
   
   /**
    * Call the current speaker's API to generate a response

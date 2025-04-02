@@ -10,11 +10,14 @@ const DebaterCard = ({ name, logo, affiliation }) => {
   // Direct color calculation like in your original working version
   let bannerColor = '#333';
   if (affiliation === 'Republican') {
-    bannerColor = '#CC0000';
+    bannerColor = '#CC0000';  // Republican red
   } else if (affiliation === 'Democrat') {
-    bannerColor = '#003366';
+    bannerColor = '#003366';  // Democrat blue
   } else if (affiliation === 'Independent') {
-    bannerColor = '#800080';
+    bannerColor = '#800080';  // Independent purple
+  } else if (!affiliation || affiliation.trim() === '') {
+    // Default color for unassigned models
+    bannerColor = '#555555';
   }
 
   // Apply class for CSS targeting

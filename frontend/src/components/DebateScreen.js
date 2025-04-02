@@ -56,7 +56,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     };
   }, []);
   
-  // Force background visibility - critical fix for white screen
+  // Basic visibility fix - no special handling
   useEffect(() => {
     const bg = document.querySelector('.debate-background');
     if (bg) {
@@ -67,7 +67,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     return () => {
       // Cleanup if needed
     };
-  }, [partyAssignmentActive, positionsAssigned, debateState]);
+  }, []);
   
   // Helper function to create symmetrical party positions - uses isMobile state
   const createPartyPositions = () => {
@@ -375,32 +375,15 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     }
   };
 
-  // Compute background status class
-  const getDebateStageClass = () => {
-    if (partyAssignmentActive) return 'stage-assigning';
-    if (positionsAssigned && !currentSpeech) return 'stage-positioning';
-    if (currentSpeech) return 'stage-speaking';
-    if (isDebateCompleted) return 'stage-completed';
-    return '';
-  };
-  
   return (
-    <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''} ${getDebateStageClass()}`}>
+    <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''}`}>
       {/* Background - present throughout all debate stages */}
       <div
         className="debate-background"
         style={{
           backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 0,
-          opacity: 1,
-          visibility: 'visible'
+          backgroundPosition: 'center'
         }}
       ></div>
       

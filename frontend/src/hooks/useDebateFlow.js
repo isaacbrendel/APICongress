@@ -201,10 +201,9 @@ export default function useDebateFlow(models, topic, positions) {
     console.log(`Calling speaker ${currentSpeakerIndex + 1}/${speakingOrder.length}: ${speaker.name} (${speaker.affiliation})`);
     
     // Set a temporary placeholder message while API is loading
-    // This ensures there's always content visible during the API call
     setCurrentSpeech({
       model: speaker.name,
-      message: "Preparing response...",
+      message: "The honorable representative from " + speaker.affiliation + " is preparing their response...",
       affiliation: speaker.affiliation,
       position: positions[speaker.id]
     });

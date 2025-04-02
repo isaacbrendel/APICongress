@@ -108,43 +108,20 @@
   background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
 }
 
-/* Ensure debate screen is visible during transitions */
-.debate-screen.assigning {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Keep screen visible when positions are assigned */
-.debate-screen.positions-assigned {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
 
 /* Prevent background from disappearing during transitions */
 .debate-background {
-  opacity: 1 !important;
-  visibility: visible !important;
-  transition: none !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  z-index: 0 !important;
-}
-
-/* Add loading state during transitions */
-.debate-screen.assigning::after {
-  content: '';
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
-  z-index: 5;
-  pointer-events: none;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  z-index: 0;
 }
+
 
 /* Animation for debate completion */
 @keyframes debateComplete {
@@ -159,34 +136,15 @@
   }
 }
 
-/* Prevent white flash */
+/* Basic styling */
 .debate-screen {
-  visibility: visible !important;
-  opacity: 1 !important;
-  background-color: rgba(0,0,0,0.01);
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* Stage-specific styles to prevent blank screens */
-.debate-screen.stage-assigning {
-  background-color: rgba(0,0,0,0.05);
-}
 
-.debate-screen.stage-positioning {
-  background-color: rgba(0,0,0,0.03);
-}
-
-.debate-screen.stage-speaking {
-  background-color: rgba(0,0,0,0.01);
-}
-
-.debate-screen.stage-completed {
-  background-color: rgba(0,0,0,0.02);
-}
-
-/* Force visibility of elements during transitions */
-.debate-screen > * {
-  visibility: visible !important;
-}
 
 /* Debate status indicator */
 .debate-status {

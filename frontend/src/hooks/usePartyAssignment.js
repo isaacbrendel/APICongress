@@ -129,6 +129,7 @@ const usePartyAssignment = (initialModels, setModels) => {
    * - Remaining as Independents (usually 1 for 5 models)
    */
   const enforcePartyConstraints = useCallback((models) => {
+    console.log("⚠️ ENFORCING PARTY CONSTRAINTS");
     if (!models || models.length === 0) return models;
     
     console.log("Enforcing party constraints with randomization");
@@ -188,27 +189,54 @@ const usePartyAssignment = (initialModels, setModels) => {
     let currentDem = 0;
     let currentInd = cohereModel && cohereModel.affiliation === 'Independent' ? 1 : 0;
     
-    // Hard enforce the distribution - first Republicans
-    for (let i = 0; i < targetRep && i < shuffledModels.length; i++) {
-      if (shuffledModels[i].affiliation === '') {
+    // FORCE HARDCODED PARTY ASSIGNMENTS
+    // Explicit direct distribution for guaranteed results
+    if (shuffledModels.length >= 5) {
+      // Force first two to be Republican (if available)
+      for (let i = 0; i < 2 && i < shuffledModels.length; i++) {
         shuffledModels[i].affiliation = 'Republican';
-        currentRep++;
       }
-    }
-    
-    // Then Democrats
-    for (let i = targetRep; i < targetRep + targetDem && i < shuffledModels.length; i++) {
-      if (shuffledModels[i].affiliation === '') {
+      
+      // Force next two to be Democrat (if available)
+      for (let i = 2; i < 4 && i < shuffledModels.length; i++) {
         shuffledModels[i].affiliation = 'Democrat';
-        currentDem++;
       }
-    }
-    
-    // Then Independent for remaining
-    for (let i = targetRep + targetDem; i < shuffledModels.length; i++) {
-      if (shuffledModels[i].affiliation === '') {
+      
+      // Force remaining to be Independent (usually just one for 5 models)
+      for (let i = 4; i < shuffledModels.length; i++) {
         shuffledModels[i].affiliation = 'Independent';
-        currentInd++;
+      }
+      
+      // Update counts
+      currentRep = Math.min(2, shuffledModels.length);
+      currentDem = Math.min(2, Math.max(0, shuffledModels.length - 2));
+      currentInd = Math.max(0, shuffledModels.length - 4);
+      
+      console.log("⚠️⚠️⚠️ HARDCODED PARTY DISTRIBUTION");
+    } else {
+      // Fallback for smaller groups
+      // Hard enforce the distribution - first Republicans
+      for (let i = 0; i < targetRep && i < shuffledModels.length; i++) {
+        if (shuffledModels[i].affiliation === '') {
+          shuffledModels[i].affiliation = 'Republican';
+          currentRep++;
+        }
+      }
+      
+      // Then Democrats
+      for (let i = targetRep; i < targetRep + targetDem && i < shuffledModels.length; i++) {
+        if (shuffledModels[i].affiliation === '') {
+          shuffledModels[i].affiliation = 'Democrat';
+          currentDem++;
+        }
+      }
+      
+      // Then Independent for remaining
+      for (let i = targetRep + targetDem; i < shuffledModels.length; i++) {
+        if (shuffledModels[i].affiliation === '') {
+          shuffledModels[i].affiliation = 'Independent';
+          currentInd++;
+        }
       }
     }
     
@@ -228,16 +256,19 @@ const usePartyAssignment = (initialModels, setModels) => {
         [reShuffled[i], reShuffled[j]] = [reShuffled[j], reShuffled[i]];
       }
       
-      // Assign EXACTLY 2 Republicans, 2 Democrats, and remaining as Independents
-      for (let i = 0; i < reShuffled.length; i++) {
-        if (i < targetRep) {
-          reShuffled[i].affiliation = 'Republican';
-        } else if (i < targetRep + targetDem) {
-          reShuffled[i].affiliation = 'Democrat';
-        } else {
-          reShuffled[i].affiliation = 'Independent';
-        }
+      // FORCE EXACTLY 2 Republicans, 2 Democrats, and remaining as Independents
+      // Hardcoded distribution for consistent results
+      reShuffled[0].affiliation = 'Republican';
+      reShuffled[1].affiliation = 'Republican';
+      reShuffled[2].affiliation = 'Democrat';
+      reShuffled[3].affiliation = 'Democrat';
+      
+      // Any remaining are Independent
+      for (let i = 4; i < reShuffled.length; i++) {
+        reShuffled[i].affiliation = 'Independent';
       }
+      
+      console.log("⚠️⚠️⚠️ EXPLICITLY FORCED PARTY DISTRIBUTION");
       
       // Update counts for logging
       currentRep = targetRep;

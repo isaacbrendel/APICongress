@@ -183,13 +183,13 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   const handlePartyAssignmentComplete = (updatedModels) => {
     console.log("✅ Party assignment complete, assigning positions", updatedModels);
     
-    // Deactivate the party assignment component
-    setPartyAssignmentActive(false);
+    // First assign positions and keep party assigner visible during transition
+    assignPositionsBasedOnParty(updatedModels);
     
-    // Short delay before positioning to ensure animations don't overlap
+    // Only hide party assignment component after positions are assigned
     positioningTimerRef.current = setTimeout(() => {
-      assignPositionsBasedOnParty(updatedModels);
-    }, 200);
+      setPartyAssignmentActive(false);
+    }, 500);
   };
 
   // Assign positions based on party affiliations with improved symmetry
@@ -259,16 +259,16 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     setFinalPositions(newPositions);
     setPositionsAssigned(true);
     
-    // Set up debate speaking order after a longer delay for animations to complete
+    // Set up debate speaking order after a reasonable delay for animations to complete
     positioningTimerRef.current = setTimeout(() => {
       // Use our hook's functions to setup and start the debate
       setupSpeakingOrder();
       
-      // Wait a bit more before starting the actual debate
+      // Start debate with a small delay to avoid race conditions
       positioningTimerRef.current = setTimeout(() => {
         startDebate();
-      }, 1000);
-    }, 1500);
+      }, 800);
+    }, 1000);
   };
 
   // Show voting interface after debate completes with delay
@@ -280,6 +280,17 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
       }, 2000);
     }
   }, [isDebateCompleted, showVoting, showWinner]);
+  
+  // Debug lifecycle state changes
+  useEffect(() => {
+    console.log(`⚙️ DebateScreen State Update:
+      - Party Assignment Active: ${partyAssignmentActive}
+      - Positions Assigned: ${positionsAssigned}
+      - Debate State: ${debateState}
+      - Current Speaker: ${currentSpeaker?.name || 'None'}
+      - Current Speech: ${currentSpeech ? 'Available' : 'None'}
+    `);
+  }, [partyAssignmentActive, positionsAssigned, debateState, currentSpeaker, currentSpeech]);
   
   // Handle vote submission
   const handleVoteSubmit = (party) => {
@@ -337,8 +348,8 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   };
 
   return (
-    <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''}`}>
-      {/* Background */}
+    <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''}`}>
+      {/* Background - present throughout all debate stages */}
       <div
         className="debate-background"
         style={{

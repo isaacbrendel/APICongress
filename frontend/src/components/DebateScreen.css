@@ -108,6 +108,38 @@
   background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
 }
 
+/* Ensure debate screen is visible during transitions */
+.debate-screen.assigning {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Keep screen visible when positions are assigned */
+.debate-screen.positions-assigned {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Prevent background from disappearing during transitions */
+.debate-background {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: none !important;
+}
+
+/* Add loading state during transitions */
+.debate-screen.assigning::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 5;
+  pointer-events: none;
+}
+
 /* Animation for debate completion */
 @keyframes debateComplete {
   0% {

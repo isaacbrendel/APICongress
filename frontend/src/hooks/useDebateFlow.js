@@ -47,14 +47,8 @@ export default function useDebateFlow(models, topic, positions) {
         clearTimeout(initTimer.current);
       }
       
-      // Wait a moment for animations to complete, then setup and start
-      initTimer.current = setTimeout(() => {
-        const order = setupSpeakingOrder();
-        
-        initTimer.current = setTimeout(() => {
-          startDebate();
-        }, 800);
-      }, 500);
+      // We don't need this auto-start logic since DebateScreen handles setup
+      // Just set the flag to avoid duplicate starts
     }
   }, [positions, models, autoStarted, debateState]);
 
@@ -199,6 +193,9 @@ export default function useDebateFlow(models, topic, positions) {
       setDebateState(DEBATE_STATES.COMPLETED);
       return;
     }
+    
+    // Add a small timeout before API call to ensure UI is ready
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     const speaker = speakingOrder[currentSpeakerIndex];
     console.log(`Calling speaker ${currentSpeakerIndex + 1}/${speakingOrder.length}: ${speaker.name} (${speaker.affiliation})`);

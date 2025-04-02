@@ -30,12 +30,39 @@ const usePartyAssignment = (initialModels, setModels) => {
   // Auto-assign parties when models are available
   useEffect(() => {
     if (initialModels && initialModels.length > 0 && !assignmentComplete) {
+      console.log("Auto-applying party constraints to initial models");
       // Apply balanced constraints immediately
       const balancedModels = enforcePartyConstraints(initialModels);
-      setModels(balancedModels);
-      setAssignmentComplete(true);
+      
+      // Verify distribution
+      const dems = balancedModels.filter(m => m.affiliation === 'Democrat').length;
+      const reps = balancedModels.filter(m => m.affiliation === 'Republican').length;
+      const inds = balancedModels.filter(m => m.affiliation === 'Independent').length;
+      console.log(`Initial party distribution: D=${dems}, R=${reps}, I=${inds}`);
+      
+      // Only update if correct distribution achieved
+      if ((dems === 2 && reps === 2 && inds === 1) || initialModels.length < 5) {
+        setModels(balancedModels);
+        setAssignmentComplete(true);
+      } else {
+        console.warn("Invalid party distribution, will retry");
+        // Retry with deterministic assignment
+        const fixedModels = [...initialModels];
+        for (let i = 0; i < fixedModels.length; i++) {
+          if (i < 2) {
+            fixedModels[i].affiliation = 'Republican';
+          } else if (i < 4) {
+            fixedModels[i].affiliation = 'Democrat';
+          } else {
+            fixedModels[i].affiliation = 'Independent';
+          }
+          fixedModels[i].isFinalized = true;
+        }
+        setModels(fixedModels);
+        setAssignmentComplete(true);
+      }
     }
-  }, [initialModels]);
+  }, [initialModels, enforcePartyConstraints]);
   
   /**
    * Start party assignment - simple roulette animation
@@ -138,17 +165,22 @@ const usePartyAssignment = (initialModels, setModels) => {
       model.affiliation = '';
     });
     
-    // Randomly assign parties to ensure different assignments each time
-    // First, shuffle the models array to randomize the order
-    const shuffledModels = [...updatedModels].sort(() => Math.random() - 0.5);
+    // Shuffle the models array to randomize the order
+    const shuffledModels = [...updatedModels];
+    for (let i = shuffledModels.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledModels[i], shuffledModels[j]] = [shuffledModels[j], shuffledModels[i]];
+    }
     
     // Keep Cohere as Independent if available (it works best as Independent)
     const cohereModel = shuffledModels.find(m => m.name === 'Cohere');
     if (cohereModel && targetInd > 0) {
       cohereModel.affiliation = 'Independent';
-      shuffledModels.splice(shuffledModels.indexOf(cohereModel), 1);
-    } else {
-      // No special handling for Cohere
+      // Remove from array to avoid reassigning
+      const cohereIndex = shuffledModels.findIndex(m => m.id === cohereModel.id);
+      if (cohereIndex !== -1) {
+        shuffledModels.splice(cohereIndex, 1);
+      }
     }
     
     // Track counts
@@ -156,56 +188,61 @@ const usePartyAssignment = (initialModels, setModels) => {
     let currentDem = 0;
     let currentInd = cohereModel && cohereModel.affiliation === 'Independent' ? 1 : 0;
     
-    // Randomly assign remaining models
-    for (const model of shuffledModels) {
-      // If this model already has an affiliation, skip it
-      if (model.affiliation) continue;
-      
-      // Randomly select a party based on what we still need
-      const availableParties = [];
-      if (currentRep < targetRep) availableParties.push('Republican');
-      if (currentDem < targetDem) availableParties.push('Democrat');
-      if (currentInd < targetInd) availableParties.push('Independent');
-      
-      // If no parties are available, default to Independent
-      if (availableParties.length === 0) {
-        model.affiliation = 'Independent';
-        currentInd++;
-        continue;
+    // Hard enforce the distribution - first Republicans
+    for (let i = 0; i < targetRep && i < shuffledModels.length; i++) {
+      if (shuffledModels[i].affiliation === '') {
+        shuffledModels[i].affiliation = 'Republican';
+        currentRep++;
       }
-      
-      // Randomly select from available parties
-      const randomParty = availableParties[Math.floor(Math.random() * availableParties.length)];
-      model.affiliation = randomParty;
-      
-      // Update counts
-      if (randomParty === 'Republican') currentRep++;
-      else if (randomParty === 'Democrat') currentDem++;
-      else currentInd++;
+    }
+    
+    // Then Democrats
+    for (let i = targetRep; i < targetRep + targetDem && i < shuffledModels.length; i++) {
+      if (shuffledModels[i].affiliation === '') {
+        shuffledModels[i].affiliation = 'Democrat';
+        currentDem++;
+      }
+    }
+    
+    // Then Independent for remaining
+    for (let i = targetRep + targetDem; i < shuffledModels.length; i++) {
+      if (shuffledModels[i].affiliation === '') {
+        shuffledModels[i].affiliation = 'Independent';
+        currentInd++;
+      }
     }
     
     // Double-check if we need to make adjustments to meet targets
-    // (this shouldn't happen, but just in case)
-    if (currentRep < targetRep || currentDem < targetDem) {
-      const needMoreRep = targetRep - currentRep;
-      const needMoreDem = targetDem - currentDem;
+    if (currentRep < targetRep || currentDem < targetDem || currentInd < targetInd) {
+      console.log(`Party distribution not met, adjusting. Current: R=${currentRep}, D=${currentDem}, I=${currentInd}. Target: R=${targetRep}, D=${targetDem}, I=${targetInd}`);
       
-      // Find Independent models that can be reassigned
-      const indModels = updatedModels.filter(m => m.affiliation === 'Independent');
+      // Reset affiliations and distribute deterministically
+      updatedModels.forEach(model => {
+        model.affiliation = '';
+      });
       
-      // Assign to Republican if needed
-      for (let i = 0; i < needMoreRep && i < indModels.length; i++) {
-        indModels[i].affiliation = 'Republican';
-        currentRep++;
-        currentInd--;
+      // Shuffle again for a different order but deterministic assignment
+      const reShuffled = [...updatedModels];
+      for (let i = reShuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [reShuffled[i], reShuffled[j]] = [reShuffled[j], reShuffled[i]];
       }
       
-      // Assign to Democrat if needed
-      for (let i = 0; i < needMoreDem && i < indModels.length - needMoreRep; i++) {
-        indModels[needMoreRep + i].affiliation = 'Democrat';
-        currentDem++;
-        currentInd--;
+      // Assign EXACTLY 2 Republicans, 2 Democrats, and remaining as Independents
+      for (let i = 0; i < reShuffled.length; i++) {
+        if (i < targetRep) {
+          reShuffled[i].affiliation = 'Republican';
+        } else if (i < targetRep + targetDem) {
+          reShuffled[i].affiliation = 'Democrat';
+        } else {
+          reShuffled[i].affiliation = 'Independent';
+        }
       }
+      
+      // Update counts for logging
+      currentRep = targetRep;
+      currentDem = targetDem;
+      currentInd = targetInd;
     }
     
     // Ensure all models are finalized

@@ -25,7 +25,10 @@ const PartyAssigner = ({ models, setModels, active, onAssignmentComplete }) => {
   useEffect(() => {
     if (active && models.length > 0 && !isAssigning && !hasProcessedFinalizedModels) {
       console.log("Starting party assignment roulette (initial)");
-      startPartyRoulette();
+      // Add a small delay to ensure component is fully mounted
+      setTimeout(() => {
+        startPartyRoulette();
+      }, 100);
     }
   }, [active, models.length, isAssigning, startPartyRoulette, hasProcessedFinalizedModels]);
   

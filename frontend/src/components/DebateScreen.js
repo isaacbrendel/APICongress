@@ -56,6 +56,19 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     };
   }, []);
   
+  // Force background visibility - critical fix for white screen
+  useEffect(() => {
+    const bg = document.querySelector('.debate-background');
+    if (bg) {
+      bg.style.opacity = '1';
+      bg.style.visibility = 'visible';
+    }
+    
+    return () => {
+      // Cleanup if needed
+    };
+  }, [partyAssignmentActive, positionsAssigned, debateState]);
+  
   // Helper function to create symmetrical party positions - uses isMobile state
   const createPartyPositions = () => {
     if (isMobile) {
@@ -182,6 +195,13 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   // Handle party assignment completion
   const handlePartyAssignmentComplete = (updatedModels) => {
     console.log("✅ Party assignment complete, assigning positions", updatedModels);
+    
+    // Verify party counts
+    const dems = updatedModels.filter(m => m.affiliation === 'Democrat').length;
+    const reps = updatedModels.filter(m => m.affiliation === 'Republican').length;
+    const inds = updatedModels.filter(m => m.affiliation === 'Independent').length;
+    
+    console.log(`Party assignment verification: ${dems} Democrats, ${reps} Republicans, ${inds} Independents`);
     
     // First assign positions and keep party assigner visible during transition
     assignPositionsBasedOnParty(updatedModels);
@@ -316,11 +336,12 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     // Reset debate state
     setPositionsAssigned(false);
     
-    // Reset models to non-finalized state
+    // Reset models to non-finalized state and clear any potential errors
     setModels(prev => prev.map(m => ({
       ...m,
       affiliation: '',
-      isFinalized: false
+      isFinalized: false,
+      cssClass: ''
     })));
     
     // Scatter positions again - with mobile-specific positioning
@@ -341,14 +362,30 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     
     setFinalPositions(scatteredPositions);
     
-    // Activate party assignment after a delay
-    setTimeout(() => {
+    // Reset any existing timers
+    if (positioningTimerRef.current) {
+      clearTimeout(positioningTimerRef.current);
+      positioningTimerRef.current = null;
+    }
+    
+    // Make sure it's not already in an assigning state
+    if (!partyAssignmentActive) {
+      // Activate party assignment immediately
       setPartyAssignmentActive(true);
-    }, 100);
+    }
   };
 
+  // Compute background status class
+  const getDebateStageClass = () => {
+    if (partyAssignmentActive) return 'stage-assigning';
+    if (positionsAssigned && !currentSpeech) return 'stage-positioning';
+    if (currentSpeech) return 'stage-speaking';
+    if (isDebateCompleted) return 'stage-completed';
+    return '';
+  };
+  
   return (
-    <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''}`}>
+    <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''} ${getDebateStageClass()}`}>
       {/* Background - present throughout all debate stages */}
       <div
         className="debate-background"
@@ -356,6 +393,14 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
           backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          opacity: 1,
+          visibility: 'visible'
         }}
       ></div>
       
@@ -372,13 +417,20 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
         />
       )}
       
-      {/* Manual reassign button (only show if debate hasn't completed and positions are assigned) */}
-      {!isDebateCompleted && positionsAssigned && (
+      {/* Manual reassign button (more visible and always shown except during specific states) */}
+      {!isDebateCompleted && !partyAssignmentActive && (
         <button
           className="reassign-button"
           onClick={handleReassignParties}
+          style={{ 
+            zIndex: 100, 
+            background: '#cc3333',
+            color: 'white',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+          }}
         >
-          Reassign Affiliations
+          Reassign Parties
         </button>
       )}
       

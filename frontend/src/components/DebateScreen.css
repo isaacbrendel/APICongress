@@ -294,13 +294,50 @@
     z-index: 10;
   }
   
-  /* Adjust positions for better visibility on small screens */
+  /* Adjust positions to ensure visibility on small screens */
   .debater-position {
-    transform: scale(0.7);
+    transform: scale(0.65) !important;
   }
   
   .debater-position.speaking {
-    transform: scale(0.8);
+    transform: scale(0.75) !important;
+  }
+  
+  /* Reposition debater cards for mobile */
+  .debaters-container {
+    position: relative;
+    width: 100%;
+    height: 45vh;
+    top: 30%;
+    margin-top: 20px;
+    overflow: visible;
+  }
+  
+  /* Adjust Democrat positions for mobile */
+  .debater-position[style*="left: 5%"],
+  .debater-position[style*="left: 8%"],
+  .debater-position[style*="left: 12%"],
+  .debater-position[style*="left: 7%"],
+  .debater-position[style*="left: 10%"] {
+    left: 25% !important;
+  }
+  
+  /* Adjust Republican positions for mobile */
+  .debater-position[style*="left: 90%"],
+  .debater-position[style*="left: 82%"],
+  .debater-position[style*="left: 84%"],
+  .debater-position[style*="left: 85%"],
+  .debater-position[style*="left: 75%"] {
+    left: 75% !important;
+  }
+  
+  /* Adjust Independent positions for mobile */
+  .debater-position[style*="left: 48%"],
+  .debater-position[style*="left: 50%"],
+  .debater-position[style*="left: 55%"],
+  .debater-position[style*="left: 49%"],
+  .debater-position[style*="left: 52%"] {
+    left: 50% !important;
   }
   
   /* Ensure chat bubbles are more readable on small devices */

@@ -41,22 +41,45 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   // Ref for positioning timer
   const positioningTimerRef = useRef(null);
   
-  // Seat position arrays
-  const demSeats = [
+  // Responsive seat position arrays adjusted for all screen sizes
+  const isMobile = window.innerWidth <= 480;
+  
+  // Mobile positions are more centered and visible
+  const demSeats = isMobile ? [
+    { top: 40, left: 25 },
+    { top: 45, left: 25 },
+    { top: 50, left: 25 },
+    { top: 55, left: 25 },
+    { top: 60, left: 25 },
+  ] : [
     { top: 55, left: 5 },
     { top: 60, left: 8 },
     { top: 65, left: 12 },
     { top: 57, left: 7 },
     { top: 63, left: 10 },
   ];
-  const repSeats = [
+  
+  const repSeats = isMobile ? [
+    { top: 40, left: 75 },
+    { top: 45, left: 75 },
+    { top: 50, left: 75 },
+    { top: 55, left: 75 },
+    { top: 60, left: 75 },
+  ] : [
     { top: 55, left: 90 },
     { top: 60, left: 82 },
     { top: 65, left: 84 },
     { top: 57, left: 85 },
     { top: 63, left: 75 },
   ];
-  const indSeats = [
+  
+  const indSeats = isMobile ? [
+    { top: 70, left: 40 },
+    { top: 70, left: 50 },
+    { top: 70, left: 60 },
+    { top: 75, left: 45 },
+    { top: 75, left: 55 },
+  ] : [
     { top: 60, left: 48 },
     { top: 65, left: 50 },
     { top: 65, left: 55 },
@@ -83,10 +106,19 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     setPositionsAssigned(false);
     
     // Initially scatter debaters within a defined band
+    // Use different positioning for mobile vs desktop
     const scatteredPositions = models.reduce((acc, model) => {
-      const randTop = Math.floor(Math.random() * 15 + 55);
-      const randLeft = Math.floor(Math.random() * 40 + 30); // narrower range (30-70)
-      acc[model.id] = { top: randTop, left: randLeft };
+      // For mobile, we use a more focused center area
+      if (isMobile) {
+        const randTop = Math.floor(Math.random() * 20 + 50); // 50-70%
+        const randLeft = Math.floor(Math.random() * 30 + 35); // 35-65%
+        acc[model.id] = { top: randTop, left: randLeft };
+      } else {
+        // Desktop scattering
+        const randTop = Math.floor(Math.random() * 15 + 55);
+        const randLeft = Math.floor(Math.random() * 40 + 30); // narrower range (30-70)
+        acc[model.id] = { top: randTop, left: randLeft };
+      }
       return acc;
     }, {});
     
@@ -97,7 +129,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
       console.log("🏛️ Activating party assignment");
       setPartyAssignmentActive(true);
     }, 100);
-  }, [models, isInitialized]);
+  }, [models, isInitialized, isMobile]);
 
   // Clean up intervals on component unmount
   useEffect(() => {
@@ -213,11 +245,19 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
       isFinalized: false
     })));
     
-    // Scatter positions again
+    // Scatter positions again - with mobile-specific positioning
     const scatteredPositions = models.reduce((acc, model) => {
-      const randTop = Math.floor(Math.random() * 15 + 55);
-      const randLeft = Math.floor(Math.random() * 40 + 30);
-      acc[model.id] = { top: randTop, left: randLeft };
+      // For mobile, use a more focused center area
+      if (isMobile) {
+        const randTop = Math.floor(Math.random() * 20 + 50); // 50-70%
+        const randLeft = Math.floor(Math.random() * 30 + 35); // 35-65%
+        acc[model.id] = { top: randTop, left: randLeft };
+      } else {
+        // Desktop scattering
+        const randTop = Math.floor(Math.random() * 15 + 55);
+        const randLeft = Math.floor(Math.random() * 40 + 30);
+        acc[model.id] = { top: randTop, left: randLeft };
+      }
       return acc;
     }, {});
     

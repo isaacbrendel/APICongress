@@ -41,51 +41,77 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   // Ref for positioning timer
   const positioningTimerRef = useRef(null);
   
-  // Responsive seat position arrays adjusted for all screen sizes
+  // Responsive and symmetrical seat positions
   const isMobile = window.innerWidth <= 480;
   
-  // Mobile positions are more centered and visible
-  const demSeats = isMobile ? [
-    { top: 40, left: 25 },
-    { top: 45, left: 25 },
-    { top: 50, left: 25 },
-    { top: 55, left: 25 },
-    { top: 60, left: 25 },
-  ] : [
-    { top: 55, left: 5 },
-    { top: 60, left: 8 },
-    { top: 65, left: 12 },
-    { top: 57, left: 7 },
-    { top: 63, left: 10 },
-  ];
+  // Helper function to create symmetrical party positions
+  const createPartyPositions = () => {
+    if (isMobile) {
+      // Mobile positions - more visible and vertically stacked
+      return {
+        // Democrats on the left
+        democrat: [
+          { top: 35, left: 25 },
+          { top: 45, left: 25 },
+          { top: 55, left: 25 },
+          { top: 65, left: 25 },
+          { top: 75, left: 25 },
+        ],
+        // Republicans on the right
+        republican: [
+          { top: 35, left: 75 },
+          { top: 45, left: 75 },
+          { top: 55, left: 75 },
+          { top: 65, left: 75 },
+          { top: 75, left: 75 },
+        ],
+        // Independent in the middle
+        independent: [
+          { top: 50, left: 50 },
+          { top: 60, left: 50 },
+          { top: 70, left: 50 },
+          { top: 40, left: 50 },
+          { top: 80, left: 50 },
+        ]
+      };
+    } else {
+      // Desktop positions - more spread out and visually balanced
+      return {
+        // Democrats on the left side
+        democrat: [
+          { top: 50, left: 10 },
+          { top: 60, left: 15 },
+          { top: 70, left: 20 },
+          { top: 55, left: 12 },
+          { top: 65, left: 18 },
+        ],
+        // Republicans on the right side
+        republican: [
+          { top: 50, left: 90 },
+          { top: 60, left: 85 },
+          { top: 70, left: 80 },
+          { top: 55, left: 88 },
+          { top: 65, left: 82 },
+        ],
+        // Independent in the middle
+        independent: [
+          { top: 60, left: 50 },
+          { top: 65, left: 48 },
+          { top: 65, left: 52 },
+          { top: 55, left: 48 },
+          { top: 55, left: 52 },
+        ]
+      };
+    }
+  };
   
-  const repSeats = isMobile ? [
-    { top: 40, left: 75 },
-    { top: 45, left: 75 },
-    { top: 50, left: 75 },
-    { top: 55, left: 75 },
-    { top: 60, left: 75 },
-  ] : [
-    { top: 55, left: 90 },
-    { top: 60, left: 82 },
-    { top: 65, left: 84 },
-    { top: 57, left: 85 },
-    { top: 63, left: 75 },
-  ];
+  // Get the positions based on screen size
+  const positions = createPartyPositions();
   
-  const indSeats = isMobile ? [
-    { top: 70, left: 40 },
-    { top: 70, left: 50 },
-    { top: 70, left: 60 },
-    { top: 75, left: 45 },
-    { top: 75, left: 55 },
-  ] : [
-    { top: 60, left: 48 },
-    { top: 65, left: 50 },
-    { top: 65, left: 55 },
-    { top: 66, left: 49 },
-    { top: 66, left: 52 },
-  ];
+  // Assign positions by party for more semantic organization
+  const demSeats = positions.democrat;
+  const repSeats = positions.republican;
+  const indSeats = positions.independent;
 
   // Use a small random offset (±1%) for slight variation
   const randomOffset = () => Math.floor(Math.random() * 3) - 1;
@@ -154,39 +180,68 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     }, 200);
   };
 
-  // Assign positions based on party affiliations
+  // Assign positions based on party affiliations with improved symmetry
   const assignPositionsBasedOnParty = (updatedModels) => {
     console.log("🎯 Assigning positions based on party affiliation");
     
-    // Assign positions based on parties
+    // Lowercase party names to match CSS class naming conventions
+    const partyToClassMap = {
+      'Democrat': 'democrat',
+      'Republican': 'republican',
+      'Independent': 'independent'
+    };
+    
+    // Group models by affiliation
     let newPositions = {};
     const demModels = updatedModels.filter((m) => m.affiliation === 'Democrat');
     const repModels = updatedModels.filter((m) => m.affiliation === 'Republican');
     const indModels = updatedModels.filter((m) => m.affiliation === 'Independent');
     
+    console.log(`Assigning: Democrats: ${demModels.length}, Republicans: ${repModels.length}, Independents: ${indModels.length}`);
+    
+    // Position Democrats symmetrically on the left
     demModels.forEach((m, i) => {
-      let seat = demSeats[i] || demSeats[0];
+      // Ensure we use appropriate seat even if we have more models than defined seats
+      let seat = demSeats[i % demSeats.length];
+      
+      // Apply CSS class for styling
+      m.cssClass = partyToClassMap[m.affiliation];
+      
+      // Set position with a small random offset for more natural look
       newPositions[m.id] = {
         top: seat.top + randomOffset(),
         left: seat.left + randomOffset(),
       };
     });
     
+    // Position Republicans symmetrically on the right
     repModels.forEach((m, i) => {
-      let seat = repSeats[i] || repSeats[0];
+      let seat = repSeats[i % repSeats.length];
+      
+      // Apply CSS class for styling
+      m.cssClass = partyToClassMap[m.affiliation];
+      
       newPositions[m.id] = {
         top: seat.top + randomOffset(),
         left: seat.left + randomOffset(),
       };
     });
     
+    // Position Independents in the middle
     indModels.forEach((m, i) => {
-      let seat = indSeats[i] || indSeats[0];
+      let seat = indSeats[i % indSeats.length];
+      
+      // Apply CSS class for styling
+      m.cssClass = partyToClassMap[m.affiliation];
+      
       newPositions[m.id] = {
         top: seat.top + randomOffset(),
         left: seat.left + randomOffset(),
       };
     });
+    
+    // Update the models with their CSS classes
+    setModels(updatedModels);
     
     // Update positions and mark as assigned
     setFinalPositions(newPositions);

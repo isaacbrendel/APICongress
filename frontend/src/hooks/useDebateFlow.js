@@ -197,6 +197,13 @@ export default function useDebateFlow(models, topic, positions) {
     // Add a small timeout before API call to ensure UI is ready
     await new Promise(resolve => setTimeout(resolve, 300));
     
+    // Safety check for speaker validity
+    if (!speakingOrder || !speakingOrder[currentSpeakerIndex]) {
+      console.error("Invalid speaker data:", {currentSpeakerIndex, speakingOrderLength: speakingOrder?.length});
+      setDebateState(DEBATE_STATES.COMPLETED);
+      return;
+    }
+    
     const speaker = speakingOrder[currentSpeakerIndex];
     console.log(`Calling speaker ${currentSpeakerIndex + 1}/${speakingOrder.length}: ${speaker.name} (${speaker.affiliation})`);
     
@@ -221,7 +228,7 @@ export default function useDebateFlow(models, topic, positions) {
       
       // Make API call with context of previous messages
       const response = await fetch(
-        `/api/llm?model=${speaker.name}&party=${speaker.affiliation}&topic=${encodeURIComponent(topic)}&context=${encodeURIComponent(context)}`
+        `/api/llm?model=${encodeURIComponent(speaker.name)}&party=${encodeURIComponent(speaker.affiliation)}&topic=${encodeURIComponent(topic)}&context=${encodeURIComponent(context)}`
       );
       
       if (!response.ok) {
@@ -230,10 +237,10 @@ export default function useDebateFlow(models, topic, positions) {
       
       const data = await response.json();
       
-      // Create the chat message
+      // Create the chat message with error handling for missing response
       const chatMessage = {
         model: speaker.name,
-        message: data.response,
+        message: data.response || "No response received. Please try again.",
         affiliation: speaker.affiliation
       };
       

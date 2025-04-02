@@ -56,7 +56,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     };
   }, []);
   
-  // Enhanced visibility fix for all platforms
+  // Enhanced visibility fix for all platforms with error recovery
   useEffect(() => {
     // Force immediate visibility of background
     const bg = document.querySelector('.debate-background');
@@ -72,8 +72,20 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
       });
     }
     
+    // Error recovery - if screen is white, try forcing a reload
+    let whiteScreenTimer = setTimeout(() => {
+      const bg = document.querySelector('.debate-background');
+      if (bg && (getComputedStyle(bg).opacity === '0' || getComputedStyle(bg).visibility === 'hidden')) {
+        console.log("Detecting possible white screen, forcing visibility");
+        bg.style.opacity = '1';
+        bg.style.visibility = 'visible';
+        bg.style.display = 'block';
+        bg.style.zIndex = '0';
+      }
+    }, 1500);
+    
     return () => {
-      // Cleanup if needed
+      clearTimeout(whiteScreenTimer);
     };
   }, []);
   

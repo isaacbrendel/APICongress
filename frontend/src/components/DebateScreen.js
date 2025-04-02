@@ -42,9 +42,21 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   const positioningTimerRef = useRef(null);
   
   // Responsive and symmetrical seat positions
-  const isMobile = window.innerWidth <= 480;
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
   
-  // Helper function to create symmetrical party positions
+  // Add resize listener to update mobile state
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+  
+  // Helper function to create symmetrical party positions - uses isMobile state
   const createPartyPositions = () => {
     if (isMobile) {
       // Mobile positions - more visible and vertically stacked
@@ -371,10 +383,13 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
             currentSpeech?.model === m.name ? 'speaking' : ''
           ].filter(Boolean).join(' ');
           
+          // Add party affiliation class for styling
+          const partyClass = m.affiliation ? m.affiliation.toLowerCase() : '';
+          
           return (
             <div
               key={m.id}
-              className={classes}
+              className={`${classes} ${partyClass}`}
               style={{ 
                 top: `${pos.top}%`, 
                 left: `${pos.left}%`

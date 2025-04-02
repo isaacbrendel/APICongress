@@ -228,54 +228,66 @@
 
 /* Small screen adjustments */
 @media (max-width: 480px) {
-  .debate-chat-bubble {
+  .debate-chat-bubble, .debate-chat-bubble.mobile {
     width: 90%;
-    transform: translateY(25vh) translateZ(0) !important;
-    position: fixed !important;
-    left: 5% !important;
-    top: 0 !important;
-    max-height: 35vh;
-    z-index: 100;
+    position: absolute;
+    left: 50% !important;
+    top: 10% !important;
+    transform: translateX(-50%) !important;
+    max-height: 40vh;
+    z-index: 50;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
   }
   
   @keyframes fadeInBubble {
     from {
       opacity: 0;
-      transform: translateY(27vh) translateZ(0);
+      transform: translateX(-50%) translateY(-10px);
     }
     to {
       opacity: 1;
-      transform: translateY(25vh) translateZ(0);
+      transform: translateX(-50%) translateY(0);
     }
   }
   
+  /* Use smaller but still visible pointers on mobile */
   .debate-chat-bubble.pointer-left::before,
-  .debate-chat-bubble.pointer-right::before,
+  .debate-chat-bubble.pointer-right::before {
+    bottom: -8px;
+    width: 16px;
+    height: 16px;
+    z-index: 1;
+  }
+  
   .debate-chat-bubble.pointer-bottom::before {
-    display: none; /* Hide pointers on mobile */
+    bottom: -8px;
+    width: 16px;
+    height: 16px;
+    left: calc(50% - 8px);
+    z-index: 1;
   }
   
   .speaker-header {
-    padding: 8px 12px;
+    padding: 10px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
   
   .speaker-name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: bold;
   }
   
   .speaker-affiliation {
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .message-content {
     padding: 12px;
     font-size: 15px;
     line-height: 1.4;
-    max-height: 15vh;
+    max-height: 25vh;
     overflow-y: auto;
   }
   
@@ -286,16 +298,16 @@
   }
   
   .next-speaker {
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .next-speaker-party {
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .countdown-timer {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
   }
 }

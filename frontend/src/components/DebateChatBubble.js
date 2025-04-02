@@ -21,23 +21,30 @@ const DebateChatBubble = ({
 }) => {
   // Set bubble position relative to speaker position
   const getBubblePosition = () => {
-    if (!position) return { top: '30%', left: '50%' };
+    // Default position if no position data
+    if (!position) return { top: '30%', left: '50%', transform: 'translateX(-50%)' };
     
-    // Position bubble above the speaker with some offset
-    const bubbleTop = Math.max(10, position.top - 15); // At least 10% from top
-    
-    // Adjust horizontal position based on affiliation
-    let bubbleLeft;
-    if (affiliation === 'Democrat') {
-      bubbleLeft = position.left + 10; // Rightward for Democrats (left side)
-    } else if (affiliation === 'Republican') {
-      bubbleLeft = position.left - 30; // Leftward for Republicans (right side)
+    // Use state for mobile detection
+    if (isMobile) {
+      // On mobile, position at the top center for all speakers
+      return { top: '10%', left: '50%', transform: 'translateX(-50%)' };
     } else {
-      // Independents (middle) - adjust based on absolute position
-      bubbleLeft = position.left < 50 ? position.left + 8 : position.left - 28;
+      // Desktop positioning - bubble above the speaker with some offset
+      const bubbleTop = Math.max(10, position.top - 15); // At least 10% from top
+      
+      // Adjust horizontal position based on affiliation
+      let bubbleLeft;
+      if (affiliation === 'Democrat') {
+        bubbleLeft = position.left + 10; // Rightward for Democrats (left side)
+      } else if (affiliation === 'Republican') {
+        bubbleLeft = position.left - 30; // Leftward for Republicans (right side)
+      } else {
+        // Independents (middle) - adjust based on absolute position
+        bubbleLeft = position.left < 50 ? position.left + 8 : position.left - 28;
+      }
+      
+      return { top: `${bubbleTop}%`, left: `${bubbleLeft}%`, transform: 'none' };
     }
-    
-    return { top: `${bubbleTop}%`, left: `${bubbleLeft}%` };
   };
 
   // Get colors based on affiliation
@@ -85,9 +92,24 @@ const DebateChatBubble = ({
   const colors = getColors();
   const pointerClass = getPointerClass();
 
+  // Add a class to handle mobile styling
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 480);
+  
+  // Add resize listener to update mobile state
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+  
   return (
     <div
-      className={`debate-chat-bubble ${pointerClass}`}
+      className={`debate-chat-bubble ${pointerClass} ${isMobile ? 'mobile' : ''}`}
       style={{
         ...bubblePosition,
         borderColor: colors.borderColor,

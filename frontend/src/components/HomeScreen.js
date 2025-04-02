@@ -19,6 +19,7 @@ const HomeScreen = ({ onBeginDebate }) => {
         className="blurred-bg"
         style={{
           backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
+          backgroundPosition: 'center',
         }}
       ></div>
       <div className="welcome-card">

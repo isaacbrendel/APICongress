@@ -237,6 +237,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
         style={{
           backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
           backgroundSize: 'cover',
+          backgroundPosition: 'center',
         }}
       ></div>
       

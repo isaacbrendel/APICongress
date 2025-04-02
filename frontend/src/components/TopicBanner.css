@@ -45,12 +45,16 @@
 @media (max-width: 480px) {
   .topic-banner {
     top: 7%;
-    height: 120px;
+    height: auto;
+    min-height: 80px;
+    max-width: 90%;
+    width: 90%;
   }
   
   .banner-text {
     font-size: 1.2rem;
-    transform: translateY(-15px);
-    padding: 0 10px;
+    transform: translateY(0);
+    padding: 15px;
+    width: 100%;
   }
 }

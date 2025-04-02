@@ -291,32 +291,112 @@
   .voting-interface {
     width: 95%;
     padding: 20px;
+    max-height: 85vh;
+  }
+  
+  .voting-header {
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .voting-title-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
   }
   
   .voting-header h2 {
     font-size: 1.8rem;
+    margin-bottom: 8px;
+  }
+  
+  .voting-header p {
+    font-size: 0.95rem;
   }
   
   .party-tabs {
     flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
   }
   
   .party-tab {
-    padding: 10px 18px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  .arguments-display {
+    padding: 15px;
+    max-height: 30vh;
+  }
+  
+  .argument-item {
+    padding: 12px 15px;
+  }
+  
+  .argument-speaker {
+    font-size: 1rem;
+    margin-bottom: 5px;
+  }
+  
+  .argument-content {
     font-size: 0.95rem;
+  }
+  
+  .voting-section {
+    padding: 18px;
+  }
+  
+  .voting-section h3 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
   }
   
   .voting-options {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
   
   .vote-label {
     width: 100%;
+    padding: 10px;
+    font-size: 1rem;
   }
   
   .submit-vote-btn {
     width: 100%;
-    margin-top: 20px;
+    margin-top: 15px;
+    padding: 12px;
+    font-size: 1rem;
+  }
+}
+
+/* Small mobile adjustments */
+@media (max-width: 480px) {
+  .voting-interface {
+    width: 98%;
+    padding: 15px;
+    border-radius: 12px;
+  }
+  
+  .voting-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .party-tab {
+    min-width: unset;
+    width: 100%;
+    margin-bottom: 5px;
+  }
+  
+  .arguments-display {
+    padding: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .voting-section {
+    padding: 15px;
   }
 }

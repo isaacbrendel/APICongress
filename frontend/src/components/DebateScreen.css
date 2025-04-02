@@ -239,4 +239,62 @@
   .winner-actions button {
     width: 100%;
   }
+  
+  /* Improve visibility of the debater cards on mobile */
+  .debater-position.placed {
+    transform: scale(0.85);
+  }
+  
+  /* Ensure chat bubbles are more readable on mobile */
+  .chat-bubble {
+    max-width: 80vw;
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+  
+  /* Adjust debate status indicator for mobile */
+  .debate-status {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    top: 15px;
+    left: 15px;
+  }
+  
+  /* Improve visibility when speaking */
+  .debater-position.speaking {
+    z-index: 20;
+    transform: scale(0.9);
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 480px) {
+  .reassign-button {
+    top: 5%;
+    right: 5%;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Adjust positions for better visibility on small screens */
+  .debater-position {
+    transform: scale(0.7);
+  }
+  
+  .debater-position.speaking {
+    transform: scale(0.8);
+  }
+  
+  /* Ensure chat bubbles are more readable on small devices */
+  .chat-bubble {
+    max-width: 90vw;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  
+  /* Ensure the topic banner is readable */
+  .topic-banner {
+    padding: 10px 15px;
+    font-size: 0.9rem;
+  }
 }

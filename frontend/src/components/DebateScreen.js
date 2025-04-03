@@ -56,8 +56,15 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     };
   }, []);
   
-  // Enhanced visibility fix for all platforms with error recovery
+  // Enhanced visibility fix with pre-initialization of debate variables
   useEffect(() => {
+    // Initialize speakingOrder right away to prevent uninitialized variables
+    if (models && models.length > 0) {
+      console.log("Pre-initializing debate variables to prevent uninitialized references");
+      // This helps ensure debates can start correctly later
+      setupSpeakingOrder();
+    }
+    
     // Force immediate visibility of background
     const bg = document.querySelector('.debate-background');
     if (bg) {
@@ -87,7 +94,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     return () => {
       clearTimeout(whiteScreenTimer);
     };
-  }, []);
+  }, [models, setupSpeakingOrder]);
   
   // Helper function to create symmetrical party positions - uses isMobile state
   const createPartyPositions = () => {
@@ -308,28 +315,23 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     
     // Set up debate speaking order after a reasonable delay for animations to complete
     positioningTimerRef.current = setTimeout(() => {
-      console.log("Setting up speaking order with finalized models:", updatedModels);
+      console.log("Starting debate initialization");
       
-      // Use our hook's functions to setup and start the debate
-      const speakingOrderResult = setupSpeakingOrder();
+      // Skip the setupSpeakingOrder step completely - it will be handled inside startDebate
+      // This avoids any potential circular dependencies or uninitialized variable errors
       
-      // Verify speaking order was created
-      if (speakingOrderResult && speakingOrderResult.length > 0) {
-        console.log("Speaking order established successfully");
-        
-        // Start debate with a small delay to avoid race conditions
-        positioningTimerRef.current = setTimeout(() => {
+      // Simply start the debate - the hook's implementation will handle order creation
+      positioningTimerRef.current = setTimeout(() => {
+        try {
+          // Just call startDebate - it handles everything internally now
           startDebate();
-        }, 800);
-      } else {
-        console.error("Failed to establish speaking order, will retry");
-        
-        // Try one more time with a delay
-        positioningTimerRef.current = setTimeout(() => {
-          setupSpeakingOrder();
-          startDebate();
-        }, 1500);
-      }
+        } catch (error) {
+          console.error("Error starting debate:", error);
+          
+          // Last-resort recovery
+          setTimeout(startDebate, 1000);
+        }
+      }, 800);
     }, 1000);
   };
 

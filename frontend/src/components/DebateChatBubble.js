@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './DebateChatBubble.css';
 
 /**
@@ -19,6 +19,21 @@ const DebateChatBubble = ({
   countdown,
   nextSpeaker
 }) => {
+  // Add a class to handle mobile styling - declare this FIRST to avoid uninitialized variable error
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
+  
+  // Add resize listener to update mobile state
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+  
   // Set bubble position relative to speaker position
   const getBubblePosition = () => {
     // Default position if no position data
@@ -91,21 +106,6 @@ const DebateChatBubble = ({
   const bubblePosition = getBubblePosition();
   const colors = getColors();
   const pointerClass = getPointerClass();
-
-  // Add a class to handle mobile styling
-  const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 480);
-  
-  // Add resize listener to update mobile state
-  React.useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 480);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
   
   return (
     <div

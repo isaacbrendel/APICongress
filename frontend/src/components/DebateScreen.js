@@ -232,68 +232,75 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     }, 500);
   };
 
-  // Assign positions based on party affiliations with improved symmetry
+  // Completely reliable position assignment based on party affiliation
   const assignPositionsBasedOnParty = (updatedModels) => {
     console.log("🎯 Assigning positions based on party affiliation");
     
-    // Lowercase party names to match CSS class naming conventions
-    const partyToClassMap = {
-      'Democrat': 'democrat',
-      'Republican': 'republican',
-      'Independent': 'independent'
-    };
-    
-    // Group models by affiliation
-    let newPositions = {};
-    const demModels = updatedModels.filter((m) => m.affiliation === 'Democrat');
-    const repModels = updatedModels.filter((m) => m.affiliation === 'Republican');
-    const indModels = updatedModels.filter((m) => m.affiliation === 'Independent');
-    
-    console.log(`Assigning: Democrats: ${demModels.length}, Republicans: ${repModels.length}, Independents: ${indModels.length}`);
-    
-    // Position Democrats symmetrically on the left
-    demModels.forEach((m, i) => {
-      // Ensure we use appropriate seat even if we have more models than defined seats
-      let seat = demSeats[i % demSeats.length];
+    // Create a safe copy of models with guaranteed properties
+    const safeModels = updatedModels.map((model, index) => {
+      // Default to Independent if no affiliation
+      const affiliation = model.affiliation || "Independent";
       
-      // Apply CSS class for styling
-      m.cssClass = partyToClassMap[m.affiliation];
-      
-      // Set position with a small random offset for more natural look
-      newPositions[m.id] = {
-        top: seat.top + randomOffset(),
-        left: seat.left + randomOffset(),
+      return {
+        ...model,
+        id: model.id || index + 1,
+        name: model.name || `Speaker ${index + 1}`,
+        affiliation: affiliation,
+        cssClass: affiliation.toLowerCase(),
+        isFinalized: true
       };
     });
     
-    // Position Republicans symmetrically on the right
-    repModels.forEach((m, i) => {
-      let seat = repSeats[i % repSeats.length];
-      
-      // Apply CSS class for styling
-      m.cssClass = partyToClassMap[m.affiliation];
-      
-      newPositions[m.id] = {
+    // Create a new positions object
+    let newPositions = {};
+    
+    // Group by party - safe filtering
+    const demModels = safeModels.filter(m => m.affiliation === 'Democrat');
+    const repModels = safeModels.filter(m => m.affiliation === 'Republican');
+    const indModels = safeModels.filter(m => m.affiliation === 'Independent');
+    
+    console.log(`Positioning: Democrats: ${demModels.length}, Republicans: ${repModels.length}, Independents: ${indModels.length}`);
+    
+    // Position Democrats on the left
+    demModels.forEach((model, i) => {
+      const seat = demSeats[i % demSeats.length];
+      newPositions[model.id] = {
         top: seat.top + randomOffset(),
-        left: seat.left + randomOffset(),
+        left: seat.left + randomOffset()
+      };
+    });
+    
+    // Position Republicans on the right
+    repModels.forEach((model, i) => {
+      const seat = repSeats[i % repSeats.length];
+      newPositions[model.id] = {
+        top: seat.top + randomOffset(),
+        left: seat.left + randomOffset()
       };
     });
     
     // Position Independents in the middle
-    indModels.forEach((m, i) => {
-      let seat = indSeats[i % indSeats.length];
-      
-      // Apply CSS class for styling
-      m.cssClass = partyToClassMap[m.affiliation];
-      
-      newPositions[m.id] = {
+    indModels.forEach((model, i) => {
+      const seat = indSeats[i % indSeats.length];
+      newPositions[model.id] = {
         top: seat.top + randomOffset(),
-        left: seat.left + randomOffset(),
+        left: seat.left + randomOffset()
       };
     });
     
-    // Update the models with their CSS classes
-    setModels(updatedModels);
+    // Final safety check - ensure all models have positions
+    safeModels.forEach(model => {
+      if (!newPositions[model.id]) {
+        console.warn(`Model ${model.name} has no position assigned, using default`);
+        newPositions[model.id] = { 
+          top: 50 + randomOffset() * 5, 
+          left: 50 + randomOffset() * 5 
+        };
+      }
+    });
+    
+    // Update models with CSS classes
+    setModels(safeModels);
     
     // Update positions and mark as assigned
     setFinalPositions(newPositions);

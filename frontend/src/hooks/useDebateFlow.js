@@ -137,79 +137,89 @@ export default function useDebateFlow(models, topic, positions) {
   }, [models]);
   
   /**
-   * Start the debate process with robust error handling
+   * Directly initialize debate without complex logic
    */
   const startDebate = useCallback(() => {
-    try {
-      // First check if we already have a speaking order
-      if (!speakingOrder || !Array.isArray(speakingOrder) || speakingOrder.length === 0) {
-        console.warn("⚠️ No speaking order available, creating one now");
+    // Force a clean start
+    console.log("🏛️ Starting new debate session");
+    
+    // Create a hardcoded speaking order to avoid any issues
+    if (models && models.length > 0) {
+      try {
+        // Create a 100% reliable speaking order
+        // Copy the models with guaranteed properties to avoid any undefined
+        const safeModels = models.map((model, index) => ({
+          ...model,
+          id: model.id || index + 1,
+          name: model.name || `Speaker ${index + 1}`,
+          affiliation: model.affiliation || "Independent",
+          cssClass: model.cssClass || (model.affiliation ? model.affiliation.toLowerCase() : "independent"),
+          isFinalized: true
+        }));
         
-        // Call setupSpeakingOrder to create a new order
-        const newOrder = setupSpeakingOrder();
+        // Arrange by party - this is simple and reliable
+        const republicans = safeModels.filter(m => m.affiliation === 'Republican');
+        const democrats = safeModels.filter(m => m.affiliation === 'Democrat');  
+        const independents = safeModels.filter(m => m.affiliation === 'Independent');
         
-        // If setupSpeakingOrder still couldn't create an order, use models directly
-        if (!newOrder || newOrder.length === 0) {
-          if (models && models.length > 0) {
-            console.log("📌 Using models directly as fallback speaking order");
+        console.log(`Party counts: R=${republicans.length}, D=${democrats.length}, I=${independents.length}`);
+        
+        // If no parties assigned yet, treat all as independents
+        if (republicans.length === 0 && democrats.length === 0 && independents.length === 0) {
+          console.log("No party affiliations found, using direct model order");
+          setSpeakingOrder(safeModels);
+        } else {
+          // Create interleaved order
+          const order = [];
+          
+          // Add parties in alternating fashion
+          let r = 0, d = 0, i = 0;
+          while (order.length < safeModels.length) {
+            if (r < republicans.length) order.push(republicans[r++]);
+            if (order.length >= safeModels.length) break;
             
-            // Make a safe copy of models with required properties
-            const fallbackOrder = models.map(model => ({
-              ...model,
-              id: model.id || Math.random().toString(36).substring(2, 9),
-              name: model.name || "Unknown Model",
-              affiliation: model.affiliation || "Independent"
-            }));
+            if (d < democrats.length) order.push(democrats[d++]);
+            if (order.length >= safeModels.length) break;
             
-            // Set the order and start the debate
-            setSpeakingOrder(fallbackOrder);
-            setCurrentSpeakerIndex(0);
-            setDebateMessages([]);
-            setNextSpeaker(fallbackOrder[0].name);
-            setDebateState(DEBATE_STATES.SPEAKING);
-            return;
-          } else {
-            console.error("❌ CRITICAL ERROR: No models available for debate");
-            return;
+            if (i < independents.length) order.push(independents[i++]);
+            if (order.length >= safeModels.length) break;
           }
+          
+          // Set the final speaking order
+          setSpeakingOrder(order);
         }
-      }
-      
-      // At this point, we should have a valid speaking order
-      console.log("🚀 Starting debate with speakers:", 
-        speakingOrder.map(m => `${m.name} (${m.affiliation})`).join(", "));
-      
-      // Reset debate state
-      setCurrentSpeakerIndex(0);
-      setDebateMessages([]);
-      
-      // Safety check for first speaker
-      if (speakingOrder && speakingOrder[0]) {
-        setNextSpeaker(speakingOrder[0].name);
-      } else {
-        // This should never happen with our safety measures
-        console.error("❌ First speaker is undefined, using fallback");
-        setNextSpeaker("First Speaker");
-      }
-      
-      // Start the debate
-      setDebateState(DEBATE_STATES.SPEAKING);
-      
-    } catch (error) {
-      // Last resort error handling
-      console.error("❌ Error starting debate:", error);
-      
-      // Try to recover by setting a direct speaking order from models
-      if (models && models.length > 0) {
-        console.log("🔄 Emergency recovery: using models directly");
+        
+        // Reset state for new debate
+        setCurrentSpeakerIndex(0);
+        setDebateMessages([]);
+        
+        // Get the first speaker - avoid any references to potentially uninitialized variables
+        // Create a completely new object to avoid reference issues
+        const firstSpeaker = { 
+          name: safeModels[0]?.name || "First Speaker",
+          affiliation: safeModels[0]?.affiliation || "Independent",
+          id: safeModels[0]?.id || 1
+        };
+                            
+        setNextSpeaker(firstSpeaker.name || "First Speaker");
+        
+        // Start the debate
+        setDebateState(DEBATE_STATES.SPEAKING);
+        
+      } catch (error) {
+        console.error("Error in debate initialization:", error);
+        
+        // Super simple fallback - just use the models directly
         setSpeakingOrder(models);
         setCurrentSpeakerIndex(0);
         setDebateMessages([]);
-        setNextSpeaker(models[0].name || "Speaker");
+        setNextSpeaker("First Speaker");
         setDebateState(DEBATE_STATES.SPEAKING);
       }
+    } else {
+      console.error("No models available for debate");
     }
-  }, [speakingOrder, models, setupSpeakingOrder]);
+  }, [models]);
   
   /**
    * Call the current speaker's API to generate a response with robust error handling

@@ -1,91 +1,114 @@
 // src/components/PartyAssigner.js
 import React, { useEffect, useState } from 'react';
-import usePartyAssignment from '../hooks/usePartyAssignment';
+
 /**
- * Component to handle party assignment process
- *
- * @param {Object} props
- * @param {Array} props.models - Current models array
- * @param {Function} props.setModels - Function to update models
- * @param {boolean} props.active - Whether the component should be active
- * @param {Function} props.onAssignmentComplete - Callback when assignment is complete
+ * Simple PartyAssigner component that doesn't rely on the hook
+ * This eliminates circular dependencies that were causing initialization errors
  */
 const PartyAssigner = ({ models, setModels, active, onAssignmentComplete }) => {
-  const {
-    isAssigning,
-    startPartyRoulette,
-    balancePartyDistribution,
-    reassignParties
-  } = usePartyAssignment(models, setModels);
+  // Component state
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [hasAssigned, setHasAssigned] = useState(false);
   
-  // State to track if we've already processed this set of finalized models
-  const [hasProcessedFinalizedModels, setHasProcessedFinalizedModels] = useState(false);
-  
-  // Start the roulette when component becomes active - ONLY ONCE
+  // Start assignment on mount if active
   useEffect(() => {
-    if (active && models.length > 0 && !isAssigning && !hasProcessedFinalizedModels) {
-      console.log("Starting party assignment roulette (initial)");
-      // Add a small delay to ensure component is fully mounted
-      setTimeout(() => {
-        startPartyRoulette();
+    if (active && models.length > 0 && !isAssigning && !hasAssigned) {
+      console.log("🎲 Starting party assignment");
+      
+      // Start assignment animation
+      setIsAssigning(true);
+      
+      // Party rotation animation
+      const affiliations = ['Republican', 'Democrat', 'Independent'];
+      let intervalId = null;
+      
+      // Start the roulette animation
+      intervalId = setInterval(() => {
+        setModels(prev => prev.map(m => ({
+          ...m,
+          affiliation: affiliations[Math.floor(Math.random() * affiliations.length)],
+          isFinalized: false
+        })));
       }, 100);
-    }
-  }, [active, models.length, isAssigning, startPartyRoulette, hasProcessedFinalizedModels]);
-  
-  // Clear processed flag when models change or component becomes inactive
-  useEffect(() => {
-    if (!active || models.some(m => !m.isFinalized)) {
-      setHasProcessedFinalizedModels(false);
-    }
-  }, [active, models]);
-  
-  // Process completed assignment ONCE and then call onAssignmentComplete
-  useEffect(() => {
-    if (models.length > 0 &&
-        models.every(m => m.isFinalized) &&
-        !isAssigning &&
-        !hasProcessedFinalizedModels) {
-      console.log("Models are finalized, processing once");
       
-      // Mark that we've processed these models
-      setHasProcessedFinalizedModels(true);
-      
-      // Apply party balancing to enforce constraints
-      const balancedModels = balancePartyDistribution(models);
-      
-      // Only update if there was a change
-      const needsUpdate = JSON.stringify(balancedModels) !== JSON.stringify(models);
-      if (needsUpdate) {
-        console.log("Updating models after balancing");
-        setModels(balancedModels);
-      }
-      
-      // Only notify parent once
-      console.log("Notifying parent that assignment is complete");
+      // After a short delay, stop and assign final parties
       setTimeout(() => {
-        onAssignmentComplete && onAssignmentComplete(balancedModels);
-      }, 50);
+        // Stop the animation
+        clearInterval(intervalId);
+        
+        // Create a balanced distribution of parties
+        const updatedModels = assignFinalParties(models);
+        
+        // Update models with finalized parties
+        setModels(updatedModels);
+        
+        // Update state
+        setIsAssigning(false);
+        setHasAssigned(true);
+        
+        // Notify parent after a small delay
+        setTimeout(() => {
+          onAssignmentComplete && onAssignmentComplete(updatedModels);
+        }, 50);
+      }, 1500);
     }
-  }, [
-    models,
-    isAssigning,
-    balancePartyDistribution,
-    setModels,
-    onAssignmentComplete,
-    hasProcessedFinalizedModels
-  ]);
+  }, [active, models.length, isAssigning, hasAssigned, setModels, onAssignmentComplete]);
+  
+  // Reassign parties manually
+  const handleReassign = () => {
+    setHasAssigned(false);
+    setIsAssigning(false);
+  };
+  
+  /**
+   * Simple function to assign parties with no dependencies
+   * Guarantees 2 Republicans, 2 Democrats, and rest Independent
+   */
+  const assignFinalParties = (modelArray) => {
+    if (!modelArray || !Array.isArray(modelArray) || modelArray.length === 0) return [];
+    
+    // Make a copy to avoid mutation
+    const models = [...modelArray];
+    
+    // Shuffle first to get random assignment
+    for (let i = models.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [models[i], models[j]] = [models[j], models[i]];
+    }
+    
+    // Fixed party counts for 5 models
+    const targetRep = 2;
+    const targetDem = 2;
+    // Independents fill in the rest
+    
+    // Assign parties sequentially
+    models.forEach((model, index) => {
+      if (index < targetRep) {
+        model.affiliation = 'Republican';
+        model.cssClass = 'republican';
+      } else if (index < targetRep + targetDem) {
+        model.affiliation = 'Democrat';
+        model.cssClass = 'democrat';
+      } else {
+        model.affiliation = 'Independent';
+        model.cssClass = 'independent';
+      }
+      model.isFinalized = true;
+    });
+    
+    return models;
+  };
   
   return (
     <>
       {!isAssigning && !models.every(m => m.isFinalized) && (
         <button
           className="reassign-button"
-          onClick={reassignParties}
+          onClick={handleReassign}
         >
           Assign Parties
         </button>
       )}
-      {/* Removed the assignment indicator - relying on animation alone */}
     </>
   );
 };

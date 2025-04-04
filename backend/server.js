@@ -333,7 +333,9 @@ async function callLLM(model, party, topic, context = []) {
       case 'Cohere': {
         // Using updated Cohere API with character-based prompting
         console.log(`[COHERE REQUEST] Calling Cohere API`);
+        console.log(`[COHERE DEBUG] Using API key: ${process.env.COHERE_API_KEY ? "API key exists" : "API key missing"}`);
         
+        // Detailed request logging
         const requestBody = {
           model: "command-a-03-2025",  // Updated model name
           message: userPrompt,         // Single message as string, not array
@@ -342,30 +344,72 @@ async function callLLM(model, party, topic, context = []) {
           temperature: 0.7
         };
         
-        const response = await myFetch("https://api.cohere.ai/v1/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.COHERE_API_KEY}`, 
-            "Cohere-Version": "2023-05-24"  // Adding version header
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal
-        });
+        console.log(`[COHERE DEBUG] Request body:`, JSON.stringify(requestBody, null, 2));
         
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error(`[COHERE ERROR] Status ${response.status}:`, errorData);
-          throw new Error(`Cohere API error: ${response.status} ${response.statusText}`);
-        }
+        // Log the headers we're sending (without exposing full API key)
+        const cohereHeaders = {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.COHERE_API_KEY ? "****" + process.env.COHERE_API_KEY.substring(process.env.COHERE_API_KEY.length - 4) : "missing"}`,
+          "Cohere-Version": "2023-05-24"
+        };
+        console.log(`[COHERE DEBUG] Request headers:`, JSON.stringify(cohereHeaders, null, 2));
         
-        const data = await response.json();
-        
-        if (data.response) {  // Changed from 'text' to 'response'
-          result = data.response.trim();
-        } else {
-          console.error(`[COHERE ERROR] Unexpected response structure:`, data);
-          throw new Error("No completion returned from Cohere.");
+        try {
+          const response = await myFetch("https://api.cohere.ai/v1/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.COHERE_API_KEY}`,
+              "Cohere-Version": "2023-05-24"  // Adding version header
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal
+          });
+          
+          console.log(`[COHERE DEBUG] Response status:`, response.status);
+          console.log(`[COHERE DEBUG] Response OK:`, response.ok);
+          
+          // Get and log response details regardless of status
+          const responseText = await response.text();
+          console.log(`[COHERE DEBUG] Raw response:`, responseText);
+          
+          if (!response.ok) {
+            console.error(`[COHERE ERROR] Status ${response.status}:`, responseText);
+            throw new Error(`Cohere API error: ${response.status} ${response.statusText}`);
+          }
+          
+          // Parse JSON after successful text extraction
+          let data;
+          try {
+            data = JSON.parse(responseText);
+            console.log(`[COHERE DEBUG] Parsed response data:`, JSON.stringify(data, null, 2));
+          } catch (parseError) {
+            console.error(`[COHERE ERROR] Failed to parse JSON response:`, parseError);
+            throw new Error(`Failed to parse Cohere response: ${parseError.message}`);
+          }
+          
+          // Detailed response structure checking
+          console.log(`[COHERE DEBUG] Response keys:`, Object.keys(data));
+          if (data.response) {
+            console.log(`[COHERE DEBUG] Found 'response' key with value:`, data.response);
+            result = data.response.trim();
+          } else if (data.text) {
+            console.log(`[COHERE DEBUG] Found 'text' key instead of 'response':`, data.text);
+            result = data.text.trim();
+          } else if (data.generations && data.generations.length > 0) {
+            console.log(`[COHERE DEBUG] Found 'generations' array:`, data.generations);
+            result = data.generations[0].text || data.generations[0].content || "No text in generation";
+            result = result.trim();
+          } else {
+            console.error(`[COHERE ERROR] Unexpected response structure:`, data);
+            throw new Error("No completion returned from Cohere.");
+          }
+        } catch (fetchError) {
+          console.error(`[COHERE ERROR] Fetch error:`, fetchError);
+          if (fetchError.code) {
+            console.error(`[COHERE ERROR] Network error code:`, fetchError.code);
+          }
+          throw fetchError;
         }
         break;
       }
@@ -734,7 +778,3 @@ function startServer(portOptions) {
       process.exit(1);
     }
   });
-}
-
-// Start the server with port fallbacks
-startServer(portFallbacks);

@@ -1,5 +1,4 @@
-// Start the server with port fallbacks
-startServer(portFallbacks);const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const app = express();
@@ -770,7 +769,8 @@ function startServer(portOptions) {
       console.log(`Port ${port} is busy, trying next available port...`);
       if (portOptions.length > 1) {
         startServer(portOptions.slice(1)); // Try next port
-      } else {
+      } 
+      else {
         console.error('All ports are busy. Please specify a different port via PORT environment variable.');
         process.exit(1);
       }
@@ -780,3 +780,6 @@ function startServer(portOptions) {
     }
   });
 }
+
+// Start the server with port fallbacks
+startServer(portFallbacks);

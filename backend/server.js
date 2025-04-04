@@ -292,16 +292,14 @@ async function callLLM(model, party, topic, context = []) {
       }
       
       case 'Claude': {
-        // Using Claude's current API format with character-based prompting
+        // Using updated Claude API format with character-based prompting
         console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API`);
         
         const requestBody = {
           model: "claude-3-haiku-20240307",
           max_tokens: 50,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ]
+          messages: [{ role: "user", content: userPrompt }],
+          system: systemPrompt  // System prompt is now a separate field
         };
         
         const response = await myFetch("https://api.anthropic.com/v1/messages", {
@@ -333,15 +331,13 @@ async function callLLM(model, party, topic, context = []) {
       }
       
       case 'Cohere': {
-        // Using Cohere's API with character-based prompting
+        // Using updated Cohere API with character-based prompting
         console.log(`[COHERE REQUEST] Calling Cohere API`);
         
         const requestBody = {
-          model: "command-r-plus",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ],
+          model: "command-a-03-2025",  // Updated model name
+          message: userPrompt,
+          preamble: systemPrompt,  // Cohere uses preamble for system instructions
           max_tokens: 50,
           temperature: 0.7
         };
@@ -350,7 +346,8 @@ async function callLLM(model, party, topic, context = []) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.COHERE_API_KEY}`
+            "Authorization": `Bearer ${process.env.COHERE_API_KEY}`,
+            "Cohere-Version": "2023-05-24"  // Adding version header
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal
@@ -364,8 +361,8 @@ async function callLLM(model, party, topic, context = []) {
         
         const data = await response.json();
         
-        if (data.text) {
-          result = data.text.trim();
+        if (data.response) {  // Changed from 'text' to 'response'
+          result = data.response.trim();
         } else {
           console.error(`[COHERE ERROR] Unexpected response structure:`, data);
           throw new Error("No completion returned from Cohere.");
@@ -656,27 +653,26 @@ app.get('/api/llm', async (req, res) => {
       statusCode = 400;
     }
     
-    // If all else fails, provide a mock response in production
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        const mockResponse = getMockResponse(model, party, topic, parsedContext);
-        console.log(`[FALLBACK] Using mock response after API error`);
-        
-        return res.json({
-          model,
-          response: mockResponse,
-          party,
-          topic,
-          timestamp: new Date().toISOString(),
-          mock: true
-        });
-      } catch (mockError) {
-        console.error(`[MOCK FALLBACK ERROR]`, mockError);
-        // Continue to error response if mock fails
-      }
+    // ALWAYS provide a mock response in both production AND development
+    // This ensures the UI always gets a response, even during API failures
+    try {
+      const mockResponse = getMockResponse(model, party, topic, parsedContext);
+      console.log(`[FALLBACK] Using mock response after API error`);
+      
+      return res.json({
+        model,
+        response: mockResponse,
+        party,
+        topic,
+        timestamp: new Date().toISOString(),
+        mock: true
+      });
+    } catch (mockError) {
+      console.error(`[MOCK FALLBACK ERROR]`, mockError);
+      // Continue to error response if mock fails
     }
     
-    // Provide informative error response
+    // Provide informative error response only if mock response also fails
     res.status(statusCode).json({ 
       error: userMessage,
       model,

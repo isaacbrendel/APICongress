@@ -299,7 +299,7 @@ async function callLLM(model, party, topic, context = []) {
           model: "claude-3-haiku-20240307",
           max_tokens: 50,
           messages: [{ role: "user", content: userPrompt }],
-          system: systemPrompt  // System prompt is now a separate field
+          system: systemPrompt  // System prompt as a separate parameter
         };
         
         const response = await myFetch("https://api.anthropic.com/v1/messages", {
@@ -336,8 +336,8 @@ async function callLLM(model, party, topic, context = []) {
         
         const requestBody = {
           model: "command-a-03-2025",  // Updated model name
-          message: userPrompt,
-          preamble: systemPrompt,  // Cohere uses preamble for system instructions
+          message: userPrompt,         // Single message as string, not array
+          preamble: systemPrompt,      // System instructions as preamble
           max_tokens: 50,
           temperature: 0.7
         };
@@ -346,7 +346,7 @@ async function callLLM(model, party, topic, context = []) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.COHERE_API_KEY}`,
+            "Authorization": `Bearer ${process.env.COHERE_API_KEY}`, 
             "Cohere-Version": "2023-05-24"  // Adding version header
           },
           body: JSON.stringify(requestBody),

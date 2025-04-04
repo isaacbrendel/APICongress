@@ -1,4 +1,5 @@
-const express = require('express');
+// Start the server with port fallbacks
+startServer(portFallbacks);const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const app = express();
@@ -778,3 +779,4 @@ function startServer(portOptions) {
       process.exit(1);
     }
   });
+}

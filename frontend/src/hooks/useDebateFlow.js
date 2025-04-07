@@ -120,13 +120,7 @@ export default function useDebateFlow(models, topic, positions) {
     
     console.log(`Calling speaker ${currentSpeakerIndex + 1}/${speakingOrder.length}: ${speakerName}`);
     
-    // Set placeholder message
-    setCurrentSpeech({
-      model: speakerName,
-      message: `The honorable representative from ${speakerAffiliation} is preparing their statement...`,
-      affiliation: speakerAffiliation,
-      position: positions[speakerId] || { top: 50, left: 50 }
-    });
+    // Remove the placeholder message - don't set currentSpeech until we have a real response
     
     try {
       // Prepare context

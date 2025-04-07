@@ -3,13 +3,15 @@ import React, { useState, useEffect } from 'react';
 import './WinnerDisplay.css';
 
 /**
- * Component to display the winner of the debate with glorious animations
+ * Component to display the winner of the debate with glorious, elegant animations
  */
 const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [showTrophy, setShowTrophy] = useState(false);
   const [showSpotlight, setShowSpotlight] = useState(false);
+  const [showRibbons, setShowRibbons] = useState(false);
+  const [showStars, setShowStars] = useState(false);
   
   // Get party-specific styling
   const getPartyColor = () => {
@@ -25,7 +27,21 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
     }
   };
   
-  // Staged animations for a more dramatic reveal
+  // Elegant secondary color for the party
+  const getSecondaryColor = () => {
+    switch (winner) {
+      case 'Democrat':
+        return '#B7D1F8'; // Light blue
+      case 'Republican':
+        return '#FFCCCB'; // Light red
+      case 'Independent':
+        return '#E6CCE6'; // Light purple
+      default:
+        return '#E0E0E0';
+    }
+  };
+  
+  // Staged animations for a more dramatic, elegant reveal
   useEffect(() => {
     // Start with spotlight
     setShowSpotlight(true);
@@ -35,37 +51,55 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
       setShowTrophy(true);
     }, 600);
     
-    // Then content
+    // Then content with ribbons for elegance
     setTimeout(() => {
       setShowContent(true);
+      setShowRibbons(true);
     }, 1200);
     
-    // Finally confetti
+    // Add stars for sophistication
+    setTimeout(() => {
+      setShowStars(true);
+    }, 1500);
+    
+    // Finally confetti for celebration
     setTimeout(() => {
       setShowConfetti(true);
     }, 1800);
   }, []);
   
-  // Generate random confetti
+  // Generate random confetti with more elegant shapes and colors
   const generateConfetti = () => {
-    const confettiCount = 150; // More confetti for glory!
+    const confettiCount = 150;
     const confetti = [];
     
+    // More sophisticated color palette
+    const partyColor = getPartyColor();
+    const secondaryColor = getSecondaryColor();
+    
     for (let i = 0; i < confettiCount; i++) {
-      const color = i % 5 === 0 ? getPartyColor() : 
-                   i % 5 === 1 ? '#FFD700' : // Gold
-                   i % 5 === 2 ? '#FFFFFF' : // White
-                   i % 5 === 3 ? '#E6E6FA' : // Lavender
+      // Elegant color palette based on party colors
+      const color = i % 6 === 0 ? partyColor :
+                   i % 6 === 1 ? secondaryColor :
+                   i % 6 === 2 ? '#FFD700' : // Gold
+                   i % 6 === 3 ? '#FFFFFF' : // White
+                   i % 6 === 4 ? '#F5F5F5' : // Platinum
                    '#FFFACD'; // Light yellow
-                   
+      
+      // Varied sizes for visual interest
       const size = Math.random() * 10 + 5;
       const left = `${Math.random() * 100}%`;
+      
+      // Smoother, more graceful animation timing
       const animationDelay = `${Math.random() * 3}s`;
       const animationDuration = `${Math.random() * 2 + 3}s`;
       
+      // Add some rotation for elegance
+      const rotation = Math.floor(Math.random() * 360);
+      
       confetti.push(
-        <div 
-          key={i} 
+        <div
+          key={i}
           className="confetti"
           style={{
             left,
@@ -73,19 +107,89 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
             height: `${size}px`,
             backgroundColor: color,
             animationDelay,
-            animationDuration
+            animationDuration,
+            transform: `rotate(${rotation}deg)`,
+            // Add border radius to some pieces for varied shapes
+            borderRadius: i % 3 === 0 ? '50%' : i % 4 === 0 ? '0' : '2px'
           }}
         />
       );
     }
-    
     return confetti;
   };
   
+  // Generate decorative stars for elegance
+  const generateStars = () => {
+    const starCount = 12;
+    const stars = [];
+    
+    for (let i = 0; i < starCount; i++) {
+      const size = Math.random() * 15 + 10;
+      const angle = (i / starCount) * 360; // Evenly distribute stars in a circle
+      const distance = 150 + Math.random() * 100; // Distance from center
+      
+      // Convert polar coordinates to Cartesian
+      const x = 50 + Math.cos(angle * Math.PI / 180) * distance / 5;
+      const y = 50 + Math.sin(angle * Math.PI / 180) * distance / 5;
+      
+      // Staggered animations for visual interest
+      const delay = i * 0.1;
+      
+      stars.push(
+        <div
+          key={i}
+          className="decorative-star"
+          style={{
+            top: `${y}%`,
+            left: `${x}%`,
+            width: `${size}px`,
+            height: `${size}px`,
+            animationDelay: `${delay}s`
+          }}
+        />
+      );
+    }
+    return stars;
+  };
+  
+  // Generate decorative ribbons for elegance
+  const generateRibbons = () => {
+    const ribbonCount = 8;
+    const ribbons = [];
+    const partyColor = getPartyColor();
+    const secondaryColor = getSecondaryColor();
+    
+    for (let i = 0; i < ribbonCount; i++) {
+      const angle = (i / ribbonCount) * 360;
+      const color = i % 2 === 0 ? partyColor : '#FFD700'; // Alternate between party color and gold
+      const delay = i * 0.15;
+      
+      ribbons.push(
+        <div
+          key={i}
+          className="decorative-ribbon"
+          style={{
+            transform: `rotate(${angle}deg)`,
+            backgroundColor: color,
+            animationDelay: `${delay}s`
+          }}
+        />
+      );
+    }
+    return ribbons;
+  };
+
   return (
     <div className="winner-display">
-      {/* Spotlight effect */}
+      {/* Spotlight effect with improved glow */}
       {showSpotlight && <div className="spotlight" />}
+      
+      {/* Elegant star background */}
+      {showStars && (
+        <div className="stars-container">
+          {generateStars()}
+        </div>
+      )}
       
       {/* Animated confetti */}
       {showConfetti && (
@@ -95,6 +199,13 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
       )}
       
       <div className={`winner-content ${showContent ? 'show' : ''}`}>
+        {/* Decorative ribbons for elegance */}
+        {showRibbons && (
+          <div className="ribbons-container">
+            {generateRibbons()}
+          </div>
+        )}
+        
         {/* Trophy animation */}
         {showTrophy && (
           <div className="trophy">
@@ -109,7 +220,7 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
         
         <h2 className="winner-title">Debate Champion</h2>
         
-        <div 
+        <div
           className="winner-party"
           style={{ color: getPartyColor() }}
         >
@@ -124,6 +235,10 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
           <button
             className="view-arguments-btn"
             onClick={onViewArguments}
+            style={{ 
+              borderColor: getPartyColor(),
+              color: getPartyColor()
+            }}
           >
             View Arguments
           </button>
@@ -131,6 +246,9 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
           <button
             className="new-debate-btn"
             onClick={onReturnHome}
+            style={{ 
+              backgroundColor: getPartyColor()
+            }}
           >
             New Debate
           </button>

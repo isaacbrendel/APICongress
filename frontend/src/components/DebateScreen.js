@@ -436,12 +436,6 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     }
   };
 
-  // Force show voting UI for debugging (can be removed in production)
-  const forceShowVoting = () => {
-    console.log("🔧 FORCING VOTING INTERFACE TO SHOW (debug)");
-    setShowVoting(true);
-  };
-
   return (
     <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''}`}>
       {/* Background - present throughout all debate stages */}
@@ -484,25 +478,6 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
           }}
         >
           Reassign Parties
-        </button>
-      )}
-      
-      {/* Debug force voting button - can be removed in production */}
-      {isDebateCompleted && !showVoting && !showWinner && (
-        <button
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            zIndex: 1000,
-            padding: '10px',
-            background: 'red',
-            color: 'white',
-            fontWeight: 'bold'
-          }}
-          onClick={forceShowVoting}
-        >
-          Force Show Voting
         </button>
       )}
       

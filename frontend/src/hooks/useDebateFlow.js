@@ -7,11 +7,12 @@ const DEBATE_STATES = {
   PREPARING: 'preparing',
   SPEAKING: 'speaking',
   COUNTDOWN: 'countdown',
+  FINAL_PAUSE: 'final_pause', // New state for final delay
   COMPLETED: 'completed'
 };
 
 /**
- * Custom hook to manage debate flow with improved transitions
+ * Custom hook to manage debate flow
  * @param {Array} models - Array of AI models with their affiliations
  * @param {string} topic - The debate topic
  * @param {Object} positions - Model position data for visual representation
@@ -26,28 +27,27 @@ export default function useDebateFlow(models, topic, positions) {
   const [countdown, setCountdown] = useState(null);
   const [debateMessages, setDebateMessages] = useState([]);
   const [nextSpeaker, setNextSpeaker] = useState(null);
-  const [autoStarted, setAutoStarted] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [finalCountdown, setFinalCountdown] = useState(null);
 
   // Ref for countdown interval
   const countdownInterval = useRef(null);
+  const finalCountdownInterval = useRef(null);
   const initTimer = useRef(null);
-  const transitionTimer = useRef(null);
 
-  // Clear interval on component unmount
+  // Clear intervals on component unmount
   useEffect(() => {
     return () => {
       if (countdownInterval.current) {
         clearInterval(countdownInterval.current);
         countdownInterval.current = null;
       }
+      if (finalCountdownInterval.current) {
+        clearInterval(finalCountdownInterval.current);
+        finalCountdownInterval.current = null;
+      }
       if (initTimer.current) {
         clearTimeout(initTimer.current);
         initTimer.current = null;
-      }
-      if (transitionTimer.current) {
-        clearTimeout(transitionTimer.current);
-        transitionTimer.current = null;
       }
     };
   }, []);
@@ -95,7 +95,6 @@ export default function useDebateFlow(models, topic, positions) {
     // Reset state for fresh start
     setCurrentSpeakerIndex(0);
     setDebateMessages([]);
-    setIsTransitioning(false);
     
     // Set the first speaker
     const firstSpeaker = order[0] || { name: "Speaker 1" };
@@ -166,7 +165,7 @@ export default function useDebateFlow(models, topic, positions) {
       // Add to history
       setDebateMessages(prev => [...prev, chatMessage]);
       
-      // Next speaker or complete
+      // Next speaker or final pause for last speaker
       const nextIndex = currentSpeakerIndex + 1;
       if (nextIndex < speakingOrder.length) {
         const next = speakingOrder[nextIndex];
@@ -174,11 +173,10 @@ export default function useDebateFlow(models, topic, positions) {
         console.log(`⏭️ Moving to COUNTDOWN for next speaker: ${next?.name || `Speaker ${nextIndex + 1}`}`);
         setDebateState(DEBATE_STATES.COUNTDOWN);
       } else {
-        console.log("🎯 Final speaker done - DEBATE COMPLETED");
-        console.log("⭐ DEBATE COMPLETED - No more speakers, setting debateState to COMPLETED");
-        setCountdown(null);
+        // Final speaker - add 10 second pause before completing
+        console.log("🎯 Final speaker done - Adding 10 second final pause before completion");
         setNextSpeaker(null);
-        setDebateState(DEBATE_STATES.COMPLETED);
+        setDebateState(DEBATE_STATES.FINAL_PAUSE);
       }
     } catch (error) {
       console.error("Error calling speaker:", error);
@@ -205,17 +203,16 @@ export default function useDebateFlow(models, topic, positions) {
         console.log(`⏭️ Moving to COUNTDOWN after error for next speaker: ${next?.name || `Speaker ${nextIndex + 1}`}`);
         setDebateState(DEBATE_STATES.COUNTDOWN);
       } else {
-        console.log("🎯 Final speaker done (after error) - DEBATE COMPLETED");
-        console.log("⭐ DEBATE COMPLETED (after error) - setting debateState to COMPLETED");
-        setCountdown(null);
+        // Final speaker - add 10 second pause before completing
+        console.log("🎯 Final speaker done (after error) - Adding 10 second final pause");
         setNextSpeaker(null);
-        setDebateState(DEBATE_STATES.COMPLETED);
+        setDebateState(DEBATE_STATES.FINAL_PAUSE);
       }
     }
   }, [currentSpeakerIndex, debateMessages, positions, speakingOrder, topic]);
 
   /**
-   * Move to the next speaker with improved transition handling
+   * Move to the next speaker
    */
   const moveToNextSpeaker = useCallback(() => {
     const nextIndex = currentSpeakerIndex + 1;
@@ -226,21 +223,8 @@ export default function useDebateFlow(models, topic, positions) {
       setDebateState(DEBATE_STATES.COMPLETED);
     } else {
       console.log(`🔄 Moving to next speaker: ${nextIndex + 1}/${speakingOrder.length}`);
-      
-      // Set transition state to true to signal we're between speakers
-      setIsTransitioning(true);
-      
-      // Delay the transition slightly to ensure smooth visual change
-      transitionTimer.current = setTimeout(() => {
-        // Update the index first
-        setCurrentSpeakerIndex(nextIndex);
-        
-        // Then set the state to speaking so the next speaker can start
-        setDebateState(DEBATE_STATES.SPEAKING);
-        
-        // Clear transition state
-        setIsTransitioning(false);
-      }, 300); // Short delay for visual transition
+      setCurrentSpeakerIndex(nextIndex);
+      setDebateState(DEBATE_STATES.SPEAKING);
     }
   }, [currentSpeakerIndex, speakingOrder]);
 
@@ -273,6 +257,36 @@ export default function useDebateFlow(models, topic, positions) {
     }, 1000);
   }, [moveToNextSpeaker]);
 
+  /**
+   * Start final countdown after last speaker
+   */
+  const startFinalCountdown = useCallback((seconds) => {
+    // Clear any existing interval
+    if (finalCountdownInterval.current) {
+      clearInterval(finalCountdownInterval.current);
+    }
+    
+    console.log(`⏱️ Starting ${seconds} second final countdown before debate completion`);
+    
+    // Set initial value
+    setFinalCountdown(seconds);
+    
+    // Start interval
+    finalCountdownInterval.current = setInterval(() => {
+      setFinalCountdown(prev => {
+        const next = prev - 1;
+        if (next <= 0) {
+          clearInterval(finalCountdownInterval.current);
+          finalCountdownInterval.current = null;
+          console.log("⭐ DEBATE COMPLETED - Final countdown finished");
+          setDebateState(DEBATE_STATES.COMPLETED);
+          return null;
+        }
+        return next;
+      });
+    }, 1000);
+  }, []);
+
   // Start countdown when in COUNTDOWN state
   useEffect(() => {
     if (debateState === DEBATE_STATES.COUNTDOWN) {
@@ -280,12 +294,19 @@ export default function useDebateFlow(models, topic, positions) {
     }
   }, [debateState, startCountdown]);
 
+  // Start final countdown when in FINAL_PAUSE state
+  useEffect(() => {
+    if (debateState === DEBATE_STATES.FINAL_PAUSE) {
+      startFinalCountdown(10);
+    }
+  }, [debateState, startFinalCountdown]);
+
   // Call current speaker when in SPEAKING state
   useEffect(() => {
-    if (debateState === DEBATE_STATES.SPEAKING && !isTransitioning) {
+    if (debateState === DEBATE_STATES.SPEAKING) {
       callCurrentSpeaker();
     }
-  }, [debateState, callCurrentSpeaker, isTransitioning]);
+  }, [debateState, callCurrentSpeaker]);
 
   // Add explicit logging for state changes
   useEffect(() => {
@@ -301,12 +322,11 @@ export default function useDebateFlow(models, topic, positions) {
     currentSpeakerIndex,
     speakingOrder,
     currentSpeech,
-    countdown,
+    countdown: debateState === DEBATE_STATES.FINAL_PAUSE ? finalCountdown : countdown,
     nextSpeaker,
     debateMessages,
     setupSpeakingOrder,
     startDebate,
-    isDebateCompleted: debateState === DEBATE_STATES.COMPLETED,
-    isTransitioning  // Export transition state so UI can respond to it
+    isDebateCompleted: debateState === DEBATE_STATES.COMPLETED
   };
 }

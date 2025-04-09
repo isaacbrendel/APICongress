@@ -14,49 +14,29 @@
   padding: 24px;
   z-index: 1000;
   backdrop-filter: blur(8px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  opacity: 0;
-  transform: translate(-50%, -45%);
+  animation: fadeIn 0.3s ease;
 }
 
-.voting-interface.animate-in {
-  opacity: 1;
-  transform: translate(-50%, -50%);
-}
-
-.voting-interface.animate-out {
-  opacity: 0;
-  transform: translate(-50%, -45%);
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -48%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .voting-header {
   text-align: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.voting-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.vote-icon {
-  font-size: 2rem;
-  margin-right: 12px;
-}
-
 .voting-header h2 {
-  margin: 0;
+  margin: 0 0 8px 0;
   color: #333;
   font-size: 1.8rem;
-  font-weight: 700;
 }
 
 .voting-header p {
-  margin: 8px 0 0 0;
+  margin: 0;
   color: #666;
   font-size: 1rem;
 }
@@ -65,7 +45,7 @@
   display: flex;
   justify-content: center;
   margin-bottom: 16px;
-  gap: 12px;
+  gap: 8px;
 }
 
 .party-tab {
@@ -77,27 +57,10 @@
   font-weight: 600;
   transition: all 0.2s ease;
   outline: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .party-tab:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.argument-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  padding: 0 8px;
-  margin-left: 6px;
-  font-size: 0.85rem;
+  opacity: 0.9;
 }
 
 .party-tab.active {
@@ -113,10 +76,6 @@
   color: white;
 }
 
-.party-tab.Democrat.active .argument-count {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
 .party-tab.Republican {
   color: #CC3333;
 }
@@ -124,10 +83,6 @@
 .party-tab.Republican.active {
   background-color: #CC3333;
   color: white;
-}
-
-.party-tab.Republican.active .argument-count {
-  background-color: rgba(255, 255, 255, 0.3);
 }
 
 .party-tab.Independent {
@@ -139,50 +94,14 @@
   color: white;
 }
 
-.party-tab.Independent.active .argument-count {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Party Statistics */
-.party-stats {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  margin-bottom: 20px;
-  padding: 12px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #333;
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 .arguments-display {
-  background-color: #fff;
+  background-color: #f9f9f9;
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 24px;
   max-height: 30vh;
   overflow-y: auto;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
 .party-arguments {
@@ -192,71 +111,41 @@
 }
 
 .argument-item {
-  background-color: #f9f9f9;
+  background-color: white;
   border-radius: 8px;
-  padding: 14px;
+  padding: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   border-left: 4px solid; /* Color set dynamically */
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.argument-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .argument-speaker {
   font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-}
-
-.argument-speaker::before {
-  content: """;
-  font-size: 2rem;
-  line-height: 0;
-  margin-right: 5px;
-  opacity: 0.5;
 }
 
 .argument-content {
   color: #333;
-  line-height: 1.5;
-  font-size: 1rem;
-  padding-left: 10px;
-}
-
-.argument-content::after {
-  content: """;
-  font-size: 1.5rem;
-  vertical-align: -0.2em;
-  opacity: 0.5;
-  margin-left: 2px;
+  line-height: 1.4;
 }
 
 .no-arguments {
   text-align: center;
-  padding: 30px;
+  padding: 20px;
   color: #777;
   font-style: italic;
 }
 
 .voting-section {
-  margin-bottom: 20px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .voting-section h3 {
   margin-top: 0;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   color: #444;
-  font-size: 1.3rem;
-  text-align: center;
 }
 
 .voting-options {
@@ -264,7 +153,6 @@
   flex-wrap: wrap;
   gap: 16px;
   align-items: center;
-  justify-content: center;
 }
 
 .voting-option {
@@ -275,25 +163,14 @@
 .voting-option input[type="radio"] {
   margin-right: 8px;
   cursor: pointer;
-  height: 18px;
-  width: 18px;
 }
 
 .vote-label {
-  padding: 10px 20px;
-  border-radius: 50px;
+  padding: 8px 16px;
+  border-radius: 20px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.vote-label:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s ease;
 }
 
 .vote-label.Democrat {
@@ -327,76 +204,31 @@
 }
 
 .submit-vote-btn {
-  margin-top: 20px;
-  padding: 12px 30px;
+  margin-left: auto;
+  padding: 10px 20px;
   background-color: #28a745;
   color: white;
   border: none;
-  border-radius: 50px;
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 1.1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: block;
-  width: 100%;
-  max-width: 300px;
-  margin-left: auto;
-  margin-right: auto;
-  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+  transition: background-color 0.2s ease;
 }
 
 .submit-vote-btn:hover {
   background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
 }
 
 .submit-vote-btn:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .voting-interface {
-    width: 92%;
-    padding: 20px;
-  }
-  
-  .voting-header h2 {
-    font-size: 1.5rem;
-  }
-  
-  .vote-icon {
-    font-size: 1.5rem;
-  }
-  
-  .party-tabs {
-    flex-wrap: wrap;
-  }
-  
-  .party-tab {
-    padding: 8px 16px;
-    font-size: 0.9rem;
-  }
-  
-  .party-stats {
-    gap: 20px;
-    padding: 10px;
-  }
-  
-  .stat-value {
-    font-size: 1.2rem;
-  }
-  
-  .argument-item {
-    padding: 12px;
-  }
-  
-  .voting-section {
-    padding: 15px;
+    width: 95%;
+    padding: 16px;
   }
   
   .voting-options {
@@ -404,18 +236,13 @@
     align-items: stretch;
   }
   
-  .voting-option {
-    width: 100%;
-  }
-  
-  .vote-label {
-    width: 100%;
-    justify-content: center;
-  }
-  
   .submit-vote-btn {
-    margin-top: 15px;
-    padding: 10px 20px;
-    font-size: 1rem;
+    margin-left: 0;
+    margin-top: 16px;
+    width: 100%;
+  }
+  
+  .party-tabs {
+    flex-wrap: wrap;
   }
 }

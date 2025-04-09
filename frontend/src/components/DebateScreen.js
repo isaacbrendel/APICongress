@@ -38,8 +38,9 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     isDebateCompleted
   } = useDebateFlow(models, topic, finalPositions);
   
-  // Ref for positioning timer
+  // Ref for positioning timer and voting timer
   const positioningTimerRef = useRef(null);
+  const votingTimerRef = useRef(null);
   
   // Responsive and symmetrical seat positions
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
@@ -216,6 +217,10 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
         clearTimeout(positioningTimerRef.current);
         positioningTimerRef.current = null;
       }
+      if (votingTimerRef.current) {
+        clearTimeout(votingTimerRef.current);
+        votingTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -335,11 +340,21 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     }, 1000);
   };
 
-  // Show voting interface after debate completes with delay
+  // Enhanced voting interface display with more reliable trigger
   useEffect(() => {
+    console.log(`🎬 Voting interface conditions check: isDebateCompleted=${isDebateCompleted}, showVoting=${showVoting}, showWinner=${showWinner}`);
+    
     if (isDebateCompleted && !showVoting && !showWinner) {
-      console.log("🎬 Debate completed, showing voting interface after delay");
-      positioningTimerRef.current = setTimeout(() => {
+      console.log("🎬 DEBATE COMPLETED, showing voting interface after delay");
+      
+      // Clear any existing timers to prevent race conditions
+      if (votingTimerRef.current) {
+        clearTimeout(votingTimerRef.current);
+      }
+      
+      // Use a separate timer ref specifically for voting interface
+      votingTimerRef.current = setTimeout(() => {
+        console.log("⭐ ACTIVATING VOTING INTERFACE NOW");
         setShowVoting(true);
       }, 2000);
     }
@@ -353,8 +368,10 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
       - Debate State: ${debateState}
       - Current Speaker: ${currentSpeaker?.name || 'None'}
       - Current Speech: ${currentSpeech ? 'Available' : 'None'}
+      - isDebateCompleted: ${isDebateCompleted}
+      - showVoting: ${showVoting}
     `);
-  }, [partyAssignmentActive, positionsAssigned, debateState, currentSpeaker, currentSpeech]);
+  }, [partyAssignmentActive, positionsAssigned, debateState, currentSpeaker, currentSpeech, isDebateCompleted, showVoting]);
   
   // Handle vote submission
   const handleVoteSubmit = (party) => {
@@ -419,6 +436,12 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     }
   };
 
+  // Force show voting UI for debugging (can be removed in production)
+  const forceShowVoting = () => {
+    console.log("🔧 FORCING VOTING INTERFACE TO SHOW (debug)");
+    setShowVoting(true);
+  };
+
   return (
     <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''}`}>
       {/* Background - present throughout all debate stages */}
@@ -461,6 +484,25 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
           }}
         >
           Reassign Parties
+        </button>
+      )}
+      
+      {/* Debug force voting button - can be removed in production */}
+      {isDebateCompleted && !showVoting && !showWinner && (
+        <button
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000,
+            padding: '10px',
+            background: 'red',
+            color: 'white',
+            fontWeight: 'bold'
+          }}
+          onClick={forceShowVoting}
+        >
+          Force Show Voting
         </button>
       )}
       

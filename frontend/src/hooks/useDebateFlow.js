@@ -95,6 +95,7 @@ export default function useDebateFlow(models, topic, positions) {
     setNextSpeaker(firstSpeaker.name);
     
     // Start the debate
+    console.log("🚀 DEBATE STARTED - Setting state to SPEAKING");
     setDebateState(DEBATE_STATES.SPEAKING);
   }, [setupSpeakingOrder]);
 
@@ -104,7 +105,8 @@ export default function useDebateFlow(models, topic, positions) {
   const callCurrentSpeaker = useCallback(async () => {
     // Guard against invalid speaking order or index
     if (!speakingOrder || speakingOrder.length === 0 || currentSpeakerIndex >= speakingOrder.length) {
-      console.log("No more speakers, debate completed");
+      console.log("🏁 No more speakers, debate completed");
+      console.log("⭐ DEBATE COMPLETED - setting debateState to COMPLETED from callCurrentSpeaker");
       setDebateState(DEBATE_STATES.COMPLETED);
       return;
     }
@@ -118,9 +120,7 @@ export default function useDebateFlow(models, topic, positions) {
     const speakerAffiliation = speaker?.affiliation || "Independent";
     const speakerId = speaker?.id || `speaker-${currentSpeakerIndex}`;
     
-    console.log(`Calling speaker ${currentSpeakerIndex + 1}/${speakingOrder.length}: ${speakerName}`);
-    
-    // Remove the placeholder message - don't set currentSpeech until we have a real response
+    console.log(`🎤 Calling speaker ${currentSpeakerIndex + 1}/${speakingOrder.length}: ${speakerName}`);
     
     try {
       // Prepare context
@@ -164,8 +164,11 @@ export default function useDebateFlow(models, topic, positions) {
       if (nextIndex < speakingOrder.length) {
         const next = speakingOrder[nextIndex];
         setNextSpeaker(next?.name || `Speaker ${nextIndex + 1}`);
+        console.log(`⏭️ Moving to COUNTDOWN for next speaker: ${next?.name || `Speaker ${nextIndex + 1}`}`);
         setDebateState(DEBATE_STATES.COUNTDOWN);
       } else {
+        console.log("🎯 Final speaker done - DEBATE COMPLETED");
+        console.log("⭐ DEBATE COMPLETED - No more speakers, setting debateState to COMPLETED");
         setCountdown(null);
         setNextSpeaker(null);
         setDebateState(DEBATE_STATES.COMPLETED);
@@ -192,8 +195,11 @@ export default function useDebateFlow(models, topic, positions) {
       if (nextIndex < speakingOrder.length) {
         const next = speakingOrder[nextIndex];
         setNextSpeaker(next?.name || `Speaker ${nextIndex + 1}`);
+        console.log(`⏭️ Moving to COUNTDOWN after error for next speaker: ${next?.name || `Speaker ${nextIndex + 1}`}`);
         setDebateState(DEBATE_STATES.COUNTDOWN);
       } else {
+        console.log("🎯 Final speaker done (after error) - DEBATE COMPLETED");
+        console.log("⭐ DEBATE COMPLETED (after error) - setting debateState to COMPLETED");
         setCountdown(null);
         setNextSpeaker(null);
         setDebateState(DEBATE_STATES.COMPLETED);
@@ -208,10 +214,11 @@ export default function useDebateFlow(models, topic, positions) {
     const nextIndex = currentSpeakerIndex + 1;
     
     if (nextIndex >= speakingOrder?.length || !speakingOrder) {
-      console.log("No more speakers, debate completed");
+      console.log("🏁 No more speakers in moveToNextSpeaker");
+      console.log("⭐ DEBATE COMPLETED - setting debateState to COMPLETED from moveToNextSpeaker");
       setDebateState(DEBATE_STATES.COMPLETED);
     } else {
-      console.log(`Moving to next speaker: ${nextIndex + 1}/${speakingOrder.length}`);
+      console.log(`🔄 Moving to next speaker: ${nextIndex + 1}/${speakingOrder.length}`);
       setCurrentSpeakerIndex(nextIndex);
       setDebateState(DEBATE_STATES.SPEAKING);
     }
@@ -226,7 +233,7 @@ export default function useDebateFlow(models, topic, positions) {
       clearInterval(countdownInterval.current);
     }
     
-    console.log(`Starting ${seconds} second countdown to next speaker`);
+    console.log(`⏱️ Starting ${seconds} second countdown to next speaker`);
     
     // Set initial value
     setCountdown(seconds);
@@ -259,6 +266,14 @@ export default function useDebateFlow(models, topic, positions) {
       callCurrentSpeaker();
     }
   }, [debateState, callCurrentSpeaker]);
+
+  // Add explicit logging for state changes
+  useEffect(() => {
+    console.log(`🔄 Debate state changed to: ${debateState}`);
+    // Log isDebateCompleted value whenever debate state changes
+    const isCompleted = debateState === DEBATE_STATES.COMPLETED;
+    console.log(`🔍 isDebateCompleted value: ${isCompleted}`);
+  }, [debateState]);
 
   return {
     debateState,

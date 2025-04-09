@@ -11,7 +11,7 @@ const DEBATE_STATES = {
 };
 
 /**
- * Custom hook to manage debate flow
+ * Custom hook to manage debate flow with improved transitions
  * @param {Array} models - Array of AI models with their affiliations
  * @param {string} topic - The debate topic
  * @param {Object} positions - Model position data for visual representation
@@ -27,10 +27,12 @@ export default function useDebateFlow(models, topic, positions) {
   const [debateMessages, setDebateMessages] = useState([]);
   const [nextSpeaker, setNextSpeaker] = useState(null);
   const [autoStarted, setAutoStarted] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Ref for countdown interval
   const countdownInterval = useRef(null);
   const initTimer = useRef(null);
+  const transitionTimer = useRef(null);
 
   // Clear interval on component unmount
   useEffect(() => {
@@ -42,6 +44,10 @@ export default function useDebateFlow(models, topic, positions) {
       if (initTimer.current) {
         clearTimeout(initTimer.current);
         initTimer.current = null;
+      }
+      if (transitionTimer.current) {
+        clearTimeout(transitionTimer.current);
+        transitionTimer.current = null;
       }
     };
   }, []);
@@ -89,6 +95,7 @@ export default function useDebateFlow(models, topic, positions) {
     // Reset state for fresh start
     setCurrentSpeakerIndex(0);
     setDebateMessages([]);
+    setIsTransitioning(false);
     
     // Set the first speaker
     const firstSpeaker = order[0] || { name: "Speaker 1" };
@@ -208,7 +215,7 @@ export default function useDebateFlow(models, topic, positions) {
   }, [currentSpeakerIndex, debateMessages, positions, speakingOrder, topic]);
 
   /**
-   * Move to the next speaker
+   * Move to the next speaker with improved transition handling
    */
   const moveToNextSpeaker = useCallback(() => {
     const nextIndex = currentSpeakerIndex + 1;
@@ -219,8 +226,21 @@ export default function useDebateFlow(models, topic, positions) {
       setDebateState(DEBATE_STATES.COMPLETED);
     } else {
       console.log(`🔄 Moving to next speaker: ${nextIndex + 1}/${speakingOrder.length}`);
-      setCurrentSpeakerIndex(nextIndex);
-      setDebateState(DEBATE_STATES.SPEAKING);
+      
+      // Set transition state to true to signal we're between speakers
+      setIsTransitioning(true);
+      
+      // Delay the transition slightly to ensure smooth visual change
+      transitionTimer.current = setTimeout(() => {
+        // Update the index first
+        setCurrentSpeakerIndex(nextIndex);
+        
+        // Then set the state to speaking so the next speaker can start
+        setDebateState(DEBATE_STATES.SPEAKING);
+        
+        // Clear transition state
+        setIsTransitioning(false);
+      }, 300); // Short delay for visual transition
     }
   }, [currentSpeakerIndex, speakingOrder]);
 
@@ -262,10 +282,10 @@ export default function useDebateFlow(models, topic, positions) {
 
   // Call current speaker when in SPEAKING state
   useEffect(() => {
-    if (debateState === DEBATE_STATES.SPEAKING) {
+    if (debateState === DEBATE_STATES.SPEAKING && !isTransitioning) {
       callCurrentSpeaker();
     }
-  }, [debateState, callCurrentSpeaker]);
+  }, [debateState, callCurrentSpeaker, isTransitioning]);
 
   // Add explicit logging for state changes
   useEffect(() => {
@@ -286,6 +306,7 @@ export default function useDebateFlow(models, topic, positions) {
     debateMessages,
     setupSpeakingOrder,
     startDebate,
-    isDebateCompleted: debateState === DEBATE_STATES.COMPLETED
+    isDebateCompleted: debateState === DEBATE_STATES.COMPLETED,
+    isTransitioning  // Export transition state so UI can respond to it
   };
 }

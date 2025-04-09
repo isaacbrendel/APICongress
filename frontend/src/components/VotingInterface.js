@@ -3,16 +3,22 @@ import React, { useState, useEffect } from 'react';
 import './VotingInterface.css';
 
 /**
- * Enhanced voting interface that appears after debate concludes
- * Focused on arguments and voting only (no home/new topic)
+ * Voting interface that appears after debate concludes
+ * @param {Object} props
+ * @param {Array} props.debateMessages - Array of all messages from the debate
+ * @param {Function} props.onVoteSubmit - Function to call when vote is submitted
  */
 const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
   const [selectedParty, setSelectedParty] = useState(null);
   const [activeTab, setActiveTab] = useState('Democrat');
-  const [animateIn, setAnimateIn] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   
-  // Group messages by party for easy viewing
+  // Log when component mounts to confirm it's being rendered
+  useEffect(() => {
+    console.log("🗳️ VotingInterface component mounted");
+    console.log("Debate messages available:", debateMessages.length);
+  }, [debateMessages.length]);
+  
+  // Group messages by party
   const messagesByParty = debateMessages.reduce((acc, msg) => {
     if (!acc[msg.affiliation]) {
       acc[msg.affiliation] = [];
@@ -31,29 +37,13 @@ const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
     if (partiesWithArguments.length > 0 && !partiesWithArguments.includes(activeTab)) {
       setActiveTab(partiesWithArguments[0]);
     }
-    
-    // Trigger animation after a short delay
-    setTimeout(() => {
-      setAnimateIn(true);
-    }, 100);
   }, [partiesWithArguments, activeTab]);
 
-  // Handle vote submission with improved transition
+  // Handle vote submission
   const handleVoteSubmit = () => {
-    if (selectedParty && !isTransitioning) {
-      // Set transitioning state to prevent double-clicks
-      setIsTransitioning(true);
-      
-      // Immediately hide the component
-      setAnimateIn(false);
-      
-      // Delay just enough for CSS transition to start, but not complete
-      // This prevents the flash of voting interface before winner display
-      const immediateHide = setTimeout(() => {
-        // Call onVoteSubmit to move to winner display
-        onVoteSubmit(selectedParty);
-        clearTimeout(immediateHide);
-      }, 50); // Very short delay
+    if (selectedParty) {
+      console.log(`🗳️ Vote submitted for: ${selectedParty}`);
+      onVoteSubmit(selectedParty);
     }
   };
   
@@ -71,15 +61,11 @@ const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
     }
   };
 
-  // If transitioning out, don't render
-  if (isTransitioning) return null;
-
   return (
-    <div className={`voting-interface ${animateIn ? 'animate-in' : 'animate-out'}`}>
+    <div className="voting-interface">
       <div className="voting-header">
-        <div className="voting-title-icon">🗳️</div>
         <h2>Who Won This Debate?</h2>
-        <p>Review the arguments from each party and cast your vote</p>
+        <p>Review the arguments and cast your vote</p>
       </div>
       
       <div className="party-tabs">
@@ -88,27 +74,20 @@ const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
             key={party}
             className={`party-tab ${activeTab === party ? 'active' : ''} ${party}`}
             onClick={() => setActiveTab(party)}
-            style={{
-              '--party-color': getPartyColor(party),
-              '--party-color-light': `${getPartyColor(party)}22` // 22 = 13% opacity in hex
-            }}
           >
-            {party} <span className="argument-count">({messagesByParty[party].length})</span>
+            {party} ({messagesByParty[party].length})
           </button>
         ))}
       </div>
       
       <div className="arguments-display">
-        {messagesByParty[activeTab].length > 0 ? (
+        {messagesByParty[activeTab]?.length > 0 ? (
           <div className="party-arguments">
             {messagesByParty[activeTab].map((msg, index) => (
               <div 
                 key={index} 
                 className="argument-item"
-                style={{ 
-                  animationDelay: `${index * 0.1}s`,
-                  borderLeft: `4px solid ${getPartyColor(activeTab)}`
-                }}
+                style={{ borderLeftColor: getPartyColor(activeTab) }}
               >
                 <div className="argument-speaker" style={{ color: getPartyColor(activeTab) }}>
                   {msg.model}
@@ -137,10 +116,6 @@ const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
               <label 
                 htmlFor={`vote-${party}`}
                 className={`vote-label ${party}`}
-                style={{ 
-                  '--party-color': getPartyColor(party),
-                  '--party-color-light': `${getPartyColor(party)}22` // 22 = 13% opacity in hex
-                }}
               >
                 {party}
               </label>
@@ -149,7 +124,7 @@ const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
           
           <button 
             className="submit-vote-btn"
-            disabled={!selectedParty || isTransitioning}
+            disabled={!selectedParty}
             onClick={handleVoteSubmit}
           >
             Submit Vote

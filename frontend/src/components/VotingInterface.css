@@ -5,66 +5,65 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: 80%;
-  max-width: 800px;
+  max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
   background-color: rgba(255, 255, 255, 0.97);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 28px;
   z-index: 1000;
   backdrop-filter: blur(8px);
   animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translate(-50%, -48%); }
+  from { opacity: 0; transform: translate(-50%, -45%); }
   to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .voting-header {
   text-align: center;
   margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .voting-header h2 {
-  margin: 0 0 8px 0;
-  color: #333;
-  font-size: 1.8rem;
-}
-
-.voting-header p {
   margin: 0;
-  color: #666;
-  font-size: 1rem;
+  color: #333;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .party-tabs {
   display: flex;
   justify-content: center;
-  margin-bottom: 16px;
-  gap: 8px;
+  margin-bottom: 20px;
+  gap: 12px;
 }
 
 .party-tab {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
   border-radius: 30px;
-  background-color: #f1f1f1;
+  background-color: #f5f5f5;
   cursor: pointer;
   font-weight: 600;
+  font-size: 1rem;
   transition: all 0.2s ease;
   outline: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .party-tab:hover {
-  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .party-tab.active {
   color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .party-tab.Democrat {
@@ -95,13 +94,14 @@
 }
 
 .arguments-display {
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
-  max-height: 30vh;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 28px;
+  max-height: 40vh;
   overflow-y: auto;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .party-arguments {
@@ -111,48 +111,59 @@
 }
 
 .argument-item {
-  background-color: white;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid; /* Color set dynamically */
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-left: 5px solid;
+  transition: transform 0.2s ease;
+}
+
+.argument-item:hover {
+  transform: translateY(-2px);
 }
 
 .argument-speaker {
-  font-weight: bold;
-  margin-bottom: 6px;
+  font-weight: 700;
+  margin-bottom: 8px;
   font-size: 1.1rem;
 }
 
 .argument-content {
   color: #333;
-  line-height: 1.4;
+  line-height: 1.5;
+  font-size: 1.05rem;
+  font-style: italic;
 }
 
 .no-arguments {
   text-align: center;
-  padding: 20px;
+  padding: 30px;
   color: #777;
   font-style: italic;
 }
 
 .voting-section {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .voting-section h3 {
   margin-top: 0;
-  margin-bottom: 12px;
-  color: #444;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.4rem;
+  text-align: center;
+  font-weight: 600;
 }
 
 .voting-options {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
 .voting-option {
@@ -161,31 +172,43 @@
 }
 
 .voting-option input[type="radio"] {
-  margin-right: 8px;
-  cursor: pointer;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
 .vote-label {
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 12px 24px;
+  border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.vote-label:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .vote-label.Democrat {
   background-color: rgba(51, 115, 204, 0.1);
   color: #3373CC;
+  border: 2px solid #3373CC;
 }
 
 .vote-label.Republican {
   background-color: rgba(204, 51, 51, 0.1);
   color: #CC3333;
+  border: 2px solid #CC3333;
 }
 
 .vote-label.Independent {
   background-color: rgba(128, 51, 204, 0.1);
   color: #8033CC;
+  border: 2px solid #8033CC;
 }
 
 .voting-option input[type="radio"]:checked + .vote-label.Democrat {
@@ -204,45 +227,96 @@
 }
 
 .submit-vote-btn {
-  margin-left: auto;
-  padding: 10px 20px;
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  padding: 14px 0;
   background-color: #28a745;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 30px;
   font-weight: 600;
+  font-size: 1.1rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.25);
 }
 
 .submit-vote-btn:hover {
   background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(40, 167, 69, 0.3);
 }
 
 .submit-vote-btn:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.15);
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .voting-interface {
-    width: 95%;
-    padding: 16px;
+    width: 90%;
+    padding: 22px;
+  }
+  
+  .party-tabs {
+    gap: 8px;
+  }
+  
+  .party-tab {
+    padding: 10px 16px;
+    font-size: 0.95rem;
   }
   
   .voting-options {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
   
-  .submit-vote-btn {
-    margin-left: 0;
-    margin-top: 16px;
-    width: 100%;
+  .vote-label {
+    display: block;
+    text-align: center;
+    padding: 12px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .voting-interface {
+    width: 95%;
+    padding: 18px;
+  }
+  
+  .voting-header h2 {
+    font-size: 1.5rem;
   }
   
   .party-tabs {
     flex-wrap: wrap;
+  }
+  
+  .arguments-display {
+    max-height: 35vh;
+  }
+  
+  .argument-item {
+    padding: 12px;
+  }
+  
+  .argument-speaker {
+    font-size: 1rem;
+  }
+  
+  .argument-content {
+    font-size: 0.95rem;
+  }
+  
+  .submit-vote-btn {
+    font-size: 1rem;
+    padding: 12px 0;
   }
 }

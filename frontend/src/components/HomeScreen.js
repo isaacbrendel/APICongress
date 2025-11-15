@@ -15,13 +15,6 @@ const HomeScreen = ({ onBeginDebate }) => {
 
   return (
     <div className="home-screen">
-      <div
-        className="blurred-bg"
-        style={{
-          backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
-          backgroundPosition: 'center',
-        }}
-      ></div>
       <div className="welcome-card">
         <h1 className="title">APICongress</h1>
         <p className="subtitle">Enter your debate topic below.</p>

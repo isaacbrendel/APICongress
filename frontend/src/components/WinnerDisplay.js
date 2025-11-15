@@ -181,44 +181,15 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
 
   return (
     <div className="winner-display">
-      {/* Spotlight effect with improved glow */}
-      {showSpotlight && <div className="spotlight" />}
-      
-      {/* Elegant star background */}
-      {showStars && (
-        <div className="stars-container">
-          {generateStars()}
-        </div>
-      )}
-      
-      {/* Animated confetti */}
-      {showConfetti && (
-        <div className="confetti-container">
-          {generateConfetti()}
-        </div>
-      )}
-      
+      {/* Champions GIF background */}
+      <img
+        src={process.env.PUBLIC_URL + '/images/CHAMPIONS.gif'}
+        alt="Champions"
+        className="champions-background"
+      />
+
       <div className={`winner-content ${showContent ? 'show' : ''}`}>
-        {/* Decorative ribbons for elegance */}
-        {showRibbons && (
-          <div className="ribbons-container">
-            {generateRibbons()}
-          </div>
-        )}
-        
-        {/* Trophy animation */}
-        {showTrophy && (
-          <div className="trophy">
-            <div className="trophy-cup">
-              <div className="trophy-top"></div>
-              <div className="trophy-middle"></div>
-              <div className="trophy-bottom"></div>
-              <div className="trophy-base"></div>
-            </div>
-          </div>
-        )}
-        
-        <h2 className="winner-title">Debate Champion</h2>
+        <h2 className="winner-title">Champion</h2>
         
         <div
           className="winner-party"

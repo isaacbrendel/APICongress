@@ -1,0 +1,146 @@
+/* src/components/BackgroundVideo.css */
+
+/* Container for the background GIFs */
+.background-video-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: -1;
+  background-color: #1a1a1a;
+}
+
+/* Dark overlay for better text contrast and depth */
+.background-video-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Individual background GIF styling */
+.background-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+  pointer-events: none;
+  /* Ultra slow motion effect */
+  animation: ultraSlowMotion 120s ease-in-out infinite alternate;
+}
+
+@keyframes ultraSlowMotion {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.005);
+  }
+}
+
+/* Active state - show the appropriate background */
+.background-video.active {
+  opacity: 1;
+}
+
+/* Loaded state for smooth fade-in */
+.background-video.loaded {
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Loading indicator */
+.background-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Content overlay - sits above the background */
+.content-overlay {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Media query as fallback for older browsers that don't support resize events well */
+@media (orientation: portrait) {
+  .background-video:not(.portrait-mode) {
+    opacity: 0;
+  }
+}
+
+@media (orientation: landscape) {
+  .background-video.portrait-mode {
+    opacity: 0;
+  }
+}
+
+/* Performance optimizations */
+.background-video {
+  will-change: opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Ensure smooth scrolling on content */
+.content-overlay {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Mobile-specific optimizations */
+@media screen and (max-width: 768px) {
+  .background-video-container {
+    /* Fix for mobile viewport height issues */
+    height: 100dvh; /* Dynamic viewport height */
+    min-height: -webkit-fill-available;
+  }
+
+  .content-overlay {
+    min-height: 100dvh;
+  }
+}
+
+/* Tablet and larger screens */
+@media screen and (min-width: 769px) {
+  .background-video {
+    /* Ensure crisp rendering on larger screens */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}

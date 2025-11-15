@@ -1,17 +1,30 @@
 .debate-chat-bubble {
   position: absolute;
-  width: 350px;
-  border-radius: 12px;
+  width: 380px;
+  border-radius: 2px;
   padding: 0;
-  border: 1px solid;
-  background-color: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 16px 40px rgba(0, 0, 0, 0.8);
   z-index: 30;
-  animation: fadeInBubble 0.4s ease-out forwards;
+  animation: fadeInBubble 0.3s ease forwards;
   overflow: visible;
   will-change: transform;
   transform: translateZ(0) translateY(-30px);
   max-height: 60vh;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.debate-chat-bubble.hovered {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 20px 50px rgba(0, 0, 0, 0.9);
+  transform: translateZ(0) translateY(-32px);
 }
 
 @keyframes fadeInBubble {
@@ -77,31 +90,63 @@
 .speaker-header {
   color: white;
   padding: 12px 16px;
-  border-radius: 10px 10px 0 0;
-  font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border-radius: 2px 2px 0 0;
+  font-weight: 600;
+  box-shadow: none;
+  text-shadow: none;
+  letter-spacing: 0px;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.speaker-header::before {
+  display: none;
 }
 
 .speaker-name {
-  font-size: 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .speaker-affiliation {
-  font-weight: normal;
-  font-size: 15px;
-  opacity: 0.9;
+  font-weight: 400;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  letter-spacing: 0px;
 }
 
 .message-content {
-  padding: 18px;
-  font-size: 18px;
-  line-height: 1.5;
-  color: #222;
-  font-style: italic;
-  background-color: white;
-  letter-spacing: 0.01em;
+  padding: 16px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  font-style: normal;
+  background: transparent;
+  letter-spacing: 0px;
   max-height: 40vh;
   overflow-y: auto;
+  font-weight: 400;
+  text-shadow: none;
+}
+
+.message-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.message-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.message-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.message-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .countdown-container {
@@ -110,10 +155,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  background-color: #f5f5f5;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  border-radius: 0 0 2px 2px;
+  box-shadow: none;
 }
 
 .countdown-info {
@@ -121,63 +166,65 @@
 }
 
 .next-speaker {
-  font-size: 16px;
-  color: #333;
-  font-weight: 600;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  letter-spacing: 0px;
+  text-shadow: none;
 }
 
 .next-speaker-party {
-  margin-left: 5px;
+  margin-left: 6px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .next-speaker-party.Democrat {
-  color: #3373CC;
+  color: #1E90FF;
+  text-shadow: 0 1px 3px rgba(30, 144, 255, 0.3);
 }
 
 .next-speaker-party.Republican {
-  color: #CC3333;
+  color: #DC143C;
+  text-shadow: 0 1px 3px rgba(220, 20, 60, 0.3);
 }
 
 .next-speaker-party.Independent {
-  color: #8033CC;
+  color: #9370DB;
+  text-shadow: 0 1px 3px rgba(147, 112, 219, 0.3);
 }
 
 .countdown-timer {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 20px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+  width: 32px;
+  height: 32px;
+  border-radius: 2px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
   transform: translateZ(0);
-  animation: pulsate 1s infinite alternate;
+  animation: none;
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-@keyframes pulsate {
-  from {
-    transform: scale(1);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
-  }
-  to {
-    transform: scale(1.1);
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
-  }
+.debate-chat-bubble.hovered .countdown-timer {
+  animation: none;
+  opacity: 0.5;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .debate-chat-bubble {
-    width: 90%;
-    max-width: 350px;
+    width: 92%;
+    max-width: 380px;
     transform: translateY(-25px) translateZ(0);
   }
-  
+
   @keyframes fadeInBubble {
     from {
       opacity: 0;
@@ -188,41 +235,41 @@
       transform: translateY(-25px) translateZ(0);
     }
   }
-  
+
   .speaker-header {
-    padding: 10px 14px;
+    padding: 12px 16px;
   }
-  
+
   .speaker-name {
-    font-size: 16px;
+    font-size: 17px;
   }
-  
+
   .speaker-affiliation {
-    font-size: 13px;
-  }
-  
-  .message-content {
-    padding: 15px;
-    font-size: 16px;
-    max-height: 30vh;
-  }
-  
-  .countdown-container {
-    padding: 10px 14px;
-  }
-  
-  .next-speaker {
     font-size: 14px;
   }
-  
-  .next-speaker-party {
-    font-size: 13px;
+
+  .message-content {
+    padding: 18px;
+    font-size: 16px;
+    max-height: 35vh;
   }
-  
+
+  .countdown-container {
+    padding: 12px 16px;
+  }
+
+  .next-speaker {
+    font-size: 15px;
+  }
+
+  .next-speaker-party {
+    font-size: 14px;
+  }
+
   .countdown-timer {
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
   }
 }
 

@@ -5,82 +5,125 @@
   align-items: center;
   margin: 0.5rem;
   transform: scale(1);
-  transition: transform 0.3s ease;
+  transition: all 0.15s ease;
+  filter: none;
 }
-  
+
+.debater-card:hover {
+  transform: scale(1.02);
+  filter: none;
+}
+
 .debater-circle {
-  width: 80px;
-  height: 80px;
-  background-color: #000;
+  width: 90px;
+  height: 90px;
+  background: rgba(0, 0, 0, 0.9);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 0.5rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  border: 3px solid transparent;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
-/* Party-specific circle borders */
+.debater-circle::before {
+  display: none;
+}
+
+/* Party-specific circle borders - minimal high contrast */
 .debater-card.republican .debater-circle {
-  border-color: #CC0000;
+  border-color: #DC143C;
+  box-shadow:
+    0 0 0 1px #DC143C,
+    0 8px 24px rgba(220, 20, 60, 0.4);
 }
 
 .debater-card.democrat .debater-circle {
-  border-color: #003366;
+  border-color: #1E90FF;
+  box-shadow:
+    0 0 0 1px #1E90FF,
+    0 8px 24px rgba(30, 144, 255, 0.4);
 }
 
 .debater-card.independent .debater-circle {
-  border-color: #800080;
+  border-color: #9370DB;
+  box-shadow:
+    0 0 0 1px #9370DB,
+    0 8px 24px rgba(147, 112, 219, 0.4);
 }
-  
+
 .debater-logo {
-  width: 60%;
-  height: 60%;
+  width: 65%;
+  height: 65%;
   object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
+  position: relative;
+  z-index: 2;
 }
-  
+
 .debater-banner {
   width: 120px;
-  padding: 0.4rem;
+  padding: 0.5rem 0.8rem;
   text-align: center;
-  border-radius: 6px;
-  font-family: 'Trajan Pro', serif;
+  border-radius: 2px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   color: #fff;
-  font-size: 1.2rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: none;
+  position: relative;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Party-specific banner colors - as fallback */
+.debater-banner::before {
+  display: none;
+}
+
+/* Party-specific banner colors - flat minimal */
 .debater-card.republican .debater-banner {
-  background-color: #CC0000 !important;
+  background: #DC143C;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .debater-card.democrat .debater-banner {
-  background-color: #003366 !important;
+  background: #1E90FF;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .debater-card.independent .debater-banner {
-  background-color: #800080 !important;
+  background: #9370DB;
+  border-color: rgba(255, 255, 255, 0.15);
 }
-  
+
 .debater-name {
   margin: 0;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .debater-circle {
-    width: 70px;
-    height: 70px;
+    width: 95px;
+    height: 95px;
   }
-  
+
   .debater-banner {
-    width: 100px;
-    padding: 0.3rem;
+    width: 130px;
+    padding: 0.6rem 0.9rem;
     font-size: 1rem;
   }
 }
@@ -88,13 +131,17 @@
 /* Small screen adjustments */
 @media (max-width: 480px) {
   .debater-circle {
-    width: 60px;
-    height: 60px;
+    width: 85px;
+    height: 85px;
   }
-  
+
   .debater-banner {
-    width: 90px;
-    padding: 0.25rem;
-    font-size: 0.9rem;
+    width: 115px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .debater-card {
+    filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.8));
   }
 }

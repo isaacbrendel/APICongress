@@ -1,60 +1,79 @@
-/* src/components/TopicBanner.css */
+/* src/components/TopicBanner.css - MINIMAL DARK DESIGN */
 .topic-banner {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   position: absolute;
-  top: 10%;
+  top: 8%;
   left: 50%;
   transform: translateX(-50%);
-  width: 80%;
-  max-width: 600px;
-  height: 200px;
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
+  width: 85%;
+  max-width: 800px;
+  min-height: 90px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 20px 60px rgba(0, 0, 0, 0.9);
   z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1.5rem 2.5rem;
+  animation: bannerEntrance 0.4s ease forwards;
+  opacity: 0;
+}
+
+@keyframes bannerEntrance {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .banner-text {
-  color: #000;
-  font-size: 1.8rem;
-  font-weight: bold;
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
   text-align: center;
   margin: 0;
-  padding: 0 15px;
-  transform: translateY(-30px);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  padding: 0 1.5rem;
+  letter-spacing: 0px;
+  text-shadow: none;
+  line-height: 1.4;
+  text-transform: none;
+  animation: none;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .topic-banner {
-    top: 8%;
-    height: 150px;
-    width: 90%;
+    top: 6%;
+    width: 85%;
+    padding: 1.2rem 1.5rem;
   }
-  
+
   .banner-text {
-    font-size: 1.4rem;
-    transform: translateY(-20px);
+    font-size: 1.3rem;
+    padding: 0 1rem;
   }
 }
 
 /* Small screen adjustments */
 @media (max-width: 480px) {
   .topic-banner {
-    top: 7%;
-    height: auto;
-    min-height: 80px;
-    max-width: 90%;
+    top: 5%;
     width: 90%;
+    padding: 1rem 1.2rem;
   }
-  
+
   .banner-text {
-    font-size: 1.2rem;
-    transform: translateY(0);
-    padding: 15px;
-    width: 100%;
+    font-size: 1.1rem;
+    padding: 0 0.75rem;
   }
 }

@@ -7,8 +7,9 @@ import './VotingInterface.css';
  * @param {Object} props
  * @param {Array} props.debateMessages - Array of all messages from the debate
  * @param {Function} props.onVoteSubmit - Function to call when vote is submitted
+ * @param {Function} props.onNewDebate - Function to start a new debate
  */
-const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
+const VotingInterface = ({ debateMessages, onVoteSubmit, onNewDebate }) => {
   const [selectedParty, setSelectedParty] = useState(null);
   const [activeTab, setActiveTab] = useState('Democrat');
 
@@ -105,7 +106,7 @@ const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
                 checked={selectedParty === party}
                 onChange={() => setSelectedParty(party)}
               />
-              <label 
+              <label
                 htmlFor={`vote-${party}`}
                 className={`vote-label ${party}`}
               >
@@ -114,14 +115,23 @@ const VotingInterface = ({ debateMessages, onVoteSubmit }) => {
             </div>
           ))}
         </div>
-        
-        <button 
-          className="submit-vote-btn"
-          disabled={!selectedParty}
-          onClick={handleVoteSubmit}
-        >
-          Submit Vote
-        </button>
+
+        <div className="voting-actions">
+          <button
+            className="submit-vote-btn"
+            disabled={!selectedParty}
+            onClick={handleVoteSubmit}
+          >
+            Submit Vote
+          </button>
+
+          <button
+            className="new-debate-btn"
+            onClick={onNewDebate}
+          >
+            New Debate
+          </button>
+        </div>
       </div>
     </div>
   );

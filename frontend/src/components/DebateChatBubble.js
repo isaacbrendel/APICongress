@@ -17,22 +17,40 @@ const DebateChatBubble = ({
   affiliation,
   position,
   countdown,
-  nextSpeaker
+  nextSpeaker,
+  onPause,
+  onResume
 }) => {
   // Add a class to handle mobile styling - declare this FIRST to avoid uninitialized variable error
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
-  
+  const [isHovered, setIsHovered] = useState(false);
+
   // Add resize listener to update mobile state
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 480);
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Handle hover events - ACTUALLY pause the timer
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (onPause) {
+      onPause();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (onResume) {
+      onResume();
+    }
+  };
   
   // Set bubble position relative to speaker position
   const getBubblePosition = () => {
@@ -109,13 +127,15 @@ const DebateChatBubble = ({
   
   return (
     <div
-      className={`debate-chat-bubble ${pointerClass} ${isMobile ? 'mobile' : ''}`}
+      className={`debate-chat-bubble ${pointerClass} ${isMobile ? 'mobile' : ''} ${isHovered ? 'hovered' : ''}`}
       style={{
         ...bubblePosition,
         borderColor: colors.borderColor,
         backgroundColor: colors.backgroundColor,
         boxShadow: `0 6px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px ${colors.borderColor}`
       }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div 
         className="speaker-header" 

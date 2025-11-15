@@ -33,6 +33,7 @@ export default function useDebateFlow(models, topic, positions) {
   const countdownInterval = useRef(null);
   const finalCountdownInterval = useRef(null);
   const initTimer = useRef(null);
+  const isPaused = useRef(false);
 
   // Clear intervals on component unmount
   useEffect(() => {
@@ -229,6 +230,22 @@ export default function useDebateFlow(models, topic, positions) {
   }, [currentSpeakerIndex, speakingOrder]);
 
   /**
+   * Pause the countdown timer
+   */
+  const pauseCountdown = useCallback(() => {
+    isPaused.current = true;
+    console.log('⏸️ Countdown paused');
+  }, []);
+
+  /**
+   * Resume the countdown timer
+   */
+  const resumeCountdown = useCallback(() => {
+    isPaused.current = false;
+    console.log('▶️ Countdown resumed');
+  }, []);
+
+  /**
    * Start countdown between speakers
    */
   const startCountdown = useCallback((seconds) => {
@@ -236,24 +253,30 @@ export default function useDebateFlow(models, topic, positions) {
     if (countdownInterval.current) {
       clearInterval(countdownInterval.current);
     }
-    
+
+    // Reset pause state
+    isPaused.current = false;
+
     console.log(`⏱️ Starting ${seconds} second countdown to next speaker`);
-    
+
     // Set initial value
     setCountdown(seconds);
-    
+
     // Start interval
     countdownInterval.current = setInterval(() => {
-      setCountdown(prev => {
-        const next = prev - 1;
-        if (next <= 0) {
-          clearInterval(countdownInterval.current);
-          countdownInterval.current = null;
-          moveToNextSpeaker();
-          return null;
-        }
-        return next;
-      });
+      // Only decrement if not paused
+      if (!isPaused.current) {
+        setCountdown(prev => {
+          const next = prev - 1;
+          if (next <= 0) {
+            clearInterval(countdownInterval.current);
+            countdownInterval.current = null;
+            moveToNextSpeaker();
+            return null;
+          }
+          return next;
+        });
+      }
     }, 1000);
   }, [moveToNextSpeaker]);
 
@@ -327,6 +350,8 @@ export default function useDebateFlow(models, topic, positions) {
     debateMessages,
     setupSpeakingOrder,
     startDebate,
-    isDebateCompleted: debateState === DEBATE_STATES.COMPLETED
+    isDebateCompleted: debateState === DEBATE_STATES.COMPLETED,
+    pauseCountdown,
+    resumeCountdown
   };
 }

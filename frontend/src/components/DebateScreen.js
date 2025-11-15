@@ -35,7 +35,9 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     debateMessages,
     setupSpeakingOrder,
     startDebate,
-    isDebateCompleted
+    isDebateCompleted,
+    pauseCountdown,
+    resumeCountdown
   } = useDebateFlow(models, topic, finalPositions);
   
   // Ref for positioning timer and voting timer
@@ -57,7 +59,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     };
   }, []);
   
-  // Enhanced visibility fix with pre-initialization of debate variables
+  // Pre-initialize debate variables
   useEffect(() => {
     // Initialize speakingOrder right away to prevent uninitialized variables
     if (models && models.length > 0) {
@@ -65,36 +67,6 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
       // This helps ensure debates can start correctly later
       setupSpeakingOrder();
     }
-    
-    // Force immediate visibility of background
-    const bg = document.querySelector('.debate-background');
-    if (bg) {
-      bg.style.opacity = '1';
-      bg.style.visibility = 'visible';
-      bg.style.display = 'block';
-      
-      // Force redraw/repaint
-      window.requestAnimationFrame(() => {
-        bg.style.display = 'block';
-        bg.style.opacity = '1';
-      });
-    }
-    
-    // Error recovery - if screen is white, try forcing a reload
-    let whiteScreenTimer = setTimeout(() => {
-      const bg = document.querySelector('.debate-background');
-      if (bg && (getComputedStyle(bg).opacity === '0' || getComputedStyle(bg).visibility === 'hidden')) {
-        console.log("Detecting possible white screen, forcing visibility");
-        bg.style.opacity = '1';
-        bg.style.visibility = 'visible';
-        bg.style.display = 'block';
-        bg.style.zIndex = '0';
-      }
-    }, 1500);
-    
-    return () => {
-      clearTimeout(whiteScreenTimer);
-    };
   }, [models, setupSpeakingOrder]);
   
   // Helper function to create symmetrical party positions - uses isMobile state
@@ -438,19 +410,6 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
 
   return (
     <div className={`debate-screen ${partyAssignmentActive ? 'assigning' : ''} ${positionsAssigned ? 'positions-assigned' : ''}`}>
-      {/* Background - present throughout all debate stages */}
-      <div
-        className="debate-background"
-        style={{
-          backgroundImage: `url(${process.env.PUBLIC_URL}/images/GoldenCongress.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          opacity: 1,
-          visibility: 'visible',
-          display: 'block'
-        }}
-      ></div>
-      
       {/* Topic Banner */}
       <TopicBanner topic={topic} winner={debateWinner} />
       
@@ -529,6 +488,8 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
           position={finalPositions[speakingOrder[currentSpeakerIndex]?.id]}
           countdown={countdown}
           nextSpeaker={nextSpeaker && speakingOrder.find(m => m.name === nextSpeaker)}
+          onPause={pauseCountdown}
+          onResume={resumeCountdown}
         />
       )}
       
@@ -537,6 +498,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
         <VotingInterface
           debateMessages={debateMessages}
           onVoteSubmit={handleVoteSubmit}
+          onNewDebate={onReturnHome}
         />
       )}
       

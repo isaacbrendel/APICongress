@@ -19,9 +19,14 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   const [showVoting, setShowVoting] = useState(false);
   const [showWinner, setShowWinner] = useState(false);
   const [debateWinner, setDebateWinner] = useState(null);
-  
+
   // Track initialization state to prevent repeated setup
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Vote tracking and controversy settings
+  const [messageVotes, setMessageVotes] = useState({}); // { messageId: { vote: 'up'|'down', affiliation: 'Democrat' } }
+  const [controversyLevel, setControversyLevel] = useState(100); // 0-100, default to maximum spice
+  const [showControversySlider, setShowControversySlider] = useState(false);
   
   // Use the debate flow hook
   const {
@@ -37,8 +42,9 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     startDebate,
     isDebateCompleted,
     pauseCountdown,
-    resumeCountdown
-  } = useDebateFlow(models, topic, finalPositions);
+    resumeCountdown,
+    skipCountdown
+  } = useDebateFlow(models, topic, finalPositions, controversyLevel, messageVotes);
   
   // Ref for positioning timer and voting timer
   const positioningTimerRef = useRef(null);
@@ -352,7 +358,26 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     setShowVoting(false);
     setShowWinner(true);
   };
-  
+
+  // Handle individual message voting (thumbs up/down)
+  const handleMessageVote = (messageId, vote, affiliation) => {
+    console.log(`👍👎 Message ${messageId} received ${vote} vote from ${affiliation} message`);
+    setMessageVotes(prev => {
+      if (vote === null) {
+        // Remove vote
+        const newVotes = { ...prev };
+        delete newVotes[messageId];
+        return newVotes;
+      } else {
+        // Add or update vote
+        return {
+          ...prev,
+          [messageId]: { vote, affiliation }
+        };
+      }
+    });
+  };
+
   // Toggle between winner display and voting interface
   const handleViewArguments = () => {
     setShowWinner(false);
@@ -428,8 +453,8 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
         <button
           className="reassign-button"
           onClick={handleReassignParties}
-          style={{ 
-            zIndex: 100, 
+          style={{
+            zIndex: 100,
             background: '#cc3333',
             color: 'white',
             fontWeight: 'bold',
@@ -439,7 +464,59 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
           Reassign Parties
         </button>
       )}
-      
+
+      {/* Controversy Intensity Control */}
+      {!isDebateCompleted && !partyAssignmentActive && (
+        <div className="controversy-control">
+          <button
+            className="controversy-toggle"
+            onClick={() => setShowControversySlider(!showControversySlider)}
+            title="Adjust controversy level"
+          >
+            🔥 {controversyLevel}%
+          </button>
+          {showControversySlider && (
+            <div className="controversy-slider-panel">
+              <div className="controversy-header">
+                <span className="controversy-title">Controversy Level</span>
+                <button
+                  className="controversy-close"
+                  onClick={() => setShowControversySlider(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="controversy-description">
+                {controversyLevel === 100 && "🔥 MAXIMUM SPICE - No holds barred"}
+                {controversyLevel >= 70 && controversyLevel < 100 && "🌶️ High Heat - Strong opinions"}
+                {controversyLevel >= 40 && controversyLevel < 70 && "🧂 Moderate - Balanced debate"}
+                {controversyLevel < 40 && "❄️ Mild - Civil discourse"}
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={controversyLevel}
+                onChange={(e) => setControversyLevel(parseInt(e.target.value))}
+                className="controversy-slider"
+              />
+              <div className="controversy-value">{controversyLevel}%</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fast Forward Button */}
+      {countdown !== null && !isDebateCompleted && !partyAssignmentActive && (
+        <button
+          className="fast-forward-button"
+          onClick={skipCountdown}
+          title="Skip countdown"
+        >
+          ⏩ Skip
+        </button>
+      )}
+
       {/* Debaters Container */}
       <div className="debaters-container">
         {models.map((m) => {
@@ -490,6 +567,8 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
           nextSpeaker={nextSpeaker && speakingOrder.find(m => m.name === nextSpeaker)}
           onPause={pauseCountdown}
           onResume={resumeCountdown}
+          onVote={handleMessageVote}
+          messageId={`${currentSpeech.model}-${currentSpeakerIndex}`}
         />
       )}
       
@@ -501,10 +580,10 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
           onNewDebate={onReturnHome}
         />
       )}
-      
+
       {/* Winner Display */}
       {showWinner && (
-        <WinnerDisplay 
+        <WinnerDisplay
           winner={debateWinner}
           onReturnHome={onReturnHome}
           onViewArguments={handleViewArguments}

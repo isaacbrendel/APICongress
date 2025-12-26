@@ -19,11 +19,14 @@ const DebateChatBubble = ({
   countdown,
   nextSpeaker,
   onPause,
-  onResume
+  onResume,
+  onVote,
+  messageId
 }) => {
   // Add a class to handle mobile styling - declare this FIRST to avoid uninitialized variable error
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
   const [isHovered, setIsHovered] = useState(false);
+  const [vote, setVote] = useState(null); // null, 'up', or 'down'
 
   // Add resize listener to update mobile state
   useEffect(() => {
@@ -121,6 +124,15 @@ const DebateChatBubble = ({
     return 'pointer-bottom'; // Independent
   };
 
+  // Handle voting
+  const handleVote = (voteType) => {
+    const newVote = vote === voteType ? null : voteType; // Toggle vote
+    setVote(newVote);
+    if (onVote) {
+      onVote(messageId, newVote, affiliation);
+    }
+  };
+
   const bubblePosition = getBubblePosition();
   const colors = getColors();
   const pointerClass = getPointerClass();
@@ -149,7 +161,29 @@ const DebateChatBubble = ({
       </div>
       
       <div className="message-content">"{message}"</div>
-      
+
+      {/* Thumbs up/down voting buttons */}
+      <div className="vote-buttons">
+        <button
+          className={`vote-btn vote-up ${vote === 'up' ? 'active' : ''}`}
+          onClick={() => handleVote('up')}
+          aria-label="Thumbs up"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+          </svg>
+        </button>
+        <button
+          className={`vote-btn vote-down ${vote === 'down' ? 'active' : ''}`}
+          onClick={() => handleVote('down')}
+          aria-label="Thumbs down"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path>
+          </svg>
+        </button>
+      </div>
+
       {countdown !== null && nextSpeaker && (
         <div className="countdown-container">
           <div className="countdown-info">

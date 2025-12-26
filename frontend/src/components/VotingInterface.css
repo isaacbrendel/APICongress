@@ -1,518 +1,134 @@
-/* src/components/VotingInterface.css - CINEMATIC DESIGN */
+/* MINIMAL CLEAN VOTING INTERFACE */
 .voting-interface {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%;
-  max-width: 900px;
-  max-height: 85vh;
-  overflow-y: auto;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 40, 0.98) 100%);
-  border-radius: 24px;
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.9),
-    0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  padding: 3rem;
-  z-index: 1000;
-  backdrop-filter: blur(20px);
-  animation: voteSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-@keyframes voteSlideIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -45%) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-.voting-header {
-  text-align: center;
-  margin-bottom: 2.5rem;
-  padding-bottom: 2rem;
-  position: relative;
-  animation: headerFadeIn 0.8s ease 0.2s backwards;
-}
-
-@keyframes headerFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.voting-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-}
-
-.voting-header h2 {
-  margin: 0;
-  color: #ffffff;
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  text-transform: none;
-  text-shadow: 0 2px 20px rgba(255, 255, 255, 0.3);
-  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.party-tabs {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 2rem;
-  gap: 1rem;
-  animation: tabsFadeIn 0.8s ease 0.3s backwards;
-}
-
-@keyframes tabsFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.party-tab {
-  padding: 1rem 2.5rem;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  position: relative;
-  overflow: hidden;
-}
-
-.party-tab::before {
-  content: '';
-  position: absolute;
   top: 0;
-  left: -100%;
+  left: 0;
   width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s ease;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
 }
 
-.party-tab:hover::before {
-  left: 100%;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.party-tab:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.8);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.voting-content {
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
 }
 
-.party-tab.active {
-  color: white;
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
-  box-shadow:
-    0 0 20px rgba(255, 255, 255, 0.2),
-    0 4px 12px rgba(0, 0, 0, 0.4);
+.voting-title {
+  font-size: 2rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 48px;
+  letter-spacing: -0.5px;
 }
 
-.arguments-display {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2.5rem;
-  max-height: 35vh;
-  overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  animation: argsFadeIn 0.8s ease 0.4s backwards;
-}
-
-@keyframes argsFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Custom scrollbar for dark theme */
-.arguments-display::-webkit-scrollbar {
-  width: 6px;
-}
-
-.arguments-display::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.arguments-display::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-.arguments-display::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.party-arguments {
+.party-options {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 12px;
+  margin-bottom: 48px;
 }
 
-.argument-item {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border-left: 3px solid;
-  transition: all 0.3s ease;
-  margin-bottom: 1rem;
-}
-
-.argument-item:last-child {
-  margin-bottom: 0;
-}
-
-.argument-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.argument-speaker {
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  opacity: 0.9;
-}
-
-.argument-content {
-  color: rgba(255, 255, 255, 0.85);
-  line-height: 1.8;
-  font-size: 0.95rem;
-  font-style: italic;
-  font-weight: 400;
-}
-
-.no-arguments {
-  text-align: center;
-  padding: 2rem;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.9rem;
-}
-
-.voting-section {
+.party-option {
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 16px;
-  padding: 2.5rem 2rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: voteSectionFadeIn 0.8s ease 0.5s backwards;
-}
-
-@keyframes voteSectionFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.voting-section h3 {
-  margin-top: 0;
-  margin-bottom: 2rem;
-  color: #ffffff;
-  font-size: 1rem;
-  text-align: center;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
-}
-
-.voting-options {
+  border-radius: 8px;
+  padding: 20px 24px;
   display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.voting-option {
-  display: flex;
+  justify-content: space-between;
   align-items: center;
-}
-
-.voting-option input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.vote-label {
-  padding: 1.25rem 3rem;
-  border-radius: 12px;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  border: 2px solid;
-  position: relative;
-  overflow: hidden;
+  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.vote-label::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: width 0.6s ease, height 0.6s ease;
-}
-
-.vote-label:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.vote-label.Democrat {
-  background: rgba(30, 144, 255, 0.1);
-  color: #1E90FF;
-  border-color: #1E90FF;
-}
-
-.vote-label.Democrat::before {
-  background: #1E90FF;
-}
-
-.vote-label.Republican {
-  background: rgba(220, 20, 60, 0.1);
-  color: #DC143C;
-  border-color: #DC143C;
-}
-
-.vote-label.Republican::before {
-  background: #DC143C;
-}
-
-.vote-label.Independent {
-  background: rgba(147, 112, 219, 0.1);
-  color: #9370DB;
-  border-color: #9370DB;
-}
-
-.vote-label.Independent::before {
-  background: #9370DB;
-}
-
-.voting-option input[type="radio"]:checked + .vote-label {
-  transform: scale(1.08);
-  box-shadow: 0 0 30px currentColor;
-}
-
-.voting-option input[type="radio"]:checked + .vote-label::before {
-  width: 300%;
-  height: 300%;
-}
-
-.voting-option input[type="radio"]:checked + .vote-label.Democrat {
-  background: linear-gradient(135deg, #1E90FF 0%, #0066CC 100%);
-  color: white;
-  border-color: #1E90FF;
-}
-
-.voting-option input[type="radio"]:checked + .vote-label.Republican {
-  background: linear-gradient(135deg, #DC143C 0%, #AA1130 100%);
-  color: white;
-  border-color: #DC143C;
-}
-
-.voting-option input[type="radio"]:checked + .vote-label.Independent {
-  background: linear-gradient(135deg, #9370DB 0%, #7B5DBD 100%);
-  color: white;
-  border-color: #9370DB;
-}
-
-.voting-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  align-items: center;
-}
-
-.submit-vote-btn,
-.new-debate-btn {
-  padding: 1.25rem 3rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-
-.submit-vote-btn::before,
-.new-debate-btn::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: width 0.6s ease, height 0.6s ease;
-}
-
-.submit-vote-btn:hover:not(:disabled)::before,
-.new-debate-btn:hover::before {
-  width: 300%;
-  height: 300%;
-}
-
-.submit-vote-btn:hover:not(:disabled),
-.new-debate-btn:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.15));
-  border-color: rgba(255, 255, 255, 0.6);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.submit-vote-btn:active:not(:disabled),
-.new-debate-btn:active {
-  transform: translateY(-2px);
-}
-
-.submit-vote-btn:disabled {
-  background: rgba(255, 255, 255, 0.02);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.new-debate-btn {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+.party-option:hover {
+  background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
 }
 
-/* Responsive adjustments */
+.party-option.democrat:hover {
+  border-color: rgba(30, 144, 255, 0.5);
+}
+
+.party-option.republican:hover {
+  border-color: rgba(220, 20, 60, 0.5);
+}
+
+.party-option.independent:hover {
+  border-color: rgba(147, 112, 219, 0.5);
+}
+
+.party-option.selected {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.02);
+  color: #fff;
+}
+
+.party-option.democrat.selected {
+  border-color: #1E90FF;
+  box-shadow: 0 0 20px rgba(30, 144, 255, 0.3);
+}
+
+.party-option.republican.selected {
+  border-color: #DC143C;
+  box-shadow: 0 0 20px rgba(220, 20, 60, 0.3);
+}
+
+.party-option.independent.selected {
+  border-color: #9370DB;
+  box-shadow: 0 0 20px rgba(147, 112, 219, 0.3);
+}
+
+.party-name {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.party-count {
+  font-size: 0.9rem;
+  opacity: 0.5;
+}
+
+.new-debate-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 12px 32px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.new-debate-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Mobile */
 @media (max-width: 768px) {
-  .voting-interface {
-    width: 85%;
-    padding: 2rem;
+  .voting-title {
+    font-size: 1.5rem;
+    margin-bottom: 32px;
   }
 
-  .party-tabs {
-    gap: 0.5rem;
+  .party-option {
+    padding: 16px 20px;
   }
 
-  .party-tab {
-    padding: 0.6rem 1rem;
-    font-size: 0.8rem;
-  }
-
-  .voting-options {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
-  .vote-label {
-    display: block;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .voting-interface {
-    width: 90%;
-    padding: 1.5rem;
-  }
-
-  .voting-header h2 {
-    font-size: 1.2rem;
-  }
-
-  .party-tabs {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .arguments-display {
-    max-height: 35vh;
-    padding: 1rem;
-  }
-
-  .argument-item {
-    padding: 0.75rem;
-  }
-
-  .argument-speaker {
-    font-size: 0.8rem;
-  }
-
-  .argument-content {
-    font-size: 0.85rem;
-  }
-
-  .voting-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .submit-vote-btn,
-  .new-debate-btn {
-    font-size: 0.85rem;
-    padding: 0.875rem;
-    width: 100%;
+  .party-name {
+    font-size: 1rem;
   }
 }

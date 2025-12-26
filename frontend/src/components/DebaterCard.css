@@ -10,52 +10,68 @@
 }
 
 .debater-card:hover {
-  transform: scale(1.02);
+  transform: scale(1.05);
   filter: none;
 }
 
+.debater-card:hover .debater-circle {
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.3),
+    0 16px 48px rgba(0, 0, 0, 0.95),
+    inset 0 2px 6px rgba(255, 255, 255, 0.15);
+  transform: translateY(-4px);
+}
+
 .debater-circle {
-  width: 90px;
-  height: 90px;
-  background: rgba(0, 0, 0, 0.9);
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 40, 0.98) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 0.5rem;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.15),
-    0 8px 24px rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+    0 0 0 2px rgba(255, 255, 255, 0.2),
+    0 12px 36px rgba(0, 0, 0, 0.9),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  border: 3px solid rgba(255, 255, 255, 0.15);
   position: relative;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .debater-circle::before {
   display: none;
 }
 
-/* Party-specific circle borders - minimal high contrast */
+/* Party-specific circle borders - premium gradient glow */
 .debater-card.republican .debater-circle {
   border-color: #DC143C;
   box-shadow:
-    0 0 0 1px #DC143C,
-    0 8px 24px rgba(220, 20, 60, 0.4);
+    0 0 0 3px rgba(220, 20, 60, 0.6),
+    0 0 30px rgba(220, 20, 60, 0.4),
+    0 12px 36px rgba(0, 0, 0, 0.9),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
 .debater-card.democrat .debater-circle {
   border-color: #1E90FF;
   box-shadow:
-    0 0 0 1px #1E90FF,
-    0 8px 24px rgba(30, 144, 255, 0.4);
+    0 0 0 3px rgba(30, 144, 255, 0.6),
+    0 0 30px rgba(30, 144, 255, 0.4),
+    0 12px 36px rgba(0, 0, 0, 0.9),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
 .debater-card.independent .debater-circle {
   border-color: #9370DB;
   box-shadow:
-    0 0 0 1px #9370DB,
-    0 8px 24px rgba(147, 112, 219, 0.4);
+    0 0 0 3px rgba(147, 112, 219, 0.6),
+    0 0 30px rgba(147, 112, 219, 0.4),
+    0 12px 36px rgba(0, 0, 0, 0.9),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
 .debater-logo {
@@ -68,44 +84,56 @@
 }
 
 .debater-banner {
-  width: 120px;
-  padding: 0.5rem 0.8rem;
+  width: 130px;
+  padding: 0.65rem 1rem;
   text-align: center;
-  border-radius: 2px;
+  border-radius: 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   color: #fff;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: none;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   position: relative;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .debater-banner::before {
   display: none;
 }
 
-/* Party-specific banner colors - flat minimal */
+/* Party-specific banner colors - premium gradients */
 .debater-card.republican .debater-banner {
-  background: #DC143C;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #FF1744 0%, #DC143C 50%, #B22222 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 6px 20px rgba(220, 20, 60, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .debater-card.democrat .debater-banner {
-  background: #1E90FF;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #1E90FF 0%, #1873CC 50%, #0D5AB3 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 6px 20px rgba(30, 144, 255, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .debater-card.independent .debater-banner {
-  background: #9370DB;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #9370DB 0%, #7B5BC4 50%, #6347AD 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 6px 20px rgba(147, 112, 219, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .debater-name {

@@ -16,9 +16,11 @@ const DEBATE_STATES = {
  * @param {Array} models - Array of AI models with their affiliations
  * @param {string} topic - The debate topic
  * @param {Object} positions - Model position data for visual representation
+ * @param {number} controversyLevel - Controversy intensity level (0-100)
+ * @param {Object} messageVotes - Vote tracking data { messageId: { vote, affiliation } }
  * @returns {Object} Debate state and controls
  */
-export default function useDebateFlow(models, topic, positions) {
+export default function useDebateFlow(models, topic, positions, controversyLevel = 100, messageVotes = {}) {
   // Debate state
   const [debateState, setDebateState] = useState(DEBATE_STATES.IDLE);
   const [speakingOrder, setSpeakingOrder] = useState([]);
@@ -138,10 +140,16 @@ export default function useDebateFlow(models, topic, positions) {
       }));
       
       const context = JSON.stringify(messagesContext);
-      
-      // Make API call
+
+      // Calculate feedback stats for the current party
+      const partyVotes = Object.values(messageVotes).filter(v => v.affiliation === speakerAffiliation);
+      const upvotes = partyVotes.filter(v => v.vote === 'up').length;
+      const downvotes = partyVotes.filter(v => v.vote === 'down').length;
+      const feedbackData = JSON.stringify({ recentVotes: { upvotes, downvotes } });
+
+      // Make API call with controversy level and feedback
       const response = await fetch(
-        `/api/llm?model=${encodeURIComponent(speakerName)}&party=${encodeURIComponent(speakerAffiliation)}&topic=${encodeURIComponent(topic)}&context=${encodeURIComponent(context)}`
+        `/api/llm?model=${encodeURIComponent(speakerName)}&party=${encodeURIComponent(speakerAffiliation)}&topic=${encodeURIComponent(topic)}&context=${encodeURIComponent(context)}&controversyLevel=${controversyLevel}&feedback=${encodeURIComponent(feedbackData)}`
       );
       
       if (!response.ok) {
@@ -244,6 +252,35 @@ export default function useDebateFlow(models, topic, positions) {
     isPaused.current = false;
     console.log('▶️ Countdown resumed');
   }, []);
+
+  /**
+   * Skip countdown and move to next speaker immediately
+   */
+  const skipCountdown = useCallback(() => {
+    console.log('⏩ Fast-forward: Skipping countdown');
+
+    // Clear any active countdown
+    if (countdownInterval.current) {
+      clearInterval(countdownInterval.current);
+      countdownInterval.current = null;
+    }
+    if (finalCountdownInterval.current) {
+      clearInterval(finalCountdownInterval.current);
+      finalCountdownInterval.current = null;
+    }
+
+    // Reset countdown states
+    setCountdown(null);
+    setFinalCountdown(null);
+
+    // Move to next speaker or complete debate
+    if (debateState === DEBATE_STATES.COUNTDOWN) {
+      moveToNextSpeaker();
+    } else if (debateState === DEBATE_STATES.FINAL_PAUSE) {
+      console.log('⏩ Fast-forward: Completing debate');
+      setDebateState(DEBATE_STATES.COMPLETED);
+    }
+  }, [debateState, moveToNextSpeaker]);
 
   /**
    * Start countdown between speakers
@@ -352,6 +389,7 @@ export default function useDebateFlow(models, topic, positions) {
     startDebate,
     isDebateCompleted: debateState === DEBATE_STATES.COMPLETED,
     pauseCountdown,
-    resumeCountdown
+    resumeCountdown,
+    skipCountdown
   };
 }

@@ -1,0 +1,612 @@
+/* BILL COMPARISON - PREMIUM INTERFACE */
+.bill-comparison-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 40, 0.98) 100%);
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 40px 20px;
+  animation: fadeInScale 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Header */
+.bill-comparison-header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.comparison-title {
+  font-size: 3rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.comparison-subtitle {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Bills Grid */
+.bills-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 1600px;
+  margin: 0 auto 40px;
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bill Cards */
+.bill-card {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(20, 20, 40, 0.9) 100%);
+  border-radius: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  padding: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.bill-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.bill-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.bill-card.selected {
+  border-width: 3px;
+  transform: translateY(-12px) scale(1.02);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.7),
+    0 0 60px rgba(255, 255, 255, 0.2),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+
+.bill-card.democrat {
+  border-color: rgba(30, 144, 255, 0.3);
+}
+
+.bill-card.democrat.selected {
+  border-color: #1E90FF;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.7),
+    0 0 80px rgba(30, 144, 255, 0.5),
+    inset 0 2px 4px rgba(30, 144, 255, 0.3);
+}
+
+.bill-card.republican {
+  border-color: rgba(220, 20, 60, 0.3);
+}
+
+.bill-card.republican.selected {
+  border-color: #DC143C;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.7),
+    0 0 80px rgba(220, 20, 60, 0.5),
+    inset 0 2px 4px rgba(220, 20, 60, 0.3);
+}
+
+/* Bill Header */
+.bill-header {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.democrat-header {
+  background: linear-gradient(135deg, rgba(30, 144, 255, 0.15) 0%, rgba(30, 144, 255, 0.05) 100%);
+}
+
+.republican-header {
+  background: linear-gradient(135deg, rgba(220, 20, 60, 0.15) 0%, rgba(220, 20, 60, 0.05) 100%);
+}
+
+.bill-party-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.party-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.party-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.bill-meta {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px 12px;
+  border-radius: 12px;
+}
+
+/* Bill Title */
+.bill-title {
+  padding: 24px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.4;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+}
+
+/* Bill Content */
+.bill-content {
+  padding: 24px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.bill-text {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+.bill-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bill-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.bill-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.bill-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Selection Indicator */
+.selection-indicator {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow:
+    0 4px 12px rgba(16, 185, 129, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  animation: bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.checkmark {
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+/* Action Buttons */
+.bill-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+.sign-bill-button {
+  flex: 1;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 12px 36px rgba(16, 185, 129, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.sign-bill-button:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 16px 48px rgba(16, 185, 129, 0.5),
+    0 0 60px rgba(16, 185, 129, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.sign-bill-button:active:not(:disabled) {
+  transform: translateY(-2px) scale(1);
+}
+
+.sign-bill-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.veto-button {
+  flex: 0.6;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 12px 36px rgba(239, 68, 68, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.veto-button:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 16px 48px rgba(239, 68, 68, 0.5),
+    0 0 60px rgba(239, 68, 68, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.veto-button:active {
+  transform: translateY(-2px) scale(1);
+}
+
+.button-icon {
+  font-size: 1.5rem;
+}
+
+.button-text {
+  font-size: 1rem;
+}
+
+.button-party {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+/* Veto Modal */
+.veto-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.veto-modal {
+  background: linear-gradient(135deg, rgba(20, 20, 40, 0.98) 0%, rgba(0, 0, 0, 0.95) 100%);
+  border-radius: 24px;
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  padding: 40px;
+  max-width: 500px;
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.9),
+    0 0 80px rgba(239, 68, 68, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  animation: modalZoom 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes modalZoom {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.veto-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.veto-modal-icon {
+  font-size: 3rem;
+}
+
+.veto-modal-header h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.veto-modal-body {
+  margin-bottom: 32px;
+}
+
+.veto-modal-body p {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.veto-warning {
+  color: #EF4444;
+  font-weight: 700;
+}
+
+.veto-modal-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.veto-cancel-button {
+  flex: 1;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.veto-cancel-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.veto-confirm-button {
+  flex: 1;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+.veto-confirm-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(239, 68, 68, 0.5);
+}
+
+/* Veto Animation */
+.veto-animation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  animation: fadeIn 0.5s;
+}
+
+.veto-stamp {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: stampDown 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes stampDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-100px) rotate(-10deg) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+.veto-text {
+  font-size: 6rem;
+  font-weight: 900;
+  color: #EF4444;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  text-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(239, 68, 68, 0.5);
+  transform: rotate(-5deg);
+  border: 8px solid #EF4444;
+  padding: 20px 60px;
+  border-radius: 16px;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.veto-subtext {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 20px;
+  font-weight: 600;
+}
+
+.veto-message {
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  max-width: 600px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.new-debate-button {
+  padding: 18px 48px;
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 12px 36px rgba(99, 102, 241, 0.4);
+}
+
+.new-debate-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(99, 102, 241, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .bills-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .bill-actions {
+    flex-direction: column;
+  }
+
+  .sign-bill-button,
+  .veto-button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .comparison-title {
+    font-size: 2rem;
+  }
+
+  .comparison-subtitle {
+    font-size: 1rem;
+  }
+
+  .veto-text {
+    font-size: 4rem;
+    letter-spacing: 4px;
+    padding: 15px 40px;
+  }
+}

@@ -1,66 +1,298 @@
-/* VOTING BUTTONS - SUPER VISIBLE */
+/* REINFORCEMENT LEARNING VOTING INTERFACE */
 
 .argument-voting {
+  margin-top: 25px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 15px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.vote-buttons-container {
   display: flex;
-  gap: 15px;
-  align-items: center;
-  margin-top: 20px;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 10px;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 15px;
 }
 
 .vote-btn {
-  padding: 12px 30px;
-  border: 3px solid #FFD700;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
-  color: white;
-  font-size: 1.2rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 35px;
+  border: 3px solid;
+  border-radius: 12px;
+  font-size: 1.1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
 }
 
-.vote-btn:hover:not(:disabled) {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
-  background: linear-gradient(135deg, #5AA3F7, #4A90E2);
+/* Upvote Button */
+.vote-btn.upvote {
+  border-color: #4CAF50;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
 }
 
-.vote-btn:active:not(:disabled) {
-  transform: scale(0.95);
+.vote-btn.upvote:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
+  background: linear-gradient(135deg, #5bc75f, #4CAF50);
 }
 
-.vote-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* Downvote Button */
+.vote-btn.downvote {
+  border-color: #f44336;
+  background: linear-gradient(135deg, #f44336, #da190b);
+  color: white;
 }
 
+.vote-btn.downvote:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(244, 67, 54, 0.5);
+  background: linear-gradient(135deg, #ff5a4e, #f44336);
+}
+
+/* Vote Icon */
+.vote-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.vote-label {
+  letter-spacing: 1px;
+}
+
+/* Checkmark when voted */
+.checkmark {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 1.2rem;
+  animation: checkmarkAppear 0.3s ease;
+}
+
+@keyframes checkmarkAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-180deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Voted State */
 .vote-btn.voted {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  border-color: #FFF;
-  animation: votedPulse 0.5s ease;
+  animation: votedPulse 0.6s ease;
+  border-width: 4px;
+  box-shadow: 0 0 30px currentColor;
 }
 
 @keyframes votedPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
-.vote-status {
-  margin-left: 15px;
-  font-size: 1rem;
+/* Processing State */
+.vote-btn.processing {
+  opacity: 0.6;
+  cursor: wait;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.8; }
+}
+
+/* Disabled State */
+.vote-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Vote Feedback Panel */
+.vote-feedback {
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 15px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Processing Feedback */
+.processing-feedback {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(74, 144, 226, 0.2);
+  border: 2px solid #4A90E2;
+  color: #4A90E2;
+  font-weight: 600;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(74, 144, 226, 0.3);
+  border-top-color: #4A90E2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Success Feedback */
+.success-feedback {
+  background: rgba(76, 175, 80, 0.15);
+  border: 2px solid #4CAF50;
+  color: white;
+}
+
+.success-feedback.show {
+  animation: slideDown 0.3s ease, glowPulse 2s ease-in-out;
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(76, 175, 80, 0.6); }
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.feedback-icon {
+  font-size: 1.5rem;
+}
+
+.feedback-details {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.feedback-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feedback-row:last-child {
+  border-bottom: none;
+}
+
+.feedback-row .label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.feedback-row .value {
+  color: #FFD700;
+  font-weight: bold;
+}
+
+.feedback-row .value.positive {
   color: #4CAF50;
-  font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
+.feedback-row .value.negative {
+  color: #f44336;
+}
+
+.feedback-row.personality-shifts {
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 10px;
+  margin-top: 5px;
+  border-top: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.feedback-row.personality-shifts .value {
+  color: #BB86FC;
+  font-size: 0.95rem;
+}
+
+.feedback-footer {
+  text-align: center;
+  color: #4CAF50;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+/* Voted Indicator (persistent after feedback fades) */
+.voted-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  margin-top: 15px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.indicator-icon {
+  font-size: 1.3rem;
+}
+
+.indicator-text {
+  color: #FFD700;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
+  .vote-buttons-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .vote-btn {
-    padding: 10px 20px;
+    padding: 12px 25px;
     font-size: 1rem;
+  }
+
+  .vote-icon {
+    font-size: 1.3rem;
+  }
+
+  .feedback-row {
+    flex-direction: column;
+    gap: 3px;
   }
 }

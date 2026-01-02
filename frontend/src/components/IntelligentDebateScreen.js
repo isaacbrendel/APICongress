@@ -263,7 +263,9 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
 
           {/* REINFORCEMENT LEARNING - Vote on this argument! */}
           {/* Each argument gets FRESH voting - no pre-selected state */}
+          {/* KEY PROP forces React to remount component with fresh state */}
           <ArgumentVoting
+            key={currentArgument.uniqueId}
             argumentId={currentArgument.uniqueId}
             agentId={currentArgument.agentId}
             agentName={currentArgument.agentName}
@@ -294,8 +296,9 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
                         Phase: {arg.phase} | Strategy: {arg.strategy}
                       </div>
                     </div>
-                    {/* Each gets INDEPENDENT fresh voting */}
+                    {/* Each gets INDEPENDENT fresh voting - KEY ensures separate state */}
                     <ArgumentVoting
+                      key={arg.uniqueId}
                       argumentId={arg.uniqueId}
                       agentId={arg.agentId}
                       agentName={arg.agentName}

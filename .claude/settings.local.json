@@ -6,7 +6,8 @@
       "Bash(node:*)",
       "Bash(rm:*)",
       "Bash(find:*)",
-      "Bash(CI=true npm test)"
+      "Bash(CI=true npm test)",
+      "Bash(curl:*)"
     ]
   },
   "enableAllProjectMcpServers": false

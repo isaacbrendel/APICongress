@@ -9,13 +9,19 @@ const ArgumentVoting = ({ argumentId, agentId, agentName, onVote }) => {
   const [processing, setProcessing] = useState(false);
 
   const handleVote = async (voteType) => {
-    if (processing) return;
+    console.log('VOTE BUTTON CLICKED:', voteType);
+
+    if (processing) {
+      console.log('Already processing, ignoring');
+      return;
+    }
 
     setProcessing(true);
     setVoted(voteType);
 
     // Call backend
     try {
+      console.log('Sending vote to backend:', { argumentId, agentId, voteType });
       await onVote(argumentId, agentId, voteType);
       console.log(`✓ Voted ${voteType} on argument by ${agentName}`);
     } catch (error) {

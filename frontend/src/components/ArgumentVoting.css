@@ -1,30 +1,36 @@
-/* Simple Voting UI */
+/* VOTING BUTTONS - SUPER VISIBLE */
 
 .argument-voting {
   display: flex;
-  gap: 10px;
+  gap: 15px;
   align-items: center;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
 }
 
 .vote-btn {
-  padding: 8px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 30px;
+  border: 3px solid #FFD700;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4A90E2, #357ABD);
   color: white;
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
 .vote-btn:hover:not(:disabled) {
-  transform: scale(1.05);
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+  background: linear-gradient(135deg, #5AA3F7, #4A90E2);
+}
+
+.vote-btn:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .vote-btn:disabled {
@@ -33,25 +39,28 @@
 }
 
 .vote-btn.voted {
-  background: rgba(255, 215, 0, 0.2);
-  border-color: #FFD700;
-  color: #FFD700;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border-color: #FFF;
+  animation: votedPulse 0.5s ease;
+}
+
+@keyframes votedPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 
 .vote-status {
-  margin-left: 10px;
-  font-size: 0.85rem;
+  margin-left: 15px;
+  font-size: 1rem;
   color: #4CAF50;
-  font-weight: 600;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 @media (max-width: 768px) {
-  .argument-voting {
-    flex-wrap: wrap;
-  }
-
   .vote-btn {
-    flex: 1;
-    min-width: 100px;
+    padding: 10px 20px;
+    font-size: 1rem;
   }
 }

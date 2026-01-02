@@ -69,6 +69,7 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
   }, []);
   
   // Generate random confetti with more elegant shapes and colors
+  // eslint-disable-next-line no-unused-vars
   const generateConfetti = () => {
     const confettiCount = 150;
     const confetti = [];
@@ -119,6 +120,7 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
   };
   
   // Generate decorative stars for elegance
+  // eslint-disable-next-line no-unused-vars
   const generateStars = () => {
     const starCount = 12;
     const stars = [];
@@ -153,10 +155,12 @@ const WinnerDisplay = ({ winner, onReturnHome, onViewArguments }) => {
   };
   
   // Generate decorative ribbons for elegance
+  // eslint-disable-next-line no-unused-vars
   const generateRibbons = () => {
     const ribbonCount = 8;
     const ribbons = [];
     const partyColor = getPartyColor();
+    // eslint-disable-next-line no-unused-vars
     const secondaryColor = getSecondaryColor();
     
     for (let i = 0; i < ribbonCount; i++) {

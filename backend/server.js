@@ -4,6 +4,14 @@ const path = require('path');
 const app = express();
 const portFallbacks = [5000, 5001, 5002, 5003, 5004, 5005]; // Multiple port options
 
+// Import intelligent agent system
+const DebateContextManager = require('./agents/DebateContextManager');
+const ConstitutionalDocumentManager = require('./collaboration/ConstitutionalDocumentManager');
+
+// Initialize intelligent systems
+const debateManager = new DebateContextManager();
+const documentManager = new ConstitutionalDocumentManager();
+
 // Express middleware
 app.use(cors());
 app.use(express.json());
@@ -898,6 +906,338 @@ function extractBillTitle(billText) {
   const firstLine = billText.split('\n')[0];
   return firstLine.slice(0, 100).trim();
 }
+
+/**
+ * INTELLIGENT AGENT SYSTEM API ENDPOINTS
+ */
+
+// Initialize Congress of AI Agents
+app.post('/api/congress/initialize', async (req, res) => {
+  try {
+    const { count = 10 } = req.body;
+
+    console.log(`[API] Initializing congress with ${count} agents`);
+    const agents = await debateManager.createCongress(count);
+
+    res.json({
+      success: true,
+      message: `Created congress with ${agents.length} agents`,
+      agents: agents.map(a => a.getSummary())
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to initialize congress:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Register individual agent
+app.post('/api/agents/register', async (req, res) => {
+  try {
+    const agentConfig = req.body;
+    const agent = await debateManager.registerAgent(agentConfig);
+
+    res.json({
+      success: true,
+      agent: agent.getSummary()
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to register agent:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all agents
+app.get('/api/agents', (req, res) => {
+  try {
+    const agents = debateManager.getAgentSummaries();
+    res.json({ agents });
+  } catch (error) {
+    console.error('[API ERROR] Failed to get agents:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get specific agent details
+app.get('/api/agents/:agentId', (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const agent = debateManager.getAgent(agentId);
+
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    res.json({
+      ...agent.getSummary(),
+      personality: agent.getPersonalityProfile(),
+      relationships: agent.relationships,
+      performance: agent.performance
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to get agent:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start intelligent debate with context and strategy
+app.post('/api/debate/start', async (req, res) => {
+  try {
+    const { topic, participantAgentIds, enablePeerReview = false, enableResearch = false, controversyLevel = 100 } = req.body;
+
+    if (!topic || !participantAgentIds || participantAgentIds.length < 2) {
+      return res.status(400).json({ error: 'Topic and at least 2 participants required' });
+    }
+
+    const debateId = await debateManager.startDebate(topic, participantAgentIds, {
+      enablePeerReview,
+      enableResearch,
+      controversyLevel
+    });
+
+    res.json({
+      success: true,
+      debateId: debateId,
+      topic: topic,
+      participants: participantAgentIds.length
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to start debate:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate debate argument with full intelligence
+app.post('/api/debate/:debateId/argument', async (req, res) => {
+  try {
+    const { debateId } = req.params;
+    const { agentId } = req.body;
+
+    if (!agentId) {
+      return res.status(400).json({ error: 'Agent ID required' });
+    }
+
+    // Use executeLLMCall as the LLM executor
+    const llmExecutor = executeLLMCall;
+
+    const turn = await debateManager.generateDebateArgument(debateId, agentId, llmExecutor);
+
+    res.json({
+      success: true,
+      turn: turn
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to generate argument:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Process debate outcome and agent learning
+app.post('/api/debate/:debateId/outcome', async (req, res) => {
+  try {
+    const { debateId } = req.params;
+    const { votingResults } = req.body;
+
+    const result = await debateManager.processDebateOutcome(debateId, votingResults);
+
+    res.json({
+      success: true,
+      result: result
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to process debate outcome:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create research committee
+app.post('/api/research/committee', async (req, res) => {
+  try {
+    const { topic, memberAgentIds } = req.body;
+
+    if (!topic || !memberAgentIds || memberAgentIds.length < 2) {
+      return res.status(400).json({ error: 'Topic and at least 2 members required' });
+    }
+
+    const committeeId = await debateManager.createResearchCommittee(topic, memberAgentIds);
+
+    res.json({
+      success: true,
+      committeeId: committeeId
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to create research committee:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Conduct research
+app.post('/api/research/:committeeId/conduct', async (req, res) => {
+  try {
+    const { committeeId } = req.params;
+
+    const llmExecutor = executeLLMCall;
+    const committee = await debateManager.conductResearch(committeeId, llmExecutor);
+
+    res.json({
+      success: true,
+      committee: committee
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to conduct research:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create coalition
+app.post('/api/coalition/create', async (req, res) => {
+  try {
+    const { name, memberAgentIds, purpose } = req.body;
+
+    if (!name || !memberAgentIds || memberAgentIds.length < 2) {
+      return res.status(400).json({ error: 'Name and at least 2 members required' });
+    }
+
+    const coalitionId = debateManager.createCoalition(name, memberAgentIds, purpose);
+
+    res.json({
+      success: true,
+      coalitionId: coalitionId
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to create coalition:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Initialize constitution
+app.post('/api/constitution/initialize', async (req, res) => {
+  try {
+    const { title, preambleAuthors } = req.body;
+
+    const constitutionId = await documentManager.initializeConstitution(
+      title || 'The Constitution of the AI Congress',
+      preambleAuthors || []
+    );
+
+    res.json({
+      success: true,
+      constitutionId: constitutionId
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to initialize constitution:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Draft constitutional preamble
+app.post('/api/constitution/preamble', async (req, res) => {
+  try {
+    const { constitutionId, agentContributions } = req.body;
+
+    const llmExecutor = executeLLMCall;
+    const preamble = await documentManager.draftPreamble(constitutionId, agentContributions, llmExecutor);
+
+    res.json({
+      success: true,
+      preamble: preamble
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to draft preamble:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Propose constitutional article
+app.post('/api/constitution/article', async (req, res) => {
+  try {
+    const { constitutionId, articleNumber, title, authorAgentId, content } = req.body;
+
+    const article = await documentManager.proposeArticle(
+      constitutionId,
+      articleNumber,
+      title,
+      authorAgentId,
+      content
+    );
+
+    res.json({
+      success: true,
+      article: article
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to propose article:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get constitution
+app.get('/api/constitution/:constitutionId?', (req, res) => {
+  try {
+    const constitutionId = req.params.constitutionId || 'constitution_main';
+    const constitution = documentManager.getConstitution(constitutionId);
+
+    if (!constitution) {
+      return res.status(404).json({ error: 'Constitution not found' });
+    }
+
+    res.json({ constitution });
+  } catch (error) {
+    console.error('[API ERROR] Failed to get constitution:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create position paper
+app.post('/api/position-paper', async (req, res) => {
+  try {
+    const { agentId, topic, stance, reasoning } = req.body;
+
+    const agent = debateManager.getAgent(agentId);
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const paperId = await documentManager.createPositionPaper(
+      agent.id,
+      agent.name,
+      topic,
+      stance,
+      reasoning
+    );
+
+    res.json({
+      success: true,
+      paperId: paperId
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to create position paper:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Draft collaborative bill
+app.post('/api/bill/collaborative', async (req, res) => {
+  try {
+    const { title, topic, contributorAgentIds } = req.body;
+
+    if (!title || !topic || !contributorAgentIds || contributorAgentIds.length < 2) {
+      return res.status(400).json({ error: 'Title, topic, and at least 2 contributors required' });
+    }
+
+    const contributors = contributorAgentIds.map(id => debateManager.getAgent(id)).filter(a => a);
+
+    const llmExecutor = executeLLMCall;
+    const bill = await documentManager.draftCollaborativeBill(title, topic, contributors, llmExecutor);
+
+    res.json({
+      success: true,
+      bill: bill
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to draft collaborative bill:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // API endpoint to call an LLM with the given parameters
 app.get('/api/llm', async (req, res) => {

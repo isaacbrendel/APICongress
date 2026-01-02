@@ -22,17 +22,12 @@ This guide covers the responsive background GIF component that automatically swi
    - Returns `isPortrait` boolean and `aspectRatio` number
    - Can be used in any component
 
-### Documentation & Examples
+### Documentation
 
 4. **`frontend/src/components/BackgroundVideo.README.md`**
    - Comprehensive documentation
    - API reference and configuration options
    - Troubleshooting guide
-
-5. **`frontend/src/components/BackgroundVideo.example.js`**
-   - 7 complete working examples
-   - Copy-paste ready code snippets
-   - Covers common use cases
 
 ## Already Integrated
 
@@ -57,16 +52,19 @@ function App() {
 
 ### Automatic Background Switching
 
-- **Landscape viewports** (width > height): Shows `APICONGRESS1.gif`
-- **Portrait viewports** (height > width): Shows `APICONGRESS5PORTRAIT.gif`
+- **Home Screen Landscape**: Shows `APICONGRESS0.gif`
+- **Home Screen Portrait**: Shows `APICONGRESS3PORTRAITgif.gif`
+- **Debate Screen Landscape**: Shows `APICONGRESS1.gif`
+- **Debate Screen Portrait**: Shows `APICONGRESS3PORTRAITgif.gif`
 - Switches automatically when you resize the browser or rotate your device
 
 ### Asset Locations
 
 ```
 frontend/public/images/
-├── APICONGRESS1.gif           ← Landscape/Desktop (8.4 MB)
-└── APICONGRESS5PORTRAIT.gif   ← Portrait/Mobile (7.8 MB)
+├── APICONGRESS0.gif           ← Home Screen Landscape
+├── APICONGRESS1.gif           ← Debate Screen Landscape
+└── APICONGRESS3PORTRAITgif.gif ← Portrait (Both Screens)
 ```
 
 ## Quick Usage Guide
@@ -149,10 +147,11 @@ isPortrait: aspectRatio < 1,  // Change threshold here
 
 ## Testing Checklist
 
-- [ ] Desktop: Background shows `APICONGRESS1.gif` in wide window
+- [ ] Desktop Home: Background shows `APICONGRESS0.gif` in wide window
+- [ ] Desktop Debate: Background shows `APICONGRESS1.gif` in wide window
 - [ ] Desktop: Background switches when window becomes narrow
-- [ ] Mobile: Portrait shows `APICONGRESS5PORTRAIT.gif`
-- [ ] Mobile: Landscape shows `APICONGRESS1.gif`
+- [ ] Mobile: Portrait shows `APICONGRESS3PORTRAITgif.gif`
+- [ ] Mobile: Landscape shows appropriate GIF based on screen
 - [ ] Smooth transition between orientations
 - [ ] Content overlays properly
 - [ ] No layout shifts or flashing during orientation change
@@ -165,8 +164,9 @@ isPortrait: aspectRatio < 1,  // Change threshold here
 ls -la frontend/public/images/APICONGRESS*.gif
 
 # Should show:
+# APICONGRESS0.gif
 # APICONGRESS1.gif
-# APICONGRESS5PORTRAIT.gif
+# APICONGRESS3PORTRAITgif.gif
 ```
 
 ### Background Not Switching
@@ -203,14 +203,14 @@ APICongress/
 └── frontend/
     ├── public/
     │   └── images/
-    │       ├── APICONGRESS1.gif          ← Landscape
-    │       └── APICONGRESS5PORTRAIT.gif  ← Portrait
+    │       ├── APICONGRESS0.gif          ← Home Landscape
+    │       ├── APICONGRESS1.gif          ← Debate Landscape
+    │       └── APICONGRESS3PORTRAITgif.gif ← Portrait
     └── src/
         ├── components/
         │   ├── BackgroundVideo.js        ← Main component
         │   ├── BackgroundVideo.css       ← Styles
-        │   ├── BackgroundVideo.README.md ← Docs
-        │   └── BackgroundVideo.example.js ← Examples
+        │   └── BackgroundVideo.README.md ← Docs
         ├── hooks/
         │   └── useOrientation.js         ← Orientation hook
         └── App.js                        ← Already integrated
@@ -219,7 +219,7 @@ APICongress/
 ## Next Steps
 
 1. **Test the implementation**: Run `npm start` and test orientation switching
-2. **Review examples**: Check `BackgroundVideo.example.js` for advanced usage patterns
+2. **Review documentation**: Check `BackgroundVideo.README.md` for advanced configuration
 3. **Customize as needed**: Adjust transitions, thresholds, or assets
 4. **Mobile testing**: Test on actual devices for real-world performance
 
@@ -232,14 +232,12 @@ APICongress/
 | Performance | ✅ | GPU-accelerated, fixed positioning, optimized CSS |
 | Mobile support | ✅ | Works on iOS and Android with proper viewport handling |
 | Reusable hook | ✅ | `useOrientation()` can be used anywhere |
-| Examples | ✅ | 7 complete working examples provided |
 | Documentation | ✅ | Comprehensive README with troubleshooting |
 
 ## Support
 
 For issues or questions:
 - Review `BackgroundVideo.README.md` for detailed documentation
-- Check `BackgroundVideo.example.js` for usage patterns
 - Inspect browser console for errors
 - Verify GIF files are in correct location
 

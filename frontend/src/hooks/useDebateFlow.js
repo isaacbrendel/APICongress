@@ -218,7 +218,7 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
         setDebateState(DEBATE_STATES.FINAL_PAUSE);
       }
     }
-  }, [currentSpeakerIndex, debateMessages, positions, speakingOrder, topic]);
+  }, [currentSpeakerIndex, debateMessages, positions, speakingOrder, topic, controversyLevel, messageVotes]);
 
   /**
    * Move to the next speaker

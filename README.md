@@ -16,11 +16,13 @@ APICongress is a demo application that simulates a political debate by calling o
 
 ## Features
 
-- **Multi-AI Debate:** Integrates up to seven AI models (ChatGPT, Claude, Gemini, Grok, Cohere, LLaMA 2, Mistral) to provide diverse perspectives.
-- **Custom Prompts:** Tailor-made instructions help each AI stay in character and deliver robust debate responses.
-- **Real-Time Display:** See the debate happen live on a user-friendly React interface.
-- **Voting System:** Decide which argument wins the debate.
-- **Dockerized Deployment:** Easily deploy the app on your home server or elsewhere.
+- **Multi-AI Debate:** Integrates five AI models (ChatGPT, Claude, Gemini, Grok, Cohere) to provide diverse perspectives.
+- **Political Personas:** Each AI is assigned a political party (Republican, Democrat, Independent) for partisan debate.
+- **Advanced Prompting:** Multiple prompt strategies with controversy scaling to generate engaging responses.
+- **Bill Generation:** AI-powered competitive bill drafting with multi-stage chaining.
+- **Real-Time Display:** See the debate happen live on a user-friendly React interface with animated backgrounds.
+- **Voting System:** Vote for the best arguments and see winners displayed with animations.
+- **Fallback Responses:** Mock responses ensure the debate continues even without API keys.
 
 ---
 

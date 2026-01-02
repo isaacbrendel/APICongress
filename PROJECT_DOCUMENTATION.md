@@ -14,16 +14,18 @@ A debate platform where AI agents argue topics and users vote on winners. Built 
 - `useDebateFlow.js` - State management for debate phases
 
 **Backend** (`/backend/server.js`):
-- Express server with WebSocket support
-- OpenAI API integration for AI debaters
-- Debate orchestration with 10-second pause before final speaker
-- Turn-based argument generation
+- Express REST API server
+- Multiple LLM API integrations (OpenAI, Claude, Gemini, Grok, Cohere)
+- Advanced prompt engineering with controversy scaling
+- Retry logic and fallback responses
+- Multi-stage AI chaining for bill generation
 
 ## Design Choices
-- **GIF backgrounds** over video for simpler implementation (5 portrait + 3 landscape variants)
-- **WebSocket** for real-time debate streaming
+- **GIF backgrounds** over video for simpler implementation (3 GIF variants)
+- **REST API** polling for debate responses
 - **Sequential arguments** rather than concurrent for clarity
 - **Fixed voting timer** to maintain engagement
+- **Mock responses** as fallback when API keys are missing
 
 ## Current State
 - Modified files show active styling and flow refinements

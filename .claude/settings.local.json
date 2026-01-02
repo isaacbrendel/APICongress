@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm start)",
       "Bash(npm run build:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(CI=true npm test)"
     ]
   },
   "enableAllProjectMcpServers": false

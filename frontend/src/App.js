@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import HomeScreen from './components/HomeScreen';
 import DebateScreen from './components/DebateScreen';
+import IntelligentDebateScreen from './components/IntelligentDebateScreen';
 import BackgroundVideo from './components/BackgroundVideo';
 import './App.css';
 
@@ -10,6 +11,7 @@ function App() {
   const [topic, setTopic] = useState('');
   const [models, setModels] = useState([]);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [useIntelligentMode, setUseIntelligentMode] = useState(true); // Default to intelligent mode
 
   // Initialize models with proper defaults - protection against uninitialized variable
   useEffect(() => {
@@ -135,6 +137,11 @@ function App() {
       <div className={`App ${isTransitioning ? 'transitioning' : ''}`}>
         {!debateStarted ? (
           <HomeScreen onBeginDebate={startDebate} />
+        ) : useIntelligentMode ? (
+          <IntelligentDebateScreen
+            topic={topic}
+            onReturnHome={handleReturnHome}
+          />
         ) : (
           <DebateScreen
             topic={topic}
@@ -142,6 +149,17 @@ function App() {
             setModels={setModels}
             onReturnHome={handleReturnHome}
           />
+        )}
+
+        {/* Mode Toggle - Top Right Corner */}
+        {debateStarted && (
+          <button
+            className="mode-toggle"
+            onClick={() => setUseIntelligentMode(!useIntelligentMode)}
+            title={useIntelligentMode ? "Switch to Classic Mode" : "Switch to Intelligent Mode"}
+          >
+            {useIntelligentMode ? "🧠 AI" : "📜 Classic"}
+          </button>
         )}
       </div>
     </BackgroundVideo>

@@ -2,72 +2,51 @@ import React, { useState } from 'react';
 import './ArgumentVoting.css';
 
 /**
- * ARGUMENT VOTING - REINFORCEMENT LEARNING INTERFACE
- *
- * Every vote IMMEDIATELY affects AI behavior:
- * - Upvotes reinforce successful argument patterns
- * - Downvotes discourage ineffective approaches
- * - Real-time feedback loop shapes agent evolution
+ * SIMPLE VOTING - Thumbs up or down
  */
-const ArgumentVoting = ({ argumentId, agentId, agentName, onVote, currentVote }) => {
-  const [voted, setVoted] = useState(currentVote || null);
-  const [showFeedback, setShowFeedback] = useState(false);
+const ArgumentVoting = ({ argumentId, agentId, agentName, onVote }) => {
+  const [voted, setVoted] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   const handleVote = async (voteType) => {
-    // Toggle vote if clicking same button
-    const newVote = voted === voteType ? null : voteType;
+    if (processing) return;
 
-    setVoted(newVote);
-    setShowFeedback(true);
+    setProcessing(true);
+    setVoted(voteType);
 
-    // Call parent handler to process vote
-    await onVote(argumentId, agentId, newVote);
+    // Call backend
+    try {
+      await onVote(argumentId, agentId, voteType);
+      console.log(`✓ Voted ${voteType} on argument by ${agentName}`);
+    } catch (error) {
+      console.error('Vote failed:', error);
+    }
 
-    // Hide feedback after animation
-    setTimeout(() => {
-      setShowFeedback(false);
-    }, 2000);
+    setProcessing(false);
   };
 
   return (
     <div className="argument-voting">
       <button
-        className={`vote-button upvote ${voted === 'up' ? 'active' : ''}`}
+        className={`vote-btn ${voted === 'up' ? 'voted' : ''}`}
         onClick={() => handleVote('up')}
-        title="This argument is compelling - reinforce this style"
+        disabled={processing}
       >
-        <span className="vote-icon">👍</span>
-        <span className="vote-label">Reinforce</span>
+        👍 Good
       </button>
 
       <button
-        className={`vote-button downvote ${voted === 'down' ? 'active' : ''}`}
+        className={`vote-btn ${voted === 'down' ? 'voted' : ''}`}
         onClick={() => handleVote('down')}
-        title="This argument is weak - discourage this approach"
+        disabled={processing}
       >
-        <span className="vote-icon">👎</span>
-        <span className="vote-label">Discourage</span>
+        👎 Bad
       </button>
 
-      {/* Real-time Feedback */}
-      {showFeedback && voted && (
-        <div className={`vote-feedback ${voted}`}>
-          <div className="feedback-icon">
-            {voted === 'up' ? '✓' : '✗'}
-          </div>
-          <div className="feedback-text">
-            {voted === 'up'
-              ? `${agentName} will use more of this style!`
-              : `${agentName} will adapt their approach!`
-            }
-          </div>
-          <div className="feedback-subtext">
-            {voted === 'up'
-              ? 'Reinforcing successful patterns...'
-              : 'Learning from feedback...'
-            }
-          </div>
-        </div>
+      {voted && (
+        <span className="vote-status">
+          {voted === 'up' ? '✓ Reinforcing' : '✗ Adapting'}
+        </span>
       )}
     </div>
   );

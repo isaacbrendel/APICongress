@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CongressTable from './CongressTable';
 import TopicBanner from './TopicBanner';
+import ArgumentVoting from './ArgumentVoting';
 import useIntelligentAgents from '../hooks/useIntelligentAgents';
 import './IntelligentDebateScreen.css';
 
@@ -32,6 +33,7 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   const [currentArgument, setCurrentArgument] = useState(null);
   const [countdown, setCountdown] = useState(null);
   const [showResults, setShowResults] = useState(false);
+  const [argumentVotes, setArgumentVotes] = useState({}); // Track votes per argument
 
   // Initialize congress on mount
   useEffect(() => {
@@ -121,6 +123,45 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
     // Could show detailed agent modal here
   };
 
+  // Handle vote on argument - REINFORCEMENT LEARNING
+  const handleArgumentVote = async (argumentId, agentId, voteType) => {
+    console.log(`[REINFORCEMENT LEARNING] Vote ${voteType} for agent ${agentId}`);
+
+    try {
+      const response = await fetch('http://localhost:5001/api/vote/argument', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          argumentId,
+          agentId,
+          voteType
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process vote');
+      }
+
+      const data = await response.json();
+
+      console.log('[RL SUCCESS]', data.message, `Influence: ${data.influenceChange >= 0 ? '+' : ''}${data.influenceChange}`);
+
+      // Update local vote tracking
+      setArgumentVotes(prev => ({
+        ...prev,
+        [argumentId]: voteType
+      }));
+
+      // Optionally refresh agents to show updated stats
+      // This would show the real-time learning effect
+      // await fetchAgents(); // Uncomment to see immediate updates
+
+      return data;
+    } catch (error) {
+      console.error('[RL ERROR]', error);
+    }
+  };
+
   // Handle vote and process outcome
   const handleVote = async (winnerId) => {
     console.log('[VOTE] Winner:', winnerId);
@@ -208,6 +249,15 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
             <span>Phase: {currentArgument.phase}</span>
             <span>Strategy: {currentArgument.strategy}</span>
           </div>
+
+          {/* REINFORCEMENT LEARNING - Vote on this argument! */}
+          <ArgumentVoting
+            argumentId={`arg_${currentArgument.agentId}_${currentSpeakerIndex}`}
+            agentId={currentArgument.agentId}
+            agentName={currentArgument.agentName}
+            onVote={handleArgumentVote}
+            currentVote={argumentVotes[`arg_${currentArgument.agentId}_${currentSpeakerIndex}`]}
+          />
         </div>
       )}
 
@@ -219,11 +269,20 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
             <p>All {agents.length} AI representatives have presented their arguments.</p>
 
             <div className="results-summary">
-              <h3>Arguments Made:</h3>
+              <h3>Arguments Made - Vote on Each!</h3>
               <div className="argument-list">
                 {debateTurns.map((turn, idx) => (
                   <div key={idx} className="argument-summary">
-                    <strong>{turn.agentName}</strong> ({turn.party}): {turn.argument}
+                    <div className="argument-content">
+                      <strong>{turn.agentName}</strong> ({turn.party}): {turn.argument}
+                    </div>
+                    <ArgumentVoting
+                      argumentId={`arg_${turn.agentId}_${idx}`}
+                      agentId={turn.agentId}
+                      agentName={turn.agentName}
+                      onVote={handleArgumentVote}
+                      currentVote={argumentVotes[`arg_${turn.agentId}_${idx}`]}
+                    />
                   </div>
                 ))}
               </div>

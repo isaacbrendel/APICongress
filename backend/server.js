@@ -1239,6 +1239,149 @@ app.post('/api/bill/collaborative', async (req, res) => {
   }
 });
 
+/**
+ * REINFORCEMENT LEARNING - VOTING SYSTEM
+ * Every vote immediately affects agent behavior
+ */
+
+// Process individual argument vote
+app.post('/api/vote/argument', async (req, res) => {
+  try {
+    const { argumentId, agentId, voteType } = req.body;
+
+    if (!argumentId || !agentId) {
+      return res.status(400).json({ error: 'Argument ID and Agent ID required' });
+    }
+
+    const agent = debateManager.getAgent(agentId);
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    console.log(`[REINFORCEMENT LEARNING] Vote ${voteType} for ${agent.name}'s argument`);
+
+    // Immediate reinforcement learning
+    if (voteType === 'up') {
+      // Reinforce successful patterns
+      agent.performance.argumentsUpvoted++;
+      agent.performance.influenceScore += 5;
+
+      // Amplify personality traits that worked
+      const lastDebate = agent.memory.debateHistory[agent.memory.debateHistory.length - 1];
+      if (lastDebate && lastDebate.strategyUsed) {
+        agent.learnFromDebate(lastDebate.strategyUsed, true);
+
+        // Boost the dominant personality trait by small amount
+        const profile = agent.getPersonalityProfile();
+        if (profile.traits.length > 0) {
+          const dominantTrait = profile.traits[0];
+
+          // Map traits to personality dimensions and boost them
+          if (dominantTrait.includes('aggressive')) {
+            agent.adaptPersonality('aggression', 2, 'Upvoted argument - reinforcing aggression');
+          } else if (dominantTrait.includes('analytical') || dominantTrait.includes('data-driven')) {
+            agent.adaptPersonality('analytical', 2, 'Upvoted argument - reinforcing analytical approach');
+          } else if (dominantTrait.includes('emotional') || dominantTrait.includes('passionate')) {
+            agent.adaptPersonality('emotional', 2, 'Upvoted argument - reinforcing emotional appeal');
+          } else if (dominantTrait.includes('cooperative') || dominantTrait.includes('collaborative')) {
+            agent.adaptPersonality('cooperation', 2, 'Upvoted argument - reinforcing cooperation');
+          }
+        }
+      }
+
+      console.log(`[RL] ${agent.name} reinforced: +5 influence, strategy marked successful`);
+
+    } else if (voteType === 'down') {
+      // Discourage failed patterns
+      agent.performance.argumentsDownvoted++;
+      agent.performance.influenceScore = Math.max(0, agent.performance.influenceScore - 3);
+
+      // Mark strategy as less effective
+      const lastDebate = agent.memory.debateHistory[agent.memory.debateHistory.length - 1];
+      if (lastDebate && lastDebate.strategyUsed) {
+        agent.learnFromDebate(lastDebate.strategyUsed, false);
+
+        // Reduce the dominant trait and try to balance
+        const profile = agent.getPersonalityProfile();
+        if (profile.traits.length > 0) {
+          const dominantTrait = profile.traits[0];
+
+          if (dominantTrait.includes('aggressive')) {
+            agent.adaptPersonality('aggression', -3, 'Downvoted argument - reducing aggression');
+            agent.adaptPersonality('pragmatism', 3, 'Downvoted argument - becoming more pragmatic');
+          } else if (dominantTrait.includes('analytical')) {
+            agent.adaptPersonality('analytical', -3, 'Downvoted argument - reducing pure analysis');
+            agent.adaptPersonality('emotional', 3, 'Downvoted argument - adding emotional appeal');
+          } else if (dominantTrait.includes('emotional')) {
+            agent.adaptPersonality('emotional', -3, 'Downvoted argument - reducing emotionality');
+            agent.adaptPersonality('analytical', 3, 'Downvoted argument - adding logic');
+          }
+        }
+      }
+
+      console.log(`[RL] ${agent.name} discouraged: -3 influence, strategy marked failed`);
+    }
+
+    // Save agent's updated state immediately
+    await agent.save();
+
+    // Return updated agent summary
+    res.json({
+      success: true,
+      message: voteType === 'up' ? 'Argument reinforced!' : 'Feedback recorded - agent adapting!',
+      agent: agent.getSummary(),
+      influenceChange: voteType === 'up' ? +5 : -3,
+      personalityAdjusted: true
+    });
+
+  } catch (error) {
+    console.error('[API ERROR] Failed to process vote:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get agent's voting feedback summary
+app.get('/api/agents/:agentId/feedback', (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const agent = debateManager.getAgent(agentId);
+
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    // Calculate feedback metrics
+    const totalVotes = agent.performance.argumentsUpvoted + agent.performance.argumentsDownvoted;
+    const approvalRate = totalVotes > 0
+      ? ((agent.performance.argumentsUpvoted / totalVotes) * 100).toFixed(1)
+      : 0;
+
+    // Get strategy effectiveness
+    const strategies = Object.entries(agent.memory.strategies)
+      .map(([strategy, data]) => ({
+        strategy,
+        effectiveness: (data.effectiveness * 100).toFixed(1) + '%',
+        timesUsed: data.timesUsed
+      }))
+      .sort((a, b) => parseFloat(b.effectiveness) - parseFloat(a.effectiveness));
+
+    res.json({
+      agentName: agent.name,
+      totalUpvotes: agent.performance.argumentsUpvoted,
+      totalDownvotes: agent.performance.argumentsDownvoted,
+      approvalRate: approvalRate + '%',
+      influenceScore: agent.performance.influenceScore,
+      generation: agent.generation,
+      strategies: strategies,
+      personality: agent.getPersonalityProfile()
+    });
+
+  } catch (error) {
+    console.error('[API ERROR] Failed to get feedback:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // API endpoint to call an LLM with the given parameters
 app.get('/api/llm', async (req, res) => {
   const startTime = Date.now();

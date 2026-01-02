@@ -33,7 +33,7 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   const [currentArgument, setCurrentArgument] = useState(null);
   const [countdown, setCountdown] = useState(null);
   const [showResults, setShowResults] = useState(false);
-  const [argumentVotes, setArgumentVotes] = useState({}); // Track votes per argument
+  const [allArguments, setAllArguments] = useState([]); // Store ALL arguments with unique IDs
 
   // Initialize congress on mount
   useEffect(() => {
@@ -97,7 +97,20 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
       const turn = await generateArgument(currentDebateId, agent.id);
 
       if (turn) {
-        setCurrentArgument(turn);
+        // Create UNIQUE ID for this specific argument
+        const uniqueArgumentId = `arg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        const argumentData = {
+          ...turn,
+          uniqueId: uniqueArgumentId,
+          timestamp: Date.now(),
+          turnIndex: speakerIndex
+        };
+
+        setCurrentArgument(argumentData);
+
+        // Store this argument for later voting
+        setAllArguments(prev => [...prev, argumentData]);
 
         // Move to next speaker after displaying argument
         setTimeout(() => {
@@ -124,8 +137,9 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   };
 
   // Handle vote on argument - REINFORCEMENT LEARNING
+  // Each vote is independent and sent to backend for aggregation
   const handleArgumentVote = async (argumentId, agentId, voteType) => {
-    console.log(`[REINFORCEMENT LEARNING] Vote ${voteType} for agent ${agentId}`);
+    console.log(`[REINFORCEMENT LEARNING] Vote ${voteType} for agent ${agentId}, argument ${argumentId}`);
 
     try {
       const response = await fetch('http://localhost:5001/api/vote/argument', {
@@ -134,7 +148,8 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         body: JSON.stringify({
           argumentId,
           agentId,
-          voteType
+          voteType,
+          timestamp: Date.now()
         })
       });
 
@@ -144,17 +159,13 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
 
       const data = await response.json();
 
-      console.log('[RL SUCCESS]', data.message, `Influence: ${data.influenceChange >= 0 ? '+' : ''}${data.influenceChange}`);
+      console.log('[RL SUCCESS]', data.message);
+      console.log('[RL STATS]', `Total votes: ${data.totalVotes}, Approval: ${data.approvalRate}`);
 
-      // Update local vote tracking
-      setArgumentVotes(prev => ({
-        ...prev,
-        [argumentId]: voteType
-      }));
-
-      // Optionally refresh agents to show updated stats
-      // This would show the real-time learning effect
-      // await fetchAgents(); // Uncomment to see immediate updates
+      // Show immediate feedback in console
+      if (data.personalityShifts) {
+        console.log('[PERSONALITY EVOLUTION]', data.personalityShifts);
+      }
 
       return data;
     } catch (error) {
@@ -251,12 +262,12 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
           </div>
 
           {/* REINFORCEMENT LEARNING - Vote on this argument! */}
+          {/* Each argument gets FRESH voting - no pre-selected state */}
           <ArgumentVoting
-            argumentId={`arg_${currentArgument.agentId}_${currentSpeakerIndex}`}
+            argumentId={currentArgument.uniqueId}
             agentId={currentArgument.agentId}
             agentName={currentArgument.agentName}
             onVote={handleArgumentVote}
-            currentVote={argumentVotes[`arg_${currentArgument.agentId}_${currentSpeakerIndex}`]}
           />
         </div>
       )}
@@ -269,19 +280,26 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
             <p>All {agents.length} AI representatives have presented their arguments.</p>
 
             <div className="results-summary">
-              <h3>Arguments Made - Vote on Each!</h3>
+              <h3>🗳️ Vote on EVERY Argument - Shape the AI!</h3>
+              <p className="voting-instructions">
+                Every vote matters! Your feedback trains the AI to debate better.
+              </p>
               <div className="argument-list">
-                {debateTurns.map((turn, idx) => (
-                  <div key={idx} className="argument-summary">
+                {allArguments.map((arg) => (
+                  <div key={arg.uniqueId} className="argument-summary">
                     <div className="argument-content">
-                      <strong>{turn.agentName}</strong> ({turn.party}): {turn.argument}
+                      <strong>{arg.agentName}</strong> ({arg.party}) - {arg.model}:
+                      <div className="argument-quote">"{arg.argument}"</div>
+                      <div className="argument-metadata">
+                        Phase: {arg.phase} | Strategy: {arg.strategy}
+                      </div>
                     </div>
+                    {/* Each gets INDEPENDENT fresh voting */}
                     <ArgumentVoting
-                      argumentId={`arg_${turn.agentId}_${idx}`}
-                      agentId={turn.agentId}
-                      agentName={turn.agentName}
+                      argumentId={arg.uniqueId}
+                      agentId={arg.agentId}
+                      agentName={arg.agentName}
                       onVote={handleArgumentVote}
-                      currentVote={argumentVotes[`arg_${turn.agentId}_${idx}`]}
                     />
                   </div>
                 ))}

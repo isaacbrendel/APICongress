@@ -1244,10 +1244,10 @@ app.post('/api/bill/collaborative', async (req, res) => {
  * Every vote immediately affects agent behavior
  */
 
-// Process individual argument vote
+// Process individual argument vote - COMPREHENSIVE LEARNING SYSTEM
 app.post('/api/vote/argument', async (req, res) => {
   try {
-    const { argumentId, agentId, voteType } = req.body;
+    const { argumentId, agentId, voteType, timestamp } = req.body;
 
     if (!argumentId || !agentId) {
       return res.status(400).json({ error: 'Argument ID and Agent ID required' });
@@ -1258,7 +1258,30 @@ app.post('/api/vote/argument', async (req, res) => {
       return res.status(404).json({ error: 'Agent not found' });
     }
 
-    console.log(`[REINFORCEMENT LEARNING] Vote ${voteType} for ${agent.name}'s argument`);
+    console.log(`[REINFORCEMENT LEARNING] Vote ${voteType} for ${agent.name}'s argument ${argumentId}`);
+
+    // Initialize vote history if not exists
+    if (!agent.memory.voteHistory) {
+      agent.memory.voteHistory = [];
+    }
+
+    // Store EVERY vote with full context
+    const voteRecord = {
+      argumentId: argumentId,
+      voteType: voteType,
+      timestamp: timestamp || Date.now(),
+      personalitySnapshot: { ...agent.personality }, // Snapshot before changes
+      strategyUsed: agent.getBestStrategy()
+    };
+
+    agent.memory.voteHistory.push(voteRecord);
+
+    // Keep last 100 votes for analysis
+    if (agent.memory.voteHistory.length > 100) {
+      agent.memory.voteHistory = agent.memory.voteHistory.slice(-100);
+    }
+
+    const personalityShifts = [];
 
     // Immediate reinforcement learning
     if (voteType === 'up') {
@@ -1271,25 +1294,28 @@ app.post('/api/vote/argument', async (req, res) => {
       if (lastDebate && lastDebate.strategyUsed) {
         agent.learnFromDebate(lastDebate.strategyUsed, true);
 
-        // Boost the dominant personality trait by small amount
+        // Boost the dominant personality trait
         const profile = agent.getPersonalityProfile();
         if (profile.traits.length > 0) {
           const dominantTrait = profile.traits[0];
 
-          // Map traits to personality dimensions and boost them
           if (dominantTrait.includes('aggressive')) {
-            agent.adaptPersonality('aggression', 2, 'Upvoted argument - reinforcing aggression');
+            agent.adaptPersonality('aggression', 2, 'Upvoted - reinforcing aggression');
+            personalityShifts.push('aggression +2');
           } else if (dominantTrait.includes('analytical') || dominantTrait.includes('data-driven')) {
-            agent.adaptPersonality('analytical', 2, 'Upvoted argument - reinforcing analytical approach');
+            agent.adaptPersonality('analytical', 2, 'Upvoted - reinforcing analytical approach');
+            personalityShifts.push('analytical +2');
           } else if (dominantTrait.includes('emotional') || dominantTrait.includes('passionate')) {
-            agent.adaptPersonality('emotional', 2, 'Upvoted argument - reinforcing emotional appeal');
+            agent.adaptPersonality('emotional', 2, 'Upvoted - reinforcing emotional appeal');
+            personalityShifts.push('emotional +2');
           } else if (dominantTrait.includes('cooperative') || dominantTrait.includes('collaborative')) {
-            agent.adaptPersonality('cooperation', 2, 'Upvoted argument - reinforcing cooperation');
+            agent.adaptPersonality('cooperation', 2, 'Upvoted - reinforcing cooperation');
+            personalityShifts.push('cooperation +2');
           }
         }
       }
 
-      console.log(`[RL] ${agent.name} reinforced: +5 influence, strategy marked successful`);
+      console.log(`[RL] ${agent.name} REINFORCED: +5 influence, ${personalityShifts.join(', ')}`);
 
     } else if (voteType === 'down') {
       // Discourage failed patterns
@@ -1301,37 +1327,49 @@ app.post('/api/vote/argument', async (req, res) => {
       if (lastDebate && lastDebate.strategyUsed) {
         agent.learnFromDebate(lastDebate.strategyUsed, false);
 
-        // Reduce the dominant trait and try to balance
+        // Reduce the dominant trait and compensate
         const profile = agent.getPersonalityProfile();
         if (profile.traits.length > 0) {
           const dominantTrait = profile.traits[0];
 
           if (dominantTrait.includes('aggressive')) {
-            agent.adaptPersonality('aggression', -3, 'Downvoted argument - reducing aggression');
-            agent.adaptPersonality('pragmatism', 3, 'Downvoted argument - becoming more pragmatic');
+            agent.adaptPersonality('aggression', -3, 'Downvoted - reducing aggression');
+            agent.adaptPersonality('pragmatism', 3, 'Downvoted - becoming more pragmatic');
+            personalityShifts.push('aggression -3, pragmatism +3');
           } else if (dominantTrait.includes('analytical')) {
-            agent.adaptPersonality('analytical', -3, 'Downvoted argument - reducing pure analysis');
-            agent.adaptPersonality('emotional', 3, 'Downvoted argument - adding emotional appeal');
+            agent.adaptPersonality('analytical', -3, 'Downvoted - reducing pure analysis');
+            agent.adaptPersonality('emotional', 3, 'Downvoted - adding emotional appeal');
+            personalityShifts.push('analytical -3, emotional +3');
           } else if (dominantTrait.includes('emotional')) {
-            agent.adaptPersonality('emotional', -3, 'Downvoted argument - reducing emotionality');
-            agent.adaptPersonality('analytical', 3, 'Downvoted argument - adding logic');
+            agent.adaptPersonality('emotional', -3, 'Downvoted - reducing emotionality');
+            agent.adaptPersonality('analytical', 3, 'Downvoted - adding logic');
+            personalityShifts.push('emotional -3, analytical +3');
           }
         }
       }
 
-      console.log(`[RL] ${agent.name} discouraged: -3 influence, strategy marked failed`);
+      console.log(`[RL] ${agent.name} DISCOURAGED: -3 influence, ${personalityShifts.join(', ')}`);
     }
+
+    // Calculate aggregate stats
+    const totalVotes = agent.performance.argumentsUpvoted + agent.performance.argumentsDownvoted;
+    const approvalRate = totalVotes > 0
+      ? ((agent.performance.argumentsUpvoted / totalVotes) * 100).toFixed(1) + '%'
+      : '0%';
 
     // Save agent's updated state immediately
     await agent.save();
 
-    // Return updated agent summary
+    // Return comprehensive feedback
     res.json({
       success: true,
-      message: voteType === 'up' ? 'Argument reinforced!' : 'Feedback recorded - agent adapting!',
+      message: voteType === 'up' ? '✓ Argument reinforced!' : '✗ Feedback recorded - agent adapting!',
       agent: agent.getSummary(),
       influenceChange: voteType === 'up' ? +5 : -3,
-      personalityAdjusted: true
+      personalityShifts: personalityShifts,
+      totalVotes: totalVotes,
+      approvalRate: approvalRate,
+      currentInfluence: agent.performance.influenceScore
     });
 
   } catch (error) {

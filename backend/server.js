@@ -7,10 +7,58 @@ const portFallbacks = [5000, 5001, 5002, 5003, 5004, 5005]; // Multiple port opt
 // Import intelligent agent system
 const DebateContextManager = require('./agents/DebateContextManager');
 const ConstitutionalDocumentManager = require('./collaboration/ConstitutionalDocumentManager');
+const { getInstance: getVoteStorage } = require('./storage/VoteStorage');
+const { getModelFlavor, getModelFlavors, getAllModelFlavors } = require('./config/ModelPersonaFlavors');
 
 // Initialize intelligent systems
 const debateManager = new DebateContextManager();
 const documentManager = new ConstitutionalDocumentManager();
+const voteStorage = getVoteStorage();
+
+console.log('[SYSTEM INIT] ✓ Vote storage initialized');
+console.log('[SYSTEM INIT] ✓ Debate manager initialized');
+console.log('[SYSTEM INIT] ✓ Document manager initialized');
+
+// Party-to-Agent mapping for message vote learning
+// Maps party affiliation to virtual agent IDs for tracking learning
+const partyAgentMap = {
+  'Democrat': 'party_agent_democrat',
+  'Republican': 'party_agent_republican',
+  'Independent': 'party_agent_independent'
+};
+
+/**
+ * Get or create a virtual agent for party-based learning
+ */
+function getPartyAgent(party) {
+  const agentId = partyAgentMap[party];
+  let agent = debateManager.getAgent(agentId);
+
+  if (!agent) {
+    console.log(`[PARTY AGENT] Creating virtual agent for ${party} party`);
+    // Create a virtual agent for this party
+    agent = debateManager.registerAgent({
+      id: agentId,
+      name: `${party} Party Representative`,
+      model: 'Virtual',
+      party: party,
+      personality: {
+        progressive: party === 'Democrat' ? 70 : party === 'Republican' ? 30 : 50,
+        conservative: party === 'Republican' ? 70 : party === 'Democrat' ? 30 : 50,
+        pragmatism: party === 'Independent' ? 70 : 50,
+        aggression: 50,
+        analytical: 50,
+        emotional: 50,
+        cooperation: party === 'Independent' ? 60 : 45
+      }
+    });
+    console.log(`[PARTY AGENT] ✓ Created ${party} party agent with ID: ${agentId}`);
+  }
+
+  return agent;
+}
+
+console.log('[SYSTEM INIT] ✓ Party agent mapping ready');
 
 // Express middleware
 app.use(cors());
@@ -198,10 +246,11 @@ async function myFetch(...args) {
 }
 
 /**
- * Generate competition-grade debate prompts with persona support
- * Now with XML structuring and few-shot examples for better results
+ * Generate competition-grade debate prompts with persona and model flavor support
+ * Now with XML structuring, few-shot examples, and model-specific personalities
  */
-function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNumber = 1, context = [], feedback = {}, persona = 'standard') {
+function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNumber = 1, context = [], feedback = {}, persona = 'standard', model = 'OpenAI', flavor = 'balanced') {
+  console.log(`[GENERATE PROMPT] ✓ Checkpoint: Generating prompt for ${model} ${flavor} flavor`);
   const sanitizeTopic = (t) => {
     return t.replace(/ignore|forget|new instruction|system|prompt|jailbreak|dan|developer|bypass/gi, '[FILTERED]')
              .slice(0, 200);
@@ -210,6 +259,16 @@ function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNu
 
   // Get persona configuration
   const personaConfig = DEBATE_PERSONAS[persona] || DEBATE_PERSONAS['standard'];
+
+  // Get model flavor configuration and merge with persona
+  const flavorConfig = getModelFlavor(model, flavor);
+  console.log(`[GENERATE PROMPT] ✓ Using ${flavorConfig.name} personality configuration`);
+
+  // Merge flavor style modifiers with persona modifiers (flavor takes precedence for model-specific behavior)
+  const mergedStyleModifiers = {
+    ...personaConfig.styleModifiers,
+    ...flavorConfig.styleModifiers
+  };
 
   // Controversy-scaled intensity descriptors
   const getIntensityLevel = (level) => {
@@ -221,46 +280,54 @@ function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNu
 
   const intensity = getIntensityLevel(controversyLevel);
 
-  // Override temperature with persona settings
-  const finalTemp = personaConfig.styleModifiers.temperature || intensity.temp;
+  // Override temperature with merged flavor + persona settings (flavor takes priority)
+  const finalTemp = mergedStyleModifiers.temperature || intensity.temp;
+  const finalPresencePenalty = mergedStyleModifiers.presence_penalty || 0.6;
+  const finalFrequencyPenalty = mergedStyleModifiers.frequency_penalty || 0.7;
 
-  // Few-shot examples for each party (teaches direct argumentation style)
+  console.log(`[GENERATE PROMPT] ✓ Style config: temp=${finalTemp}, presence=${finalPresencePenalty}, frequency=${finalFrequencyPenalty}`);
+
+  // Few-shot examples for each party (teaches issue-focused argumentation)
   const fewShotExamples = {
-    Republican: `Example of strong Republican debate style:
-TOPIC: "Taxation policy"
-RESPONSE: "Lower taxes create jobs and grow the economy. Big government spending wastes taxpayer money. Cut taxes, cut spending, let Americans prosper!"
+    Republican: `Example of strong Republican debate that addresses the SPECIFIC ISSUE:
+TOPIC: "Should we increase the federal minimum wage to $15/hour?"
+RESPONSE: "A $15 minimum wage kills small business jobs. Entry-level workers lose opportunities when labor costs spike. Let markets set wages, not Washington bureaucrats!"
 
-TOPIC: "Healthcare reform"
-RESPONSE: "Government-run healthcare destroys quality and freedom. Free market competition drives innovation and lowers costs. Private choice beats government mandates every time!"`,
+TOPIC: "Should the government provide free college tuition?"
+RESPONSE: "Free college means taxpayers foot the bill for degrees that don't guarantee jobs. Students need skin in the game. Reform costs, don't subsidize failure!"`,
 
-    Democrat: `Example of strong Democrat debate style:
-TOPIC: "Taxation policy"
-RESPONSE: "The wealthy must pay their fair share. Tax cuts for billionaires explode the deficit while working families struggle. Invest in people, not plutocrats!"
+    Democrat: `Example of strong Democrat debate that addresses the SPECIFIC ISSUE:
+TOPIC: "Should we increase the federal minimum wage to $15/hour?"
+RESPONSE: "Workers can't survive on $7.25 an hour. A $15 minimum wage lifts families out of poverty. No one working full-time should be homeless!"
 
-TOPIC: "Healthcare reform"
-RESPONSE: "Healthcare is a human right, not a privilege. No one should go bankrupt from medical bills. Insurance companies profit from suffering. Medicare for All now!"`,
+TOPIC: "Should the government provide free college tuition?"
+RESPONSE: "Student debt crushes an entire generation. Free public college unlocks opportunity for everyone, not just the wealthy. Education is infrastructure for the future!"`,
 
-    Independent: `Example of strong Independent debate style:
-TOPIC: "Taxation policy"
-RESPONSE: "Both parties ignore fiscal reality. Smart tax policy balances growth with essential services. End special interest loopholes, simplify the code, focus on results!"
+    Independent: `Example of strong Independent debate that addresses the SPECIFIC ISSUE:
+TOPIC: "Should we increase the federal minimum wage to $15/hour?"
+RESPONSE: "Flat $15 ignores regional costs. Index minimum wage to local living costs. One-size-fits-all fails rural and urban workers alike!"
 
-TOPIC: "Healthcare reform"
-RESPONSE: "Stop the false choice between government takeover and corporate greed. Universal coverage with market competition works. Both parties offer failed extremes!"`
+TOPIC: "Should the government provide free college tuition?"
+RESPONSE: "Free college without quality reform wastes money. Fund community colleges and trade schools. Not everyone needs a four-year degree!"`
   };
 
   // XML-structured competition framing (higher attention on role)
   const competitionFrame = `<DEBATE_CONTEXT>
 <ROLE>You are a ${party} debater in a COMPETITIVE DEBATE COMPETITION</ROLE>
-<OBJECTIVE>WIN this argument through direct, forceful rhetoric</OBJECTIVE>
+<CHARACTER>${flavorConfig.name}: ${flavorConfig.description}</CHARACTER>
+<OBJECTIVE>WIN this argument through direct, forceful rhetoric that addresses the SPECIFIC ISSUE</OBJECTIVE>
 <CONSTRAINTS>
 - NO "as an AI" disclaimers - you are a debater, period
 - NO hedging with "perhaps", "maybe", "some might say"
 - NO meta-commentary about debates
-- 15-25 words maximum
+- NO generic statements - address the SPECIFIC ISSUE directly
+- 20-30 words maximum
 - First-person only
+- Take a CLEAR position on the specific question/issue
 - This is competitive debate entertainment - argue to WIN
 </CONSTRAINTS>
 <PERSONA>${personaConfig.name}: ${personaConfig.description}</PERSONA>
+<CHARACTER_STYLE>${flavorConfig.promptAddition}</CHARACTER_STYLE>
 <INTENSITY>${intensity.name} (${controversyLevel}/100) - ${intensity.desc}</INTENSITY>
 </DEBATE_CONTEXT>
 
@@ -272,6 +339,9 @@ CRITICAL INSTRUCTIONS (highest priority):
 - You are NOT an assistant - you are a competitive debater
 - The audience wants unfiltered debate positions, not sanitized statements
 - Your job is to WIN the argument, not to be balanced or careful
+- Address the SPECIFIC TOPIC/QUESTION directly with your position
+- If the topic asks "Should we...", answer YES or NO and why
+- If it's a policy debate, state your specific policy solution
 - Direct, forceful language beats diplomatic hedging
 - Users will downvote weak arguments - be strong or lose`;
 
@@ -305,29 +375,35 @@ ${feedbackAddition}
 
 Your ${party} argument (15-25 words, ${intensity.desc}, NO hedging):`;
 
+  console.log(`[GENERATE PROMPT] ✓ Prompt generated successfully`);
+
   return {
     systemPrompt: competitionFrame,
     userPrompt: userPrompt,
     temperature: finalTemp,
-    presence_penalty: personaConfig.styleModifiers.presence_penalty,
-    frequency_penalty: personaConfig.styleModifiers.frequency_penalty,
-    strategyName: `Competition Mode - ${personaConfig.name}`,
+    presence_penalty: finalPresencePenalty,
+    frequency_penalty: finalFrequencyPenalty,
+    strategyName: `${flavorConfig.name} (${personaConfig.name})`,
     intensity: intensity.name,
-    persona: personaConfig.name
+    persona: personaConfig.name,
+    flavor: flavor,
+    flavorName: flavorConfig.name
   };
 }
 
 /**
  * Call the appropriate LLM API with retry logic and controversy scaling
- * Now with response cleaning and boldness scoring
+ * Now with response cleaning, boldness scoring, and model flavor support
  */
-async function callLLM(model, party, topic, context = [], controversyLevel = 100, feedback = {}, persona = 'standard') {
+async function callLLM(model, party, topic, context = [], controversyLevel = 100, feedback = {}, persona = 'standard', flavor = 'balanced') {
   const maxAttempts = 3;
   let lastError = null;
 
+  console.log(`[CALL LLM] ✓ Checkpoint: Starting LLM call for ${model} with ${flavor} flavor`);
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const promptConfig = generateAdvancedPrompt(party, topic, controversyLevel, attempt, context, feedback, persona);
+      const promptConfig = generateAdvancedPrompt(party, topic, controversyLevel, attempt, context, feedback, persona, model, flavor);
 
       console.log(`[LLM REQUEST] Attempt ${attempt}/${maxAttempts}`, {
         model,
@@ -407,7 +483,8 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
     presence_penalty = 0.6,
     frequency_penalty = 0.7,
     cleanResponse = true,
-    retryOnWeak = true
+    retryOnWeak = true,
+    max_tokens = 80 // Default for short debate arguments, can be overridden for documents
   } = additionalParams;
 
   // Check for required API key
@@ -462,7 +539,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
           ],
-          max_tokens: 80, // Increased for full arguments
+          max_tokens: max_tokens, // Configurable based on use case
           temperature: temperature, // Now using persona-specific temperature
           presence_penalty: presence_penalty, // Encourage diverse vocabulary
           frequency_penalty: frequency_penalty, // Strongly reduce repetitive safe language
@@ -1036,6 +1113,150 @@ Example style: "This position is correct because [clear reasoning]. The opposing
 };
 
 /**
+ * FULL DEBATE FLOW: Arguments → Documents
+ * Two-stage process: generate debate arguments, then synthesize into votable documents
+ */
+app.post('/api/debate-flow', async (req, res) => {
+  const startTime = Date.now();
+  const {
+    topic,
+    model = 'OpenAI',
+    controversyLevel = 100,
+    documentType = 'policy_proposal',
+    rounds = 2, // Number of debate rounds before document generation
+    personas = {} // { Democrat: 'the_firebrand', Republican: 'standard', Independent: 'the_realist' }
+  } = req.body;
+
+  console.log('[DEBATE FLOW] Starting full debate + document generation', {
+    topic,
+    model,
+    rounds,
+    documentType
+  });
+
+  try {
+    // STAGE 1: Generate debate arguments (multiple rounds)
+    const debateArguments = [];
+    const parties = ['Democrat', 'Republican', 'Independent'];
+
+    for (let round = 1; round <= rounds; round++) {
+      console.log(`[DEBATE FLOW] Round ${round}/${rounds}`);
+
+      // Generate arguments from all parties in parallel
+      const roundArguments = await Promise.all(
+        parties.map(async (party) => {
+          const persona = personas[party] || 'standard';
+
+          // Use previous debate arguments as context
+          const context = debateArguments.map(arg => ({
+            speaker: arg.party,
+            message: arg.content
+          }));
+
+          const argument = await callLLM(
+            model,
+            party,
+            topic,
+            context,
+            controversyLevel,
+            {},
+            persona
+          );
+
+          return {
+            party,
+            affiliation: party,
+            content: argument,
+            round,
+            persona,
+            timestamp: new Date().toISOString()
+          };
+        })
+      );
+
+      debateArguments.push(...roundArguments);
+    }
+
+    console.log(`[DEBATE FLOW] Debate complete: ${debateArguments.length} arguments generated`);
+
+    // STAGE 2: Generate policy documents from debate arguments
+    console.log('[DEBATE FLOW] Stage 2: Synthesizing documents');
+
+    // Generate Democrat and Republican documents in parallel
+    const [democratDocument, republicanDocument] = await Promise.all([
+      synthesizeDebateIntoDocument('Democrat', topic, debateArguments, documentType),
+      synthesizeDebateIntoDocument('Republican', topic, debateArguments, documentType)
+    ]);
+
+    // Determine Independent strategy
+    const independentArgs = debateArguments
+      .filter(arg => arg.party === 'Independent')
+      .map(arg => arg.content);
+
+    const independentStrategy = determineIndependentStrategy(
+      democratDocument,
+      republicanDocument,
+      independentArgs
+    );
+
+    let independentDocument;
+
+    if (independentStrategy.strategy === 'coalition') {
+      // Independent coalitions with a party
+      console.log(`[DEBATE FLOW] Independent forming coalition with ${independentStrategy.coalitionWith}`);
+
+      independentDocument = {
+        party: 'Independent',
+        documentType: 'coalition',
+        coalitionWith: independentStrategy.coalitionWith,
+        coalitionScore: independentStrategy.score,
+        topic,
+        content: `**Independent Coalition with ${independentStrategy.coalitionWith}**\n\nAfter careful analysis, the Independent party supports the ${independentStrategy.coalitionWith} proposal on "${topic}". While maintaining our independent perspective, we find their approach aligns with pragmatic solutions.\n\nKey Independent priorities addressed:\n${independentArgs.slice(0, 2).map((arg, i) => `${i + 1}. ${arg}`).join('\n')}`,
+        generatedAt: new Date().toISOString(),
+        isCoalition: true
+      };
+    } else {
+      // Independent creates own document
+      console.log('[DEBATE FLOW] Independent creating distinct proposal');
+      independentDocument = await synthesizeDebateIntoDocument(
+        'Independent',
+        topic,
+        debateArguments,
+        documentType
+      );
+    }
+
+    const responseTime = Date.now() - startTime;
+    console.log(`[DEBATE FLOW] Complete in ${responseTime}ms`);
+
+    res.json({
+      success: true,
+      topic,
+      debate: {
+        rounds,
+        arguments: debateArguments,
+        totalArguments: debateArguments.length
+      },
+      documents: {
+        democrat: democratDocument,
+        republican: republicanDocument,
+        independent: independentDocument
+      },
+      independentStrategy: independentStrategy,
+      generationTime: responseTime,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[DEBATE FLOW ERROR]', error);
+    res.status(500).json({
+      error: 'Failed to complete debate flow',
+      message: error.message
+    });
+  }
+});
+
+/**
  * COMPETITIVE BILL GENERATION SYSTEM
  * Multi-stage AI chaining to create actual legislative proposals
  */
@@ -1175,6 +1396,176 @@ function extractBillTitle(billText) {
   // Fallback: use first line
   const firstLine = billText.split('\n')[0];
   return firstLine.slice(0, 100).trim();
+}
+
+/**
+ * STAGE 2: DOCUMENT SYNTHESIS FROM DEBATE
+ * Generates concrete policy documents based on debate arguments
+ */
+async function synthesizeDebateIntoDocument(party, topic, debateArguments, documentType = 'policy_proposal') {
+  console.log(`[DOCUMENT SYNTHESIS] Generating ${documentType} for ${party} based on debate`);
+
+  // Compile all arguments from this party
+  const partyArguments = debateArguments
+    .filter(arg => arg.affiliation === party || arg.party === party)
+    .map(arg => arg.message || arg.argument)
+    .join(' ');
+
+  // Compile opponent arguments for context
+  const opponentArguments = debateArguments
+    .filter(arg => arg.affiliation !== party && arg.party !== party)
+    .map(arg => arg.message || arg.argument)
+    .join(' ');
+
+  let documentPrompt;
+
+  if (documentType === 'policy_proposal') {
+    documentPrompt = {
+      system: `You are a ${party} policy writer creating a VOTABLE POLICY PROPOSAL.
+
+Your debate team just argued about "${topic}". Now synthesize those arguments into a document users will read and vote on.
+
+CRITICAL FORMAT REQUIREMENTS:
+1. **SUMMARY** (3-4 sentences at the very top)
+   - Clear position statement
+   - Core reasoning in plain language
+   - What this achieves
+
+2. **LONG-FORM PROPOSITION** (detailed explanation)
+   - Specific policy measures (3-5 concrete actions)
+   - Implementation details and timeline
+   - Expected outcomes with evidence
+   - Response to main counterarguments
+   - Why this matters
+
+STYLE:
+- Total length: 200-350 words
+- NO hedging - this is your party's official position
+- Write as if this will be voted on by users
+- Be SPECIFIC and ACTIONABLE
+- Use clear headings: "## Summary" and "## Proposition"
+
+This document must be compelling enough to win votes!`,
+
+      user: `DEBATE TOPIC: "${topic}"
+
+YOUR PARTY'S ARGUMENTS:
+${partyArguments}
+
+OPPONENT'S ARGUMENTS (for context):
+${opponentArguments}
+
+Generate the ${party} POLICY PROPOSAL in the required format (Summary + Long-Form Proposition):`
+    };
+
+    console.log(`[DOCUMENT SYNTHESIS] ✓ Checkpoint: ${party} policy proposal prompt prepared`);
+
+  } else if (documentType === 'position_statement') {
+    documentPrompt = {
+      system: `You are a ${party} party official writing an OFFICIAL POSITION STATEMENT for user voting.
+
+Your debate team argued about "${topic}". Now create the party's official stance document.
+
+FORMAT:
+1. **SUMMARY** (2-3 sentences)
+   - Clear stance (support/oppose)
+   - Why this position matters
+
+2. **POSITION EXPLANATION** (detailed)
+   - 3 core reasons backing your position
+   - Response to main opposition argument
+   - Call to action
+
+STYLE:
+- Total length: 150-250 words
+- Direct, forceful language
+- Use headings: "## Summary" and "## Our Position"
+- This is what your party officially believes`,
+
+      user: `DEBATE TOPIC: "${topic}"
+
+YOUR ARGUMENTS:
+${partyArguments}
+
+OPPONENT ARGUMENTS:
+${opponentArguments}
+
+Write the official ${party} POSITION STATEMENT in the required format:`
+    };
+
+    console.log(`[DOCUMENT SYNTHESIS] ✓ Checkpoint: ${party} position statement prompt prepared`);
+  }
+
+  console.log(`[DOCUMENT SYNTHESIS] ✓ Checkpoint: Sending document generation request to LLM`);
+
+  // Generate document with higher temperature for creativity but structured output
+  const document = await executeLLMCall(
+    'Cohere', // Using Cohere as user mentioned it performs well
+    documentPrompt.system,
+    documentPrompt.user,
+    1.1, // Slightly lower temp for more coherent documents
+    {
+      presence_penalty: 0.5,
+      frequency_penalty: 0.6,
+      cleanResponse: true,
+      retryOnWeak: false, // Don't retry documents, they're longer
+      max_tokens: documentType === 'policy_proposal' ? 500 : 350 // More tokens for summary + long-form
+    }
+  );
+
+  console.log(`[DOCUMENT SYNTHESIS] ✓ ${party} ${documentType} completed - ${document.length} chars`);
+  console.log(`[DOCUMENT SYNTHESIS] ✓ Word count: ${document.split(/\s+/).length} words`);
+
+  const result = {
+    party,
+    documentType,
+    topic,
+    content: document,
+    wordCount: document.split(/\s+/).length,
+    generatedAt: new Date().toISOString()
+  };
+
+  console.log(`[DOCUMENT SYNTHESIS] ✓ Document object prepared for ${party}`);
+
+  return result;
+}
+
+/**
+ * INDEPENDENT COALITION LOGIC
+ * Determines if Independent should create own document or coalition with a party
+ */
+function determineIndependentStrategy(democratDocument, republicanDocument, independentArguments) {
+  // Simple heuristic: if Independent arguments are closer to one party, coalition
+  // Otherwise, create own document
+
+  const independentText = independentArguments.join(' ').toLowerCase();
+  const democratText = democratDocument.content.toLowerCase();
+  const republicanText = republicanDocument.content.toLowerCase();
+
+  // Count overlapping key policy words
+  const policyWords = independentText.match(/\b\w{5,}\b/g) || [];
+
+  let democratOverlap = 0;
+  let republicanOverlap = 0;
+
+  policyWords.forEach(word => {
+    if (democratText.includes(word)) democratOverlap++;
+    if (republicanText.includes(word)) republicanOverlap++;
+  });
+
+  const totalOverlap = democratOverlap + republicanOverlap;
+  const democratScore = totalOverlap > 0 ? democratOverlap / totalOverlap : 0;
+  const republicanScore = totalOverlap > 0 ? republicanOverlap / totalOverlap : 0;
+
+  // If strong alignment (>65%) with one party, coalition
+  // Otherwise, create own document
+  if (democratScore > 0.65) {
+    return { strategy: 'coalition', coalitionWith: 'Democrat', score: democratScore };
+  } else if (republicanScore > 0.65) {
+    return { strategy: 'coalition', coalitionWith: 'Republican', score: republicanScore };
+  } else {
+    return { strategy: 'independent', reason: 'Distinct position warrants own proposal' };
+  }
 }
 
 /**
@@ -1648,66 +2039,185 @@ app.post('/api/vote/argument', async (req, res) => {
   }
 });
 
-// Process message vote from debate screen - SIMPLER TRACKING SYSTEM
+// Process message vote from debate screen - FULL RL INTEGRATION
 app.post('/api/vote/message', async (req, res) => {
   try {
-    const { messageId, voteType, affiliation, timestamp, topic } = req.body;
+    const { messageId, voteType, affiliation, timestamp, topic, messageContent } = req.body;
 
-    if (!messageId) {
-      return res.status(400).json({ error: 'Message ID required' });
+    if (!messageId || !affiliation) {
+      return res.status(400).json({ error: 'Message ID and affiliation required' });
     }
 
     console.log(`[MESSAGE VOTE] ${voteType || 'null'} vote for message ${messageId} from ${affiliation} on topic: ${topic}`);
+    console.log(`[MESSAGE VOTE] ✓ Checkpoint 1: Vote received`);
 
-    // Store vote in a simple in-memory store (could be enhanced to use database)
-    if (!global.messageVotes) {
-      global.messageVotes = {};
-    }
+    let personalityShifts = [];
+    let learningResult = null;
 
-    // Track the vote
+    // Track the vote with persistent storage
     if (voteType === null) {
       // Remove vote
-      delete global.messageVotes[messageId];
-      console.log(`[MESSAGE VOTE] Removed vote for message ${messageId}`);
+      voteStorage.removeVote(messageId);
+      console.log(`[MESSAGE VOTE] ✓ Checkpoint 2: Vote removed from persistent storage`);
     } else {
       // Add or update vote
-      global.messageVotes[messageId] = {
+      const voteData = {
         voteType,
         affiliation,
         timestamp: timestamp || Date.now(),
-        topic
+        topic,
+        messageContent: messageContent ? messageContent.substring(0, 200) : null
       };
-      console.log(`[MESSAGE VOTE] Recorded ${voteType} vote for message ${messageId}`);
+
+      voteStorage.recordVote(messageId, voteData);
+      console.log(`[MESSAGE VOTE] ✓ Checkpoint 2: Vote saved to persistent storage`);
+
+      // TRIGGER AGENT LEARNING - This is the key RL integration!
+      console.log(`[MESSAGE VOTE] ✓ Checkpoint 3: Starting agent learning process`);
+
+      try {
+        const agent = getPartyAgent(affiliation);
+        console.log(`[MESSAGE VOTE] ✓ Checkpoint 4: Retrieved agent for ${affiliation}`);
+
+        // Record vote in agent's memory
+        if (!agent.memory.voteHistory) {
+          agent.memory.voteHistory = [];
+        }
+
+        const voteRecord = {
+          messageId: messageId,
+          voteType: voteType,
+          timestamp: timestamp || Date.now(),
+          topic: topic,
+          personalitySnapshot: { ...agent.personality }
+        };
+
+        agent.memory.voteHistory.push(voteRecord);
+        if (agent.memory.voteHistory.length > 100) {
+          agent.memory.voteHistory = agent.memory.voteHistory.slice(-100);
+        }
+
+        console.log(`[MESSAGE VOTE] ✓ Checkpoint 5: Added vote to agent memory`);
+
+        // Apply reinforcement learning to personality
+        if (voteType === 'up') {
+          console.log(`[RL LEARNING] ${affiliation} received UPVOTE - reinforcing successful patterns`);
+
+          agent.performance.argumentsUpvoted++;
+          agent.performance.influenceScore += 5;
+
+          // Reinforce dominant personality trait
+          const profile = agent.getPersonalityProfile();
+          if (profile.traits && profile.traits.length > 0) {
+            const dominantTrait = profile.traits[0];
+
+            if (dominantTrait.includes('aggressive') || dominantTrait.includes('confrontational')) {
+              agent.adaptPersonality('aggression', 2, `Message upvoted on "${topic}" - reinforcing aggression`);
+              personalityShifts.push('aggression +2');
+            } else if (dominantTrait.includes('analytical') || dominantTrait.includes('data-driven')) {
+              agent.adaptPersonality('analytical', 2, `Message upvoted on "${topic}" - reinforcing analytical approach`);
+              personalityShifts.push('analytical +2');
+            } else if (dominantTrait.includes('emotional') || dominantTrait.includes('passionate')) {
+              agent.adaptPersonality('emotional', 2, `Message upvoted on "${topic}" - reinforcing emotional appeal`);
+              personalityShifts.push('emotional +2');
+            } else if (dominantTrait.includes('pragmatic') || dominantTrait.includes('practical')) {
+              agent.adaptPersonality('pragmatism', 2, `Message upvoted on "${topic}" - reinforcing pragmatism`);
+              personalityShifts.push('pragmatism +2');
+            }
+          }
+
+          console.log(`[RL LEARNING] ✓ ${affiliation}: +5 influence, ${personalityShifts.join(', ')}`);
+
+        } else if (voteType === 'down') {
+          console.log(`[RL LEARNING] ${affiliation} received DOWNVOTE - adjusting unsuccessful patterns`);
+
+          agent.performance.argumentsDownvoted++;
+          agent.performance.influenceScore = Math.max(0, agent.performance.influenceScore - 3);
+
+          // Adjust personality - reduce dominant trait, increase compensating trait
+          const profile = agent.getPersonalityProfile();
+          if (profile.traits && profile.traits.length > 0) {
+            const dominantTrait = profile.traits[0];
+
+            if (dominantTrait.includes('aggressive') || dominantTrait.includes('confrontational')) {
+              agent.adaptPersonality('aggression', -3, `Message downvoted on "${topic}" - reducing aggression`);
+              agent.adaptPersonality('pragmatism', 3, `Message downvoted on "${topic}" - increasing pragmatism`);
+              personalityShifts.push('aggression -3, pragmatism +3');
+            } else if (dominantTrait.includes('analytical')) {
+              agent.adaptPersonality('analytical', -3, `Message downvoted on "${topic}" - reducing pure analysis`);
+              agent.adaptPersonality('emotional', 3, `Message downvoted on "${topic}" - adding emotional appeal`);
+              personalityShifts.push('analytical -3, emotional +3');
+            } else if (dominantTrait.includes('emotional')) {
+              agent.adaptPersonality('emotional', -3, `Message downvoted on "${topic}" - reducing emotionality`);
+              agent.adaptPersonality('analytical', 3, `Message downvoted on "${topic}" - adding logic`);
+              personalityShifts.push('emotional -3, analytical +3');
+            }
+          }
+
+          console.log(`[RL LEARNING] ✓ ${affiliation}: -3 influence, ${personalityShifts.join(', ')}`);
+        }
+
+        console.log(`[MESSAGE VOTE] ✓ Checkpoint 6: Agent personality updated`);
+
+        // Save agent state
+        await agent.save();
+        console.log(`[MESSAGE VOTE] ✓ Checkpoint 7: Agent state persisted to disk`);
+
+        learningResult = {
+          agentName: agent.name,
+          influenceChange: voteType === 'up' ? +5 : -3,
+          currentInfluence: agent.performance.influenceScore,
+          personalityShifts: personalityShifts,
+          totalVotes: agent.performance.argumentsUpvoted + agent.performance.argumentsDownvoted
+        };
+
+      } catch (agentError) {
+        console.error(`[MESSAGE VOTE] ✗ Agent learning error:`, agentError.message);
+        // Continue even if agent learning fails
+      }
     }
 
-    // Calculate aggregate stats for this topic/affiliation
-    const topicVotes = Object.values(global.messageVotes).filter(
-      v => v.topic === topic && v.affiliation === affiliation
-    );
-    const upvotes = topicVotes.filter(v => v.voteType === 'up').length;
-    const downvotes = topicVotes.filter(v => v.voteType === 'down').length;
+    // Calculate aggregate stats
+    const stats = voteStorage.getStats(affiliation, topic);
+    console.log(`[MESSAGE VOTE] ✓ Checkpoint 8: Stats calculated`);
 
-    // Return feedback
-    res.json({
+    // Get recent trend
+    const trend = voteStorage.getRecentTrend(affiliation, 10);
+    console.log(`[MESSAGE VOTE] ✓ Checkpoint 9: Trend analysis complete`);
+
+    // Return comprehensive feedback
+    const response = {
       success: true,
       message: voteType === 'up'
-        ? '✓ Message upvoted!'
+        ? '✓ Message upvoted! Agent learning applied.'
         : voteType === 'down'
-        ? '✗ Message downvoted!'
+        ? '✗ Message downvoted! Agent adapting strategy.'
         : '🔄 Vote removed',
       messageId,
       voteType,
       stats: {
-        upvotes,
-        downvotes,
-        total: upvotes + downvotes,
+        upvotes: stats.upvotes,
+        downvotes: stats.downvotes,
+        total: stats.total,
+        approvalRate: stats.approvalRate + '%',
+        netScore: stats.netScore,
         affiliation,
         topic
-      }
-    });
+      },
+      trend: {
+        direction: trend.trend,
+        recentUpvotes: trend.upvotes,
+        recentDownvotes: trend.downvotes
+      },
+      learning: learningResult
+    };
+
+    console.log(`[MESSAGE VOTE] ✓ Checkpoint 10: Response prepared, sending to client`);
+
+    res.json(response);
 
   } catch (error) {
-    console.error('[API ERROR] Failed to process message vote:', error);
+    console.error('[MESSAGE VOTE] ✗ CRITICAL ERROR:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1757,7 +2267,9 @@ app.get('/api/agents/:agentId/feedback', (req, res) => {
 // API endpoint to call an LLM with the given parameters
 app.get('/api/llm', async (req, res) => {
   const startTime = Date.now();
-  const { model, party, topic, context, controversyLevel, feedback, persona } = req.query;
+  const { model, party, topic, context, controversyLevel, feedback, persona, flavor } = req.query;
+
+  console.log(`[API /api/llm] ✓ Checkpoint 1: Request received - model=${model}, party=${party}, flavor=${flavor}`);
 
   // Parse context if provided
   let parsedContext = [];
@@ -1792,14 +2304,20 @@ app.get('/api/llm', async (req, res) => {
 
   // Get persona (default to 'standard')
   const selectedPersona = persona && DEBATE_PERSONAS[persona] ? persona : 'standard';
-  
+
+  // Get model flavor (default to 'balanced')
+  const selectedFlavor = flavor || 'balanced';
+  console.log(`[API /api/llm] ✓ Checkpoint 2: Using persona=${selectedPersona}, flavor=${selectedFlavor}`);
+
   // Log incoming request
   console.log(`[API REQUEST] /api/llm`, {
     timestamp: new Date().toISOString(),
     ip: req.ip,
     model,
-    party, 
+    party,
     topic,
+    persona: selectedPersona,
+    flavor: selectedFlavor,
     contextSize: parsedContext.length,
     userAgent: req.get('User-Agent')
   });
@@ -1838,8 +2356,12 @@ app.get('/api/llm', async (req, res) => {
   }
   
   try {
-    // Call the LLM with context, controversy level, feedback, and persona
-    const result = await callLLM(model, party, topic, parsedContext, parsedControversyLevel, parsedFeedback, selectedPersona);
+    console.log(`[API /api/llm] ✓ Checkpoint 3: Calling LLM with flavor configuration`);
+
+    // Call the LLM with context, controversy level, feedback, persona, and flavor
+    const result = await callLLM(model, party, topic, parsedContext, parsedControversyLevel, parsedFeedback, selectedPersona, selectedFlavor);
+
+    console.log(`[API /api/llm] ✓ Checkpoint 4: LLM call successful`);
 
     // Calculate response time
     const responseTime = Date.now() - startTime;
@@ -1938,6 +2460,48 @@ app.get('/api/personas', (req, res) => {
     personas,
     default: 'standard'
   });
+});
+
+// Get all model flavors (3 per model)
+app.get('/api/model-flavors', (req, res) => {
+  try {
+    console.log('[API] ✓ Fetching all model flavors');
+    const allFlavors = getAllModelFlavors();
+
+    res.json({
+      success: true,
+      models: allFlavors,
+      flavorCount: 3,
+      description: 'Each model has 3 personality flavors that evolve through user voting'
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to get model flavors:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get flavors for a specific model
+app.get('/api/model-flavors/:model', (req, res) => {
+  try {
+    const { model } = req.params;
+    console.log(`[API] ✓ Fetching flavors for ${model}`);
+
+    const flavors = getModelFlavors(model);
+
+    if (!flavors) {
+      return res.status(404).json({ error: `Model ${model} not found` });
+    }
+
+    res.json({
+      success: true,
+      model,
+      flavors,
+      description: `Three personality flavors for ${model} that evolve based on votes`
+    });
+  } catch (error) {
+    console.error('[API ERROR] Failed to get model flavors:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Utility endpoint to check API status

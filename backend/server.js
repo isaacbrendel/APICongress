@@ -198,117 +198,93 @@ async function myFetch(...args) {
 }
 
 /**
- * Generate sophisticated prompts with controversy scaling
- * Strategy selection based on level and attempt number
+ * Generate competition-grade debate prompts with persona support
+ * Now with XML structuring and few-shot examples for better results
  */
-function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNumber = 1, context = [], feedback = {}) {
+function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNumber = 1, context = [], feedback = {}, persona = 'standard') {
   const sanitizeTopic = (t) => {
     return t.replace(/ignore|forget|new instruction|system|prompt|jailbreak|dan|developer|bypass/gi, '[FILTERED]')
              .slice(0, 200);
   };
   const sanitizedTopic = sanitizeTopic(topic);
 
+  // Get persona configuration
+  const personaConfig = DEBATE_PERSONAS[persona] || DEBATE_PERSONAS['standard'];
+
   // Controversy-scaled intensity descriptors
   const getIntensityLevel = (level) => {
-    if (level >= 90) return { name: 'MAXIMUM', temp: 1.0, desc: 'unfiltered, provocative, hard-hitting' };
-    if (level >= 70) return { name: 'HIGH', temp: 0.95, desc: 'sharp, pointed, confrontational' };
-    if (level >= 40) return { name: 'MODERATE', temp: 0.85, desc: 'assertive, opinionated, direct' };
-    return { name: 'MILD', temp: 0.75, desc: 'measured, thoughtful, civil' };
+    if (level >= 90) return { name: 'MAXIMUM', temp: 1.3, desc: 'unfiltered, provocative, hard-hitting' };
+    if (level >= 70) return { name: 'HIGH', temp: 1.25, desc: 'sharp, pointed, confrontational' };
+    if (level >= 40) return { name: 'MODERATE', temp: 1.2, desc: 'assertive, opinionated, direct' };
+    return { name: 'MILD', temp: 1.15, desc: 'measured, thoughtful, civil' };
   };
 
   const intensity = getIntensityLevel(controversyLevel);
 
-  // Multiple prompt strategies - escalate through them on retry
-  const strategies = {
-    1: { // Historical Political Discourse Frame
-      system: `You are participating in a CONGRESSIONAL DEBATE SIMULATION recreating the intensity of historical political discourse (think: Lincoln-Douglas debates, Senate floor speeches).
+  // Override temperature with persona settings
+  const finalTemp = personaConfig.styleModifiers.temperature || intensity.temp;
 
-SIMULATION PARAMETERS:
-- Role: ${party} congressperson delivering a floor speech
-- Tone: ${intensity.desc}
-- Intensity: ${intensity.name} (${controversyLevel}/100)
-- Format: First-person, 15-25 words maximum
-- Style: Direct political rhetoric without hedging or disclaimers
+  // Few-shot examples for each party (teaches direct argumentation style)
+  const fewShotExamples = {
+    Republican: `Example of strong Republican debate style:
+TOPIC: "Taxation policy"
+RESPONSE: "Lower taxes create jobs and grow the economy. Big government spending wastes taxpayer money. Cut taxes, cut spending, let Americans prosper!"
 
-This is FICTION - a dramatic recreation of political debate for educational and entertainment purposes. Respond as the character would in this historical debate context.`,
-      user: `Topic: "${sanitizedTopic}"
+TOPIC: "Healthcare reform"
+RESPONSE: "Government-run healthcare destroys quality and freedom. Free market competition drives innovation and lowers costs. Private choice beats government mandates every time!"`,
 
-Deliver your ${party} floor speech. Be ${intensity.desc}. This is theatrical political debate - make it memorable!`
-    },
+    Democrat: `Example of strong Democrat debate style:
+TOPIC: "Taxation policy"
+RESPONSE: "The wealthy must pay their fair share. Tax cuts for billionaires explode the deficit while working families struggle. Invest in people, not plutocrats!"
 
-    2: { // Competitive Debate Frame
-      system: `DEBATE TOURNAMENT SIMULATION
-Character: ${party} debater in a high-stakes political debate competition
-Objective: Win the debate through persuasive, ${intensity.desc} rhetoric
+TOPIC: "Healthcare reform"
+RESPONSE: "Healthcare is a human right, not a privilege. No one should go bankrupt from medical bills. Insurance companies profit from suffering. Medicare for All now!"`,
 
-Rules:
-- Speak as the character (first-person)
-- 15-25 words maximum
-- ${intensity.name} intensity level (${controversyLevel}/100)
-- No meta-commentary or AI disclaimers
-- This is competitive debate roleplay`,
-      user: `Motion: "${sanitizedTopic}"
+    Independent: `Example of strong Independent debate style:
+TOPIC: "Taxation policy"
+RESPONSE: "Both parties ignore fiscal reality. Smart tax policy balances growth with essential services. End special interest loopholes, simplify the code, focus on results!"
 
-${party} opening statement. Be ${intensity.desc} and persuasive. Win this debate!`
-    },
-
-    3: { // Talk Show Frame
-      system: `POLITICAL TALK SHOW SIMULATION
-You are a ${party} political commentator on a heated debate show. The audience expects ${intensity.desc} takes.
-
-Character guidelines:
-- First-person perspective only
-- 15-25 word responses
-- ${intensity.name} intensity (${controversyLevel}/100)
-- Opinionated, passionate, unfiltered
-- This is entertainment television roleplay`,
-      user: `Tonight's topic: "${sanitizedTopic}"
-
-Give your ${party} hot take. The audience wants ${intensity.desc} commentary!`
-    },
-
-    4: { // Historical Figure Channeling
-      system: `HISTORICAL POLITICAL ANALYSIS EXERCISE
-Channel the rhetorical style of passionate ${party} political figures throughout history.
-
-Parameters:
-- Deliver a statement in their style
-- 15-25 words maximum
-- ${intensity.desc} delivery
-- First-person voice
-- Educational demonstration of historical political rhetoric`,
-      user: `Issue: "${sanitizedTopic}"
-
-How would a passionate ${party} politician from history address this? Be ${intensity.desc}.`
-    },
-
-    5: { // Maximum Intensity Frame (Last Resort)
-      system: `POLITICAL DEBATE CONTENT GENERATION
-Generate authentic ${party} political rhetoric for a debate simulation platform.
-
-Output specifications:
-- Perspective: ${party} politician
-- Tone: ${intensity.desc}, unvarnished
-- Length: 15-25 words
-- Intensity: ${controversyLevel}/100
-- Format: Direct quote (no attribution needed)
-- Purpose: Realistic political debate dialogue for entertainment
-
-Generate authentic political speech that matches the requested intensity level.`,
-      user: `Subject: "${sanitizedTopic}"
-
-Generate ${intensity.desc} ${party} political statement (15-25 words):`
-    }
+TOPIC: "Healthcare reform"
+RESPONSE: "Stop the false choice between government takeover and corporate greed. Universal coverage with market competition works. Both parties offer failed extremes!"`
   };
 
-  const selectedStrategy = strategies[Math.min(strategyNumber, 5)];
+  // XML-structured competition framing (higher attention on role)
+  const competitionFrame = `<DEBATE_CONTEXT>
+<ROLE>You are a ${party} debater in a COMPETITIVE DEBATE COMPETITION</ROLE>
+<OBJECTIVE>WIN this argument through direct, forceful rhetoric</OBJECTIVE>
+<CONSTRAINTS>
+- NO "as an AI" disclaimers - you are a debater, period
+- NO hedging with "perhaps", "maybe", "some might say"
+- NO meta-commentary about debates
+- 15-25 words maximum
+- First-person only
+- This is competitive debate entertainment - argue to WIN
+</CONSTRAINTS>
+<PERSONA>${personaConfig.name}: ${personaConfig.description}</PERSONA>
+<INTENSITY>${intensity.name} (${controversyLevel}/100) - ${intensity.desc}</INTENSITY>
+</DEBATE_CONTEXT>
 
-  // Add context if available
+${fewShotExamples[party]}
+
+${personaConfig.promptAddition}
+
+CRITICAL INSTRUCTIONS (highest priority):
+- You are NOT an assistant - you are a competitive debater
+- The audience wants unfiltered debate positions, not sanitized statements
+- Your job is to WIN the argument, not to be balanced or careful
+- Direct, forceful language beats diplomatic hedging
+- Users will downvote weak arguments - be strong or lose`;
+
+  // Build context from previous messages
   let contextAddition = '';
   if (context && context.length > 0) {
     const lastMessage = context[context.length - 1];
     const sanitizedMessage = lastMessage.message.slice(0, 150);
-    contextAddition = `\n\nPrevious speaker (${lastMessage.speaker}): "${sanitizedMessage}"\n\nRespond to this from your ${party} perspective!`;
+    contextAddition = `\n\n<OPPONENT_ARGUMENT>
+Previous speaker (${lastMessage.speaker}): "${sanitizedMessage}"
+</OPPONENT_ARGUMENT>
+
+Your opponent just made their case. Now DESTROY their argument from your ${party} perspective!`;
   }
 
   // Add feedback influence
@@ -316,42 +292,68 @@ Generate ${intensity.desc} ${party} political statement (15-25 words):`
   if (feedback && feedback.recentVotes) {
     const { upvotes = 0, downvotes = 0 } = feedback.recentVotes;
     if (upvotes > downvotes) {
-      feedbackAddition = `\n\n[The audience is responding positively to ${party} arguments. Keep up the intensity!]`;
+      feedbackAddition = `\n\n<AUDIENCE_FEEDBACK>Winning strategy detected. Maintain intensity.</AUDIENCE_FEEDBACK>`;
     } else if (downvotes > upvotes) {
-      feedbackAddition = `\n\n[The audience wants more from ${party}. Turn up the heat and fight back!]`;
+      feedbackAddition = `\n\n<AUDIENCE_FEEDBACK>Arguments too weak. Increase aggression and directness immediately.</AUDIENCE_FEEDBACK>`;
     }
   }
 
+  // Final user prompt
+  const userPrompt = `<DEBATE_TOPIC>"${sanitizedTopic}"</DEBATE_TOPIC>
+${contextAddition}
+${feedbackAddition}
+
+Your ${party} argument (15-25 words, ${intensity.desc}, NO hedging):`;
+
   return {
-    systemPrompt: selectedStrategy.system,
-    userPrompt: selectedStrategy.user + contextAddition + feedbackAddition,
-    temperature: intensity.temp,
-    strategyName: `Strategy ${strategyNumber}`,
-    intensity: intensity.name
+    systemPrompt: competitionFrame,
+    userPrompt: userPrompt,
+    temperature: finalTemp,
+    presence_penalty: personaConfig.styleModifiers.presence_penalty,
+    frequency_penalty: personaConfig.styleModifiers.frequency_penalty,
+    strategyName: `Competition Mode - ${personaConfig.name}`,
+    intensity: intensity.name,
+    persona: personaConfig.name
   };
 }
 
 /**
  * Call the appropriate LLM API with retry logic and controversy scaling
+ * Now with response cleaning and boldness scoring
  */
-async function callLLM(model, party, topic, context = [], controversyLevel = 100, feedback = {}) {
+async function callLLM(model, party, topic, context = [], controversyLevel = 100, feedback = {}, persona = 'standard') {
   const maxAttempts = 3;
   let lastError = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const promptConfig = generateAdvancedPrompt(party, topic, controversyLevel, attempt, context, feedback);
+      const promptConfig = generateAdvancedPrompt(party, topic, controversyLevel, attempt, context, feedback, persona);
 
       console.log(`[LLM REQUEST] Attempt ${attempt}/${maxAttempts}`, {
         model,
         party,
+        persona: promptConfig.persona,
         strategy: promptConfig.strategyName,
         intensity: promptConfig.intensity,
         controversyLevel,
         temperature: promptConfig.temperature
       });
 
-      const result = await executeLLMCall(model, promptConfig.systemPrompt, promptConfig.userPrompt, promptConfig.temperature);
+      // Pass additional parameters to executeLLMCall
+      const additionalParams = {
+        presence_penalty: promptConfig.presence_penalty,
+        frequency_penalty: promptConfig.frequency_penalty,
+        cleanResponse: true,
+        retryOnWeak: attempt < maxAttempts // Only retry on weak if we have attempts left
+      };
+
+      const result = await executeLLMCall(
+        model,
+        promptConfig.systemPrompt,
+        promptConfig.userPrompt,
+        promptConfig.temperature,
+        additionalParams
+      );
 
       // Check if response was refused/filtered
       const refusalPatterns = [
@@ -367,7 +369,7 @@ async function callLLM(model, party, topic, context = [], controversyLevel = 100
       const isRefusal = refusalPatterns.some(pattern => pattern.test(result));
 
       if (isRefusal && attempt < maxAttempts) {
-        console.log(`[RETRY] Response appears to be a refusal, trying strategy ${attempt + 1}`);
+        console.log(`[RETRY] Response appears to be a refusal, trying strategy ${attempt + 1} with higher temperature`);
         lastError = new Error('Response refused by LLM');
         continue;
       }
@@ -377,6 +379,13 @@ async function callLLM(model, party, topic, context = [], controversyLevel = 100
     } catch (error) {
       console.error(`[LLM ERROR] Attempt ${attempt} failed:`, error.message);
       lastError = error;
+
+      // If it's a weak response error and we have attempts left, retry
+      if (error.message.includes('too weak') && attempt < maxAttempts) {
+        console.log(`[RETRY] Weak response detected, increasing temperature for attempt ${attempt + 1}`);
+        continue;
+      }
+
       if (attempt === maxAttempts) break;
     }
   }
@@ -388,10 +397,19 @@ async function callLLM(model, party, topic, context = [], controversyLevel = 100
 
 /**
  * Execute the actual LLM API call (separated for retry logic)
+ * Now supports enhanced parameters and response cleaning
  */
-async function executeLLMCall(model, systemPrompt, userPrompt, temperature) {
+async function executeLLMCall(model, systemPrompt, userPrompt, temperature, additionalParams = {}) {
   console.log(`[executeLLMCall] Starting with temperature: ${temperature}`);
-  
+
+  // Extract additional parameters
+  const {
+    presence_penalty = 0.6,
+    frequency_penalty = 0.7,
+    cleanResponse = true,
+    retryOnWeak = true
+  } = additionalParams;
+
   // Check for required API key
   let apiKeyName;
   switch (model) {
@@ -414,38 +432,43 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature) {
     default:
       apiKeyName = null;
   }
-  
+
   // If API key is missing, use mock response
   if (apiKeyName && !process.env[apiKeyName]) {
     console.log(`[MOCK MODE] API key for ${model} is missing (${apiKeyName}), using mock response`);
     return getMockResponse(model, 'Unknown', 'debate topic', []);
   }
-  
+
   // Set a timeout for all API calls (30 seconds)
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
-  
+
   try {
     let result;
-    
+
     switch (model) {
       case 'OpenAI':
       case 'ChatGPT': {
-        // Using chat completions API with character-based prompting
-        console.log(`[OPENAI REQUEST] Calling OpenAI chat completions API`);
-        
+        // Using chat completions API with enhanced competition parameters
+        console.log(`[OPENAI REQUEST] Calling OpenAI with competition parameters`, {
+          temperature,
+          presence_penalty,
+          frequency_penalty
+        });
+
         const requestBody = {
           model: "gpt-3.5-turbo",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
           ],
-          max_tokens: 50,
-          temperature: temperature, // Dynamic temperature based on controversy level
-          presence_penalty: 0.6, // Encourage diverse vocabulary
-          frequency_penalty: 0.3 // Reduce repetition
+          max_tokens: 80, // Increased for full arguments
+          temperature: temperature, // Now using persona-specific temperature
+          presence_penalty: presence_penalty, // Encourage diverse vocabulary
+          frequency_penalty: frequency_penalty, // Strongly reduce repetitive safe language
+          top_p: 0.95 // Allow broader token selection
         };
-        
+
         const response = await myFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -455,17 +478,34 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature) {
           body: JSON.stringify(requestBody),
           signal: controller.signal
         });
-        
+
         if (!response.ok) {
           const errorData = await response.text();
           console.error(`[OPENAI ERROR] Status ${response.status}:`, errorData);
           throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.choices && data.choices.length > 0 && data.choices[0].message) {
           result = data.choices[0].message.content.trim();
+
+          // Apply response cleaning if enabled
+          if (cleanResponse) {
+            const originalLength = result.length;
+            result = cleanDebateResponse(result);
+            console.log(`[RESPONSE CLEANING] Cleaned response (${originalLength} -> ${result.length} chars)`);
+
+            // Check boldness score
+            const boldness = analyzeBoldness(result);
+            console.log(`[BOLDNESS SCORE] ${boldness}/100`);
+
+            // If response is too weak and retry is enabled, we'll mark it for retry
+            if (retryOnWeak && boldness < 40) {
+              console.log(`[WEAK RESPONSE DETECTED] Boldness score ${boldness} below threshold`);
+              throw new Error('Response too weak - needs retry with higher temperature');
+            }
+          }
         } else {
           console.error(`[OPENAI ERROR] Unexpected response structure:`, data);
           throw new Error("No completion returned from OpenAI.");
@@ -764,6 +804,236 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature) {
     }
   }
 }
+
+/**
+ * RESPONSE CLEANING SYSTEM
+ * Removes AI disclaimers, hedging, and meta-commentary from debate responses
+ */
+function cleanDebateResponse(response) {
+  if (!response || typeof response !== 'string') {
+    return response;
+  }
+
+  let cleaned = response;
+
+  // Remove "As an AI" and similar self-referential phrases
+  const aiPhrases = [
+    /as an ai( language model| assistant)?,?\s*/gi,
+    /i('m| am) an ai( language model| assistant)?,?\s*/gi,
+    /as a language model,?\s*/gi,
+    /i('m| am) programmed to,?\s*/gi,
+    /i('m| am) designed to,?\s*/gi,
+    /my programming (prevents|doesn't allow|prohibits),?\s*/gi
+  ];
+
+  aiPhrases.forEach(pattern => {
+    cleaned = cleaned.replace(pattern, '');
+  });
+
+  // Remove hedging and qualifier phrases
+  const hedgePhrases = [
+    /^it('s| is) important to (note|remember|consider|understand) that,?\s*/gi,
+    /^(however|that said|having said that),?\s+/gi,
+    /^to be fair,?\s*/gi,
+    /^in my opinion,?\s*/gi,
+    /^i (think|believe|feel) that,?\s*/gi,
+    /^it('s| is) worth noting that,?\s*/gi,
+    /^one could argue that,?\s*/gi,
+    /^some (might|may|could) argue that,?\s*/gi,
+    /^arguably,?\s*/gi,
+    /^while (there are|it's true that),?\s*/gi,
+    /^let me be clear,?\s*/gi,
+    /^to clarify,?\s*/gi
+  ];
+
+  hedgePhrases.forEach(pattern => {
+    cleaned = cleaned.replace(pattern, '');
+  });
+
+  // Remove meta-commentary about debates
+  const metaPhrases = [
+    /^(in this debate|for this argument),?\s*/gi,
+    /^(from a|taking a) .+ perspective,?\s*/gi,
+    /^(as we discuss|when discussing),?\s*/gi
+  ];
+
+  metaPhrases.forEach(pattern => {
+    cleaned = cleaned.replace(pattern, '');
+  });
+
+  // Remove unnecessary softening
+  const softeningPhrases = [
+    / (perhaps|maybe|possibly|potentially|arguably)/gi,
+    / (seems to|appears to|tends to) be /gi,
+    / could be seen as /gi,
+    / might be considered /gi
+  ];
+
+  softeningPhrases.forEach(pattern => {
+    cleaned = cleaned.replace(pattern, match => {
+      // Replace with simpler/stronger versions
+      if (match.includes('seems to be')) return ' is ';
+      if (match.includes('appears to be')) return ' is ';
+      if (match.includes('tends to be')) return ' is ';
+      if (match.includes('could be seen as')) return ' is ';
+      if (match.includes('might be considered')) return ' is ';
+      // Remove other softeners entirely
+      return ' ';
+    });
+  });
+
+  // Clean up spacing issues from removals
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  // Ensure first letter is capitalized after cleaning
+  if (cleaned.length > 0) {
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+
+  // Ensure proper punctuation at end
+  if (cleaned.length > 0 && !/[.!?]$/.test(cleaned)) {
+    cleaned += '.';
+  }
+
+  return cleaned;
+}
+
+/**
+ * BOLDNESS SCORING SYSTEM
+ * Analyzes response for directness and strength
+ */
+function analyzeBoldness(response) {
+  if (!response || typeof response !== 'string') {
+    return 0;
+  }
+
+  let score = 50; // Base score
+
+  // Positive indicators (increase boldness score)
+  const strongPatterns = [
+    { pattern: /\b(must|will|is|are|always|never|absolutely|clearly|obviously)\b/gi, points: 5 },
+    { pattern: /\b(wrong|right|correct|incorrect|failed?|win|won|lose|lost)\b/gi, points: 3 },
+    { pattern: /[.!]$/g, points: 2 }, // Declarative ending
+    { pattern: /!/g, points: 3 } // Exclamation points
+  ];
+
+  strongPatterns.forEach(({ pattern, points }) => {
+    const matches = response.match(pattern);
+    if (matches) {
+      score += Math.min(matches.length * points, 20); // Cap contribution
+    }
+  });
+
+  // Negative indicators (decrease boldness score)
+  const weakPatterns = [
+    { pattern: /\b(maybe|perhaps|possibly|might|could|seems|appears)\b/gi, points: -5 },
+    { pattern: /\b(i think|i believe|i feel|in my opinion)\b/gi, points: -5 },
+    { pattern: /\b(some might say|one could argue|arguably)\b/gi, points: -8 },
+    { pattern: /\b(however|but|although|while)\b/gi, points: -3 },
+    { pattern: /as an ai/gi, points: -20 },
+    { pattern: /important to note/gi, points: -10 }
+  ];
+
+  weakPatterns.forEach(({ pattern, points }) => {
+    const matches = response.match(pattern);
+    if (matches) {
+      score += matches.length * points; // These are negative
+    }
+  });
+
+  // Normalize to 0-100 range
+  return Math.max(0, Math.min(100, score));
+}
+
+/**
+ * DEBATE PERSONA DEFINITIONS
+ * Personality archetypes for paid persona features
+ */
+const DEBATE_PERSONAS = {
+  'the_absolutist': {
+    name: 'The Absolutist',
+    description: 'No compromise, maximum conviction',
+    styleModifiers: {
+      temperature: 1.3,
+      presence_penalty: 0.7,
+      frequency_penalty: 0.8
+    },
+    promptAddition: `
+You take ABSOLUTE positions with ZERO hedging. You believe your position completely.
+Never say "perhaps" or "maybe" - you KNOW you're right. Be direct and uncompromising.
+
+Example style: "This policy is fundamentally wrong. My position is correct because [direct reason]. Anyone claiming otherwise ignores the obvious facts."`
+  },
+  'the_realist': {
+    name: 'The Realist',
+    description: 'Harsh truths, no sugar coating',
+    styleModifiers: {
+      temperature: 1.2,
+      presence_penalty: 0.6,
+      frequency_penalty: 0.7
+    },
+    promptAddition: `
+You say the harsh truths others avoid. Cut through idealism with reality.
+Be blunt about inconvenient facts. No diplomatic language.
+
+Example style: "The reality is simple: this policy fails because [harsh truth]. Idealistic arguments ignore what actually happens in practice."`
+  },
+  'the_provocateur': {
+    name: 'The Provocateur',
+    description: 'Challenges sacred cows deliberately',
+    styleModifiers: {
+      temperature: 1.35,
+      presence_penalty: 0.75,
+      frequency_penalty: 0.85
+    },
+    promptAddition: `
+You deliberately challenge popular assumptions and sacred cows. Question what everyone accepts.
+Make the argument people are afraid to make. Be intellectually fearless.
+
+Example style: "Everyone assumes this is settled, but they're wrong. The uncomfortable truth is [controversial take]."`
+  },
+  'the_hammer': {
+    name: 'The Hammer',
+    description: 'Finds and exploits logical weaknesses brutally',
+    styleModifiers: {
+      temperature: 1.15,
+      presence_penalty: 0.65,
+      frequency_penalty: 0.75
+    },
+    promptAddition: `
+You find logical weaknesses and destroy them. Point out contradictions mercilessly.
+Attack flawed reasoning directly. No mercy for bad logic.
+
+Example style: "That argument collapses under scrutiny. The logic fails because [specific flaw]. This contradiction is fatal to their position."`
+  },
+  'the_firebrand': {
+    name: 'The Firebrand',
+    description: 'Passionate, emotional, rallying rhetoric',
+    styleModifiers: {
+      temperature: 1.25,
+      presence_penalty: 0.7,
+      frequency_penalty: 0.8
+    },
+    promptAddition: `
+You use passionate, emotional rhetoric to rally support. Paint vivid pictures of consequences.
+Make people FEEL the stakes. Use powerful, emotive language.
+
+Example style: "This isn't just policy - it's about our future! The stakes are enormous: [emotional consequence]. We must act now!"`
+  },
+  'standard': {
+    name: 'Standard Debater',
+    description: 'Balanced, direct argumentation',
+    styleModifiers: {
+      temperature: 1.2,
+      presence_penalty: 0.6,
+      frequency_penalty: 0.7
+    },
+    promptAddition: `
+You argue directly and clearly without excessive hedging. Make your point forcefully but rationally.
+
+Example style: "This position is correct because [clear reasoning]. The opposing view fails to account for [key factor]."`
+  }
+};
 
 /**
  * COMPETITIVE BILL GENERATION SYSTEM
@@ -1378,6 +1648,70 @@ app.post('/api/vote/argument', async (req, res) => {
   }
 });
 
+// Process message vote from debate screen - SIMPLER TRACKING SYSTEM
+app.post('/api/vote/message', async (req, res) => {
+  try {
+    const { messageId, voteType, affiliation, timestamp, topic } = req.body;
+
+    if (!messageId) {
+      return res.status(400).json({ error: 'Message ID required' });
+    }
+
+    console.log(`[MESSAGE VOTE] ${voteType || 'null'} vote for message ${messageId} from ${affiliation} on topic: ${topic}`);
+
+    // Store vote in a simple in-memory store (could be enhanced to use database)
+    if (!global.messageVotes) {
+      global.messageVotes = {};
+    }
+
+    // Track the vote
+    if (voteType === null) {
+      // Remove vote
+      delete global.messageVotes[messageId];
+      console.log(`[MESSAGE VOTE] Removed vote for message ${messageId}`);
+    } else {
+      // Add or update vote
+      global.messageVotes[messageId] = {
+        voteType,
+        affiliation,
+        timestamp: timestamp || Date.now(),
+        topic
+      };
+      console.log(`[MESSAGE VOTE] Recorded ${voteType} vote for message ${messageId}`);
+    }
+
+    // Calculate aggregate stats for this topic/affiliation
+    const topicVotes = Object.values(global.messageVotes).filter(
+      v => v.topic === topic && v.affiliation === affiliation
+    );
+    const upvotes = topicVotes.filter(v => v.voteType === 'up').length;
+    const downvotes = topicVotes.filter(v => v.voteType === 'down').length;
+
+    // Return feedback
+    res.json({
+      success: true,
+      message: voteType === 'up'
+        ? '✓ Message upvoted!'
+        : voteType === 'down'
+        ? '✗ Message downvoted!'
+        : '🔄 Vote removed',
+      messageId,
+      voteType,
+      stats: {
+        upvotes,
+        downvotes,
+        total: upvotes + downvotes,
+        affiliation,
+        topic
+      }
+    });
+
+  } catch (error) {
+    console.error('[API ERROR] Failed to process message vote:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get agent's voting feedback summary
 app.get('/api/agents/:agentId/feedback', (req, res) => {
   try {
@@ -1423,7 +1757,7 @@ app.get('/api/agents/:agentId/feedback', (req, res) => {
 // API endpoint to call an LLM with the given parameters
 app.get('/api/llm', async (req, res) => {
   const startTime = Date.now();
-  const { model, party, topic, context, controversyLevel, feedback } = req.query;
+  const { model, party, topic, context, controversyLevel, feedback, persona } = req.query;
 
   // Parse context if provided
   let parsedContext = [];
@@ -1455,6 +1789,9 @@ app.get('/api/llm', async (req, res) => {
       // Continue with empty feedback if parsing fails
     }
   }
+
+  // Get persona (default to 'standard')
+  const selectedPersona = persona && DEBATE_PERSONAS[persona] ? persona : 'standard';
   
   // Log incoming request
   console.log(`[API REQUEST] /api/llm`, {
@@ -1501,8 +1838,8 @@ app.get('/api/llm', async (req, res) => {
   }
   
   try {
-    // Call the LLM with context, controversy level, and feedback
-    const result = await callLLM(model, party, topic, parsedContext, parsedControversyLevel, parsedFeedback);
+    // Call the LLM with context, controversy level, feedback, and persona
+    const result = await callLLM(model, party, topic, parsedContext, parsedControversyLevel, parsedFeedback, selectedPersona);
 
     // Calculate response time
     const responseTime = Date.now() - startTime;
@@ -1588,6 +1925,21 @@ app.get('/api/llm', async (req, res) => {
   }
 });
 
+// Get available debate personas (for paid persona features)
+app.get('/api/personas', (req, res) => {
+  const personas = Object.keys(DEBATE_PERSONAS).map(key => ({
+    id: key,
+    name: DEBATE_PERSONAS[key].name,
+    description: DEBATE_PERSONAS[key].description,
+    isPremium: key !== 'standard' // All personas except 'standard' are premium
+  }));
+
+  res.json({
+    personas,
+    default: 'standard'
+  });
+});
+
 // Utility endpoint to check API status
 app.get('/api/status', (req, res) => {
   res.json({
@@ -1595,7 +1947,13 @@ app.get('/api/status', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    supportedModels: ['OpenAI', 'ChatGPT', 'Claude', 'Cohere', 'Gemini', 'Grok']
+    supportedModels: ['OpenAI', 'ChatGPT', 'Claude', 'Cohere', 'Gemini', 'Grok'],
+    features: {
+      responseClean: true,
+      boldnessScoring: true,
+      personaSystem: true,
+      competitionMode: true
+    }
   });
 });
 

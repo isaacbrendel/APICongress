@@ -3,6 +3,8 @@ import CongressTable from './CongressTable';
 import TopicBanner from './TopicBanner';
 import ArgumentVoting from './ArgumentVoting';
 import useIntelligentAgents from '../hooks/useIntelligentAgents';
+import logger from '../utils/logger';
+import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import './IntelligentDebateScreen.css';
 
 /**
@@ -38,8 +40,11 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   // Initialize congress on mount
   useEffect(() => {
     if (!initialized) {
-      console.log('[INTELLIGENT DEBATE] Initializing congress...');
+      logger.agent('Initializing intelligent congress', { agentCount: 8 });
+      logger.markStart('congress_init');
       initializeCongress(8).then(() => { // Create 8 agents for good visual balance
+        const duration = logger.markEnd('congress_init');
+        logger.success(logger.LogCategory.AGENT, 'Congress initialized successfully', { duration: `${duration}ms` });
         setInitialized(true);
       });
     }
@@ -48,10 +53,16 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   // Start debate once agents are initialized
   useEffect(() => {
     if (initialized && agents.length > 0 && !debateActive && !currentDebateId) {
-      console.log('[INTELLIGENT DEBATE] Starting debate with', agents.length, 'agents');
+      logger.debate('Starting intelligent debate', {
+        agentCount: agents.length,
+        topic,
+        controversyLevel: 100
+      });
 
       // Get agent IDs
       const agentIds = agents.map(a => a.id);
+
+      logger.markStart('intelligent_debate');
 
       // Start the debate
       startIntelligentDebate(topic, agentIds, {
@@ -60,6 +71,7 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         enableResearch: false
       }).then(debateId => {
         if (debateId) {
+          logger.success(logger.LogCategory.DEBATE, 'Intelligent debate started', { debateId });
           setDebateActive(true);
           // Start first argument after a delay
           setTimeout(() => {
@@ -75,7 +87,11 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
     if (!currentDebateId || !agents[speakerIndex]) return;
 
     const agent = agents[speakerIndex];
-    console.log(`[INTELLIGENT DEBATE] Generating argument for ${agent.name}`);
+    logger.speakerAction('generating argument', agent.name, {
+      speakerIndex,
+      totalAgents: agents.length,
+      agentParty: agent.party
+    });
 
     setCurrentSpeakerIndex(speakerIndex);
     setCurrentArgument(null);
@@ -94,7 +110,9 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
 
     // Generate argument after countdown
     setTimeout(async () => {
+      logger.markStart(`argument_gen_${speakerIndex}`);
       const turn = await generateArgument(currentDebateId, agent.id);
+      const duration = logger.markEnd(`argument_gen_${speakerIndex}`);
 
       if (turn) {
         // Create UNIQUE ID for this specific argument
@@ -106,6 +124,13 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
           timestamp: Date.now(),
           turnIndex: speakerIndex
         };
+
+        logger.success(logger.LogCategory.DEBATE, `Argument generated for ${agent.name}`, {
+          duration: `${duration}ms`,
+          argumentLength: turn.argument?.length,
+          strategy: turn.strategy,
+          phase: turn.phase
+        });
 
         setCurrentArgument(argumentData);
 
@@ -121,7 +146,10 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
             nextTurn(nextIndex);
           } else {
             // Debate complete
-            console.log('[INTELLIGENT DEBATE] Debate complete!');
+            logger.success(logger.LogCategory.DEBATE, 'Intelligent debate complete!', {
+              totalArguments: agents.length,
+              duration: logger.markEnd('intelligent_debate')
+            });
             setDebateActive(false);
             setShowResults(true);
           }
@@ -132,17 +160,28 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
 
   // Handle agent click
   const handleAgentClick = (agent) => {
-    console.log('[AGENT CLICK]', agent);
+    logger.user('Agent clicked', {
+      agentName: agent.name,
+      agentParty: agent.party,
+      agentModel: agent.model
+    });
     // Could show detailed agent modal here
   };
 
   // Handle vote on argument - REINFORCEMENT LEARNING
   // Each vote is independent and sent to backend for aggregation
   const handleArgumentVote = async (argumentId, agentId, voteType) => {
-    console.log(`[REINFORCEMENT LEARNING] Vote ${voteType} for agent ${agentId}, argument ${argumentId}`);
+    logger.vote('Reinforcement Learning vote', {
+      argumentId,
+      agentId,
+      voteType
+    });
 
     try {
-      const response = await fetch('http://localhost:5001/api/vote/argument', {
+      logger.markStart(`rl_vote_${argumentId}`);
+      logger.apiRequest(API_ENDPOINTS.VOTE_ARGUMENT, 'POST', { argumentId, agentId, voteType });
+
+      const response = await fetch(getApiUrl(API_ENDPOINTS.VOTE_ARGUMENT), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,29 +192,47 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         })
       });
 
+      const duration = logger.markEnd(`rl_vote_${argumentId}`);
+
       if (!response.ok) {
         throw new Error('Failed to process vote');
       }
 
       const data = await response.json();
 
-      console.log('[RL SUCCESS]', data.message);
-      console.log('[RL STATS]', `Total votes: ${data.totalVotes}, Approval: ${data.approvalRate}`);
+      logger.apiResponse(API_ENDPOINTS.VOTE_ARGUMENT, response.status, duration, {
+        message: data.message,
+        totalVotes: data.totalVotes,
+        approvalRate: data.approvalRate
+      });
 
       // Show immediate feedback in console
       if (data.personalityShifts) {
-        console.log('[PERSONALITY EVOLUTION]', data.personalityShifts);
+        logger.agent('Personality evolution triggered', {
+          agentId,
+          shifts: data.personalityShifts
+        });
       }
 
       return data;
     } catch (error) {
-      console.error('[RL ERROR]', error);
+      logger.error(logger.LogCategory.VOTE, 'RL vote failed', {
+        argumentId,
+        agentId,
+        error: error.message
+      });
+      throw error; // Re-throw so ArgumentVoting can handle it
     }
   };
 
   // Handle vote and process outcome
   const handleVote = async (winnerId) => {
-    console.log('[VOTE] Winner:', winnerId);
+    const winner = agents.find(a => a.id === winnerId);
+    logger.vote('Debate winner selected', {
+      winnerId,
+      winnerName: winner?.name,
+      winnerParty: winner?.party
+    });
 
     // Create voting results
     const votingResults = {};
@@ -187,10 +244,19 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
     });
 
     // Process outcome and trigger learning
+    logger.markStart('debate_outcome_processing');
     await processDebateOutcome(currentDebateId, votingResults);
+    const duration = logger.markEnd('debate_outcome_processing');
+
+    logger.success(logger.LogCategory.AGENT, 'Debate outcome processed - Agents evolved', {
+      duration: `${duration}ms`,
+      winnerId,
+      totalAgents: agents.length
+    });
 
     // Show final results
     setTimeout(() => {
+      // Note: Using alert for now, but could be replaced with a modal
       alert('Debate outcome processed! Agents have learned and evolved.');
     }, 1000);
   };

@@ -7,6 +7,8 @@ import VotingInterface from './VotingInterface';
 import WinnerDisplay from './WinnerDisplay';
 import PartyAssigner from './PartyAssigner';
 import useDebateFlow from '../hooks/useDebateFlow';
+import logger from '../utils/logger';
+import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import './DebateScreen.css';
 
 const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
@@ -69,7 +71,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   useEffect(() => {
     // Initialize speakingOrder right away to prevent uninitialized variables
     if (models && models.length > 0) {
-      console.log("Pre-initializing debate variables to prevent uninitialized references");
+      logger.system("Pre-initializing debate variables to prevent uninitialized references", { modelCount: models.length });
       // This helps ensure debates can start correctly later
       setupSpeakingOrder();
     }
@@ -150,9 +152,12 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   // Initialize models only once when component mounts or models change
   useEffect(() => {
     if (models.length === 0 || isInitialized) return;
-    
-    console.log("🔄 Initializing debate screen with models:", models);
-    
+
+    logger.system("Initializing debate screen with models", {
+      modelCount: models.length,
+      modelNames: models.map(m => m.name)
+    });
+
     // Set initialized flag to prevent repeated setup
     setIsInitialized(true);
     
@@ -183,7 +188,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     
     // Activate party assignment with a small delay
     setTimeout(() => {
-      console.log("🏛️ Activating party assignment");
+      logger.ui("Activating party assignment phase");
       setPartyAssignmentActive(true);
     }, 100);
   }, [models, isInitialized, isMobile]);
@@ -204,14 +209,17 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
 
   // Handle party assignment completion
   const handlePartyAssignmentComplete = (updatedModels) => {
-    console.log("✅ Party assignment complete, assigning positions", updatedModels);
-    
     // Verify party counts
     const dems = updatedModels.filter(m => m.affiliation === 'Democrat').length;
     const reps = updatedModels.filter(m => m.affiliation === 'Republican').length;
     const inds = updatedModels.filter(m => m.affiliation === 'Independent').length;
-    
-    console.log(`Party assignment verification: ${dems} Democrats, ${reps} Republicans, ${inds} Independents`);
+
+    logger.success(logger.LogCategory.SYSTEM, "Party assignment complete, assigning positions", {
+      democrats: dems,
+      republicans: reps,
+      independents: inds,
+      total: updatedModels.length
+    });
     
     // First assign positions and keep party assigner visible during transition
     assignPositionsBasedOnParty(updatedModels);
@@ -224,8 +232,8 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
 
   // Completely reliable position assignment based on party affiliation
   const assignPositionsBasedOnParty = (updatedModels) => {
-    console.log("🎯 Assigning positions based on party affiliation");
-    
+    logger.ui("Assigning positions based on party affiliation", { modelCount: updatedModels.length });
+
     // Create a safe copy of models with guaranteed properties
     const safeModels = updatedModels.map((model, index) => {
       // Default to Independent if no affiliation
@@ -248,8 +256,12 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     const demModels = safeModels.filter(m => m.affiliation === 'Democrat');
     const repModels = safeModels.filter(m => m.affiliation === 'Republican');
     const indModels = safeModels.filter(m => m.affiliation === 'Independent');
-    
-    console.log(`Positioning: Democrats: ${demModels.length}, Republicans: ${repModels.length}, Independents: ${indModels.length}`);
+
+    logger.ui("Positioning breakdown", {
+      democrats: demModels.length,
+      republicans: repModels.length,
+      independents: indModels.length
+    });
     
     // Position Democrats on the left
     demModels.forEach((model, i) => {
@@ -281,10 +293,10 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     // Final safety check - ensure all models have positions
     safeModels.forEach(model => {
       if (!newPositions[model.id]) {
-        console.warn(`Model ${model.name} has no position assigned, using default`);
-        newPositions[model.id] = { 
-          top: 50 + randomOffset() * 5, 
-          left: 50 + randomOffset() * 5 
+        logger.warn(logger.LogCategory.UI, `Model ${model.name} has no position assigned, using default`);
+        newPositions[model.id] = {
+          top: 50 + randomOffset() * 5,
+          left: 50 + randomOffset() * 5
         };
       }
     });
@@ -298,19 +310,20 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
     
     // Set up debate speaking order after a reasonable delay for animations to complete
     positioningTimerRef.current = setTimeout(() => {
-      console.log("Starting debate initialization");
-      
+      logger.debate("Starting debate initialization");
+
       // Skip the setupSpeakingOrder step completely - it will be handled inside startDebate
       // This avoids any potential circular dependencies or uninitialized variable errors
-      
+
       // Simply start the debate - the hook's implementation will handle order creation
       positioningTimerRef.current = setTimeout(() => {
         try {
+          logger.markStart('debate_start');
           // Just call startDebate - it handles everything internally now
           startDebate();
         } catch (error) {
-          console.error("Error starting debate:", error);
-          
+          logger.error(logger.LogCategory.DEBATE, "Error starting debate", { error: error.message });
+
           // Last-resort recovery
           setTimeout(startDebate, 1000);
         }
@@ -320,19 +333,24 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
 
   // Enhanced voting interface display with more reliable trigger
   useEffect(() => {
-    console.log(`🎬 Voting interface conditions check: isDebateCompleted=${isDebateCompleted}, showVoting=${showVoting}, showWinner=${showWinner}`);
-    
+    logger.ui("Voting interface conditions check", {
+      isDebateCompleted,
+      showVoting,
+      showWinner
+    });
+
     if (isDebateCompleted && !showVoting && !showWinner) {
-      console.log("🎬 DEBATE COMPLETED, showing voting interface after delay");
-      
+      logger.success(logger.LogCategory.DEBATE, "DEBATE COMPLETED, showing voting interface after delay");
+
       // Clear any existing timers to prevent race conditions
       if (votingTimerRef.current) {
         clearTimeout(votingTimerRef.current);
       }
-      
+
       // Use a separate timer ref specifically for voting interface
       votingTimerRef.current = setTimeout(() => {
-        console.log("⭐ ACTIVATING VOTING INTERFACE NOW");
+        logger.ui("ACTIVATING VOTING INTERFACE NOW");
+        logger.markEnd('debate_start');
         setShowVoting(true);
       }, 2000);
     }
@@ -340,28 +358,38 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   
   // Debug lifecycle state changes
   useEffect(() => {
-    console.log(`⚙️ DebateScreen State Update:
-      - Party Assignment Active: ${partyAssignmentActive}
-      - Positions Assigned: ${positionsAssigned}
-      - Debate State: ${debateState}
-      - Current Speaker: ${currentSpeaker?.name || 'None'}
-      - Current Speech: ${currentSpeech ? 'Available' : 'None'}
-      - isDebateCompleted: ${isDebateCompleted}
-      - showVoting: ${showVoting}
-    `);
+    logger.state("DebateScreen State Update", {
+      partyAssignmentActive,
+      positionsAssigned,
+      debateState,
+      currentSpeaker: currentSpeaker?.name || 'None',
+      currentSpeech: currentSpeech ? 'Available' : 'None',
+      isDebateCompleted,
+      showVoting
+    });
   }, [partyAssignmentActive, positionsAssigned, debateState, currentSpeaker, currentSpeech, isDebateCompleted, showVoting]);
   
   // Handle vote submission
   const handleVoteSubmit = (party) => {
-    console.log(`🗳️ Vote submitted: ${party} wins the debate`);
+    logger.vote(`Vote submitted: ${party} wins the debate`, { winner: party });
     setDebateWinner(party);
     setShowVoting(false);
     setShowWinner(true);
   };
 
   // Handle individual message voting (thumbs up/down)
-  const handleMessageVote = (messageId, vote, affiliation) => {
-    console.log(`👍👎 Message ${messageId} received ${vote} vote from ${affiliation} message`);
+  const handleMessageVote = async (messageId, vote, affiliation) => {
+    // Track previous vote for logging
+    const previousVote = messageVotes[messageId]?.vote || null;
+
+    logger.voteAction('Message vote received', {
+      messageId,
+      voteType: vote,
+      affiliation,
+      previousVote
+    });
+
+    // Update local state first for immediate UI feedback
     setMessageVotes(prev => {
       if (vote === null) {
         // Remove vote
@@ -376,6 +404,47 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
         };
       }
     });
+
+    // Send vote to backend for persistence and RL
+    try {
+      logger.markStart(`vote_${messageId}`);
+      logger.network(`Sending message vote to backend`, { messageId, vote, affiliation });
+
+      const response = await fetch(getApiUrl(API_ENDPOINTS.VOTE_MESSAGE), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId,
+          voteType: vote,
+          affiliation,
+          timestamp: Date.now(),
+          topic
+        })
+      });
+
+      const duration = logger.markEnd(`vote_${messageId}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to process vote: ${response.status}`);
+      }
+
+      const data = await response.json();
+      logger.apiResponse(API_ENDPOINTS.VOTE_MESSAGE, response.status, duration, {
+        success: data.success,
+        message: data.message
+      });
+
+      if (data.success) {
+        logger.success(logger.LogCategory.VOTE, `Message vote recorded successfully`, { messageId });
+      }
+    } catch (error) {
+      logger.error(logger.LogCategory.NETWORK, `Failed to send message vote to backend`, {
+        messageId,
+        error: error.message
+      });
+      // Note: We don't revert the local state change - the vote is still tracked locally
+      // This ensures a good UX even if the backend is temporarily unavailable
+    }
   };
 
   // Toggle between winner display and voting interface
@@ -386,7 +455,7 @@ const DebateScreen = ({ topic, models, setModels, onReturnHome }) => {
   
   // Handle manual party reassignment
   const handleReassignParties = () => {
-    console.log("🔄 Manual reassignment requested");
+    logger.user("Manual party reassignment requested");
     
     // Reset initialization flag to allow re-initialization
     setIsInitialized(false);

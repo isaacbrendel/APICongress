@@ -1,5 +1,6 @@
 // src/hooks/useDebateFlow.js
 import { useState, useEffect, useCallback, useRef } from 'react';
+import logger from '../utils/logger';
 
 // Define debate flow states
 const DEBATE_STATES = {
@@ -61,24 +62,27 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
   const setupSpeakingOrder = useCallback(() => {
     // Basic validation
     if (!models || !Array.isArray(models) || models.length === 0) {
-      console.warn("No models available");
+      logger.warn(logger.LogCategory.DEBATE, "No models available for speaking order");
       setSpeakingOrder([]);
       setDebateState(DEBATE_STATES.PREPARING);
       return [];
     }
-    
+
     // Create a fixed speaking order from scratch, no dependencies on previous state
     const tempOrder = models.map(model => ({
       id: model.id || Math.random().toString(36).substring(2, 9),
       name: model.name || "Unknown Speaker",
       affiliation: model.affiliation || "Independent"
     }));
-    
+
     // Set order in state
-    console.log("Setting up speaking order:", tempOrder.map(m => m.name).join(", "));
+    logger.debate("Setting up speaking order", {
+      speakerCount: tempOrder.length,
+      speakers: tempOrder.map(m => ({ name: m.name, affiliation: m.affiliation }))
+    });
     setSpeakingOrder(tempOrder);
     setDebateState(DEBATE_STATES.PREPARING);
-    
+
     return tempOrder;
   }, [models]);
 
@@ -86,25 +90,29 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
    * Simplified debate starter
    */
   const startDebate = useCallback(() => {
+    logger.markStart('debate_execution');
     // Create a fresh speaking order every time
     const order = setupSpeakingOrder();
-    
+
     // No models, can't start
     if (order.length === 0) {
-      console.error("Cannot start debate: No models available");
+      logger.error(logger.LogCategory.DEBATE, "Cannot start debate: No models available");
       return;
     }
-    
+
     // Reset state for fresh start
     setCurrentSpeakerIndex(0);
     setDebateMessages([]);
-    
+
     // Set the first speaker
     const firstSpeaker = order[0] || { name: "Speaker 1" };
     setNextSpeaker(firstSpeaker.name);
-    
+
     // Start the debate
-    console.log("🚀 DEBATE STARTED - Setting state to SPEAKING");
+    logger.success(logger.LogCategory.DEBATE, "DEBATE STARTED - Setting state to SPEAKING", {
+      speakerCount: order.length,
+      firstSpeaker: firstSpeaker.name
+    });
     setDebateState(DEBATE_STATES.SPEAKING);
   }, [setupSpeakingOrder]);
 
@@ -114,22 +122,30 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
   const callCurrentSpeaker = useCallback(async () => {
     // Guard against invalid speaking order or index
     if (!speakingOrder || speakingOrder.length === 0 || currentSpeakerIndex >= speakingOrder.length) {
-      console.log("🏁 No more speakers, debate completed");
-      console.log("⭐ DEBATE COMPLETED - setting debateState to COMPLETED from callCurrentSpeaker");
+      logger.success(logger.LogCategory.DEBATE, "No more speakers, debate completed");
+      const totalDuration = logger.markEnd('debate_execution');
+      logger.success(logger.LogCategory.DEBATE, "DEBATE COMPLETED", {
+        totalDuration: `${totalDuration}ms`,
+        totalSpeakers: speakingOrder?.length || 0
+      });
       setDebateState(DEBATE_STATES.COMPLETED);
       return;
     }
-    
+
     // Wait a moment to ensure UI is ready
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     // Get current speaker safely
     const speaker = speakingOrder[currentSpeakerIndex];
     const speakerName = speaker?.name || `Speaker ${currentSpeakerIndex + 1}`;
     const speakerAffiliation = speaker?.affiliation || "Independent";
     const speakerId = speaker?.id || `speaker-${currentSpeakerIndex}`;
-    
-    console.log(`🎤 Calling speaker ${currentSpeakerIndex + 1}/${speakingOrder.length}: ${speakerName}`);
+
+    logger.speakerAction('starting speech', speakerName, {
+      speakerIndex: currentSpeakerIndex + 1,
+      totalSpeakers: speakingOrder.length,
+      affiliation: speakerAffiliation
+    });
     
     try {
       // Prepare context
@@ -147,16 +163,30 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
       const downvotes = partyVotes.filter(v => v.vote === 'down').length;
       const feedbackData = JSON.stringify({ recentVotes: { upvotes, downvotes } });
 
+      logger.markStart(`speech_gen_${speakerName}`);
+      logger.apiRequest('/api/llm', 'GET', {
+        speaker: speakerName,
+        affiliation: speakerAffiliation,
+        feedbackStats: { upvotes, downvotes }
+      });
+
       // Make API call with controversy level and feedback
       const response = await fetch(
         `/api/llm?model=${encodeURIComponent(speakerName)}&party=${encodeURIComponent(speakerAffiliation)}&topic=${encodeURIComponent(topic)}&context=${encodeURIComponent(context)}&controversyLevel=${controversyLevel}&feedback=${encodeURIComponent(feedbackData)}`
       );
-      
+
+      const duration = logger.markEnd(`speech_gen_${speakerName}`);
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
+
+      logger.apiResponse('/api/llm', response.status, duration, {
+        speaker: speakerName,
+        responseLength: data.response?.length
+      });
       
       // Create message
       const chatMessage = {
@@ -179,16 +209,22 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
       if (nextIndex < speakingOrder.length) {
         const next = speakingOrder[nextIndex];
         setNextSpeaker(next?.name || `Speaker ${nextIndex + 1}`);
-        console.log(`⏭️ Moving to COUNTDOWN for next speaker: ${next?.name || `Speaker ${nextIndex + 1}`}`);
+        logger.debate("Moving to COUNTDOWN for next speaker", {
+          nextSpeaker: next?.name,
+          remainingSpeakers: speakingOrder.length - nextIndex
+        });
         setDebateState(DEBATE_STATES.COUNTDOWN);
       } else {
         // Final speaker - add 10 second pause before completing
-        console.log("🎯 Final speaker done - Adding 10 second final pause before completion");
+        logger.debate("Final speaker done - Adding 10 second final pause before completion");
         setNextSpeaker(null);
         setDebateState(DEBATE_STATES.FINAL_PAUSE);
       }
     } catch (error) {
-      console.error("Error calling speaker:", error);
+      logger.error(logger.LogCategory.DEBATE, "Error calling speaker", {
+        speaker: speakerName,
+        error: error.message
+      });
       
       // Use fallback
       const errorMessage = {
@@ -209,11 +245,13 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
       if (nextIndex < speakingOrder.length) {
         const next = speakingOrder[nextIndex];
         setNextSpeaker(next?.name || `Speaker ${nextIndex + 1}`);
-        console.log(`⏭️ Moving to COUNTDOWN after error for next speaker: ${next?.name || `Speaker ${nextIndex + 1}`}`);
+        logger.debate("Moving to COUNTDOWN after error for next speaker", {
+          nextSpeaker: next?.name
+        });
         setDebateState(DEBATE_STATES.COUNTDOWN);
       } else {
         // Final speaker - add 10 second pause before completing
-        console.log("🎯 Final speaker done (after error) - Adding 10 second final pause");
+        logger.debate("Final speaker done (after error) - Adding 10 second final pause");
         setNextSpeaker(null);
         setDebateState(DEBATE_STATES.FINAL_PAUSE);
       }
@@ -225,13 +263,15 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
    */
   const moveToNextSpeaker = useCallback(() => {
     const nextIndex = currentSpeakerIndex + 1;
-    
+
     if (nextIndex >= speakingOrder?.length || !speakingOrder) {
-      console.log("🏁 No more speakers in moveToNextSpeaker");
-      console.log("⭐ DEBATE COMPLETED - setting debateState to COMPLETED from moveToNextSpeaker");
+      logger.debate("No more speakers in moveToNextSpeaker");
+      logger.success(logger.LogCategory.DEBATE, "DEBATE COMPLETED - from moveToNextSpeaker");
       setDebateState(DEBATE_STATES.COMPLETED);
     } else {
-      console.log(`🔄 Moving to next speaker: ${nextIndex + 1}/${speakingOrder.length}`);
+      logger.debate(`Moving to next speaker: ${nextIndex + 1}/${speakingOrder.length}`, {
+        nextSpeaker: speakingOrder[nextIndex]?.name
+      });
       setCurrentSpeakerIndex(nextIndex);
       setDebateState(DEBATE_STATES.SPEAKING);
     }
@@ -242,7 +282,7 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
    */
   const pauseCountdown = useCallback(() => {
     isPaused.current = true;
-    console.log('⏸️ Countdown paused');
+    logger.ui('Countdown paused');
   }, []);
 
   /**
@@ -250,14 +290,14 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
    */
   const resumeCountdown = useCallback(() => {
     isPaused.current = false;
-    console.log('▶️ Countdown resumed');
+    logger.ui('Countdown resumed');
   }, []);
 
   /**
    * Skip countdown and move to next speaker immediately
    */
   const skipCountdown = useCallback(() => {
-    console.log('⏩ Fast-forward: Skipping countdown');
+    logger.user('Fast-forward: Skipping countdown');
 
     // Clear any active countdown
     if (countdownInterval.current) {
@@ -277,7 +317,7 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
     if (debateState === DEBATE_STATES.COUNTDOWN) {
       moveToNextSpeaker();
     } else if (debateState === DEBATE_STATES.FINAL_PAUSE) {
-      console.log('⏩ Fast-forward: Completing debate');
+      logger.user('Fast-forward: Completing debate immediately');
       setDebateState(DEBATE_STATES.COMPLETED);
     }
   }, [debateState, moveToNextSpeaker]);
@@ -294,7 +334,7 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
     // Reset pause state
     isPaused.current = false;
 
-    console.log(`⏱️ Starting ${seconds} second countdown to next speaker`);
+    logger.debate(`Starting ${seconds} second countdown to next speaker`);
 
     // Set initial value
     setCountdown(seconds);
@@ -325,8 +365,8 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
     if (finalCountdownInterval.current) {
       clearInterval(finalCountdownInterval.current);
     }
-    
-    console.log(`⏱️ Starting ${seconds} second final countdown before debate completion`);
+
+    logger.debate(`Starting ${seconds} second final countdown before debate completion`);
     
     // Set initial value
     setFinalCountdown(seconds);
@@ -338,7 +378,7 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
         if (next <= 0) {
           clearInterval(finalCountdownInterval.current);
           finalCountdownInterval.current = null;
-          console.log("⭐ DEBATE COMPLETED - Final countdown finished");
+          logger.success(logger.LogCategory.DEBATE, "DEBATE COMPLETED - Final countdown finished");
           setDebateState(DEBATE_STATES.COMPLETED);
           return null;
         }
@@ -370,11 +410,13 @@ export default function useDebateFlow(models, topic, positions, controversyLevel
 
   // Add explicit logging for state changes
   useEffect(() => {
-    console.log(`🔄 Debate state changed to: ${debateState}`);
-    // Log isDebateCompleted value whenever debate state changes
     const isCompleted = debateState === DEBATE_STATES.COMPLETED;
-    console.log(`🔍 isDebateCompleted value: ${isCompleted}`);
-  }, [debateState]);
+    logger.debateStateChange('previous_state', debateState, {
+      isCompleted,
+      currentSpeakerIndex,
+      totalSpeakers: speakingOrder?.length || 0
+    });
+  }, [debateState, currentSpeakerIndex, speakingOrder]);
 
   return {
     debateState,

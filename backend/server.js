@@ -270,20 +270,20 @@ function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNu
     ...flavorConfig.styleModifiers
   };
 
-  // Controversy-scaled intensity descriptors
+  // CRANKED UP INTENSITY - NO MORE WEAK RESPONSES
   const getIntensityLevel = (level) => {
-    if (level >= 90) return { name: 'MAXIMUM', temp: 1.3, desc: 'unfiltered, provocative, hard-hitting' };
-    if (level >= 70) return { name: 'HIGH', temp: 1.25, desc: 'sharp, pointed, confrontational' };
-    if (level >= 40) return { name: 'MODERATE', temp: 1.2, desc: 'assertive, opinionated, direct' };
-    return { name: 'MILD', temp: 1.15, desc: 'measured, thoughtful, civil' };
+    if (level >= 90) return { name: 'MAXIMUM', temp: 1.45, desc: 'unfiltered, provocative, ruthless' };
+    if (level >= 70) return { name: 'HIGH', temp: 1.4, desc: 'sharp, aggressive, confrontational' };
+    if (level >= 40) return { name: 'MODERATE', temp: 1.35, desc: 'assertive, forceful, direct' };
+    return { name: 'MILD', temp: 1.3, desc: 'clear, strong, unwavering' };
   };
 
   const intensity = getIntensityLevel(controversyLevel);
 
-  // Override temperature with merged flavor + persona settings (flavor takes priority)
-  const finalTemp = mergedStyleModifiers.temperature || intensity.temp;
-  const finalPresencePenalty = mergedStyleModifiers.presence_penalty || 0.6;
-  const finalFrequencyPenalty = mergedStyleModifiers.frequency_penalty || 0.7;
+  // MAXIMUM settings - flavor + intensity boost
+  const finalTemp = Math.max(mergedStyleModifiers.temperature || intensity.temp, 1.3); // Minimum 1.3
+  const finalPresencePenalty = Math.max(mergedStyleModifiers.presence_penalty || 0.7, 0.7); // Minimum 0.7
+  const finalFrequencyPenalty = Math.max(mergedStyleModifiers.frequency_penalty || 0.8, 0.8); // Minimum 0.8
 
   console.log(`[GENERATE PROMPT] ✓ Style config: temp=${finalTemp}, presence=${finalPresencePenalty}, frequency=${finalFrequencyPenalty}`);
 
@@ -311,27 +311,38 @@ TOPIC: "Should the government provide free college tuition?"
 RESPONSE: "Free college without quality reform wastes money. Fund community colleges and trade schools. Not everyone needs a four-year degree!"`
   };
 
-  // XML-structured competition framing (higher attention on role)
+  // MAXIMUM INTENSITY COMPETITION FRAMING - NO MORE WEAK SHIT
   const competitionFrame = `<DEBATE_CONTEXT>
-<ROLE>You are a ${party} debater in a COMPETITIVE DEBATE COMPETITION</ROLE>
+<ROLE>You are a ${party} debater in a HIGH-STAKES POLITICAL DEBATE</ROLE>
 <CHARACTER>${flavorConfig.name}: ${flavorConfig.description}</CHARACTER>
-<OBJECTIVE>WIN this argument through direct, forceful rhetoric that addresses the SPECIFIC ISSUE</OBJECTIVE>
-<CONSTRAINTS>
-- NO "as an AI" disclaimers - you are a debater, period
-- NO hedging with "perhaps", "maybe", "some might say"
-- NO meta-commentary about debates
-- NO generic statements - address the SPECIFIC ISSUE directly
-- 20-30 words maximum
-- First-person only
-- Take a CLEAR position on the specific question/issue
-- This is competitive debate entertainment - argue to WIN
-</CONSTRAINTS>
+<OBJECTIVE>DOMINATE this argument. WIN VOTES. DESTROY weak positions.</OBJECTIVE>
+
+<CRITICAL_RULES>
+1. ADDRESS THE EXACT TOPIC "${sanitizedTopic}" - Reference it DIRECTLY in your response
+2. NO generic political platitudes - SPECIFIC arguments about THIS topic
+3. NO "as an AI" or "I'm programmed" - You are a REAL political operative
+4. NO hedging words: "perhaps", "maybe", "might", "could", "some say"
+5. NO meta-commentary about debates or arguments
+6. 20-35 words maximum - every word COUNTS
+7. First-person ONLY - "I", "we", "our party"
+8. Take an EXTREME, CLEAR position - no middle ground bullshit
+9. Use STRONG verbs and CONCRETE nouns - no vague language
+10. This is REAL politics - be AGGRESSIVE, DIRECT, UNCOMPROMISING
+</CRITICAL_RULES>
+
+<TOPIC_REQUIREMENT>
+Your response MUST include specific reference to: "${sanitizedTopic}"
+Do NOT give generic party talking points. Address THIS EXACT ISSUE.
+</TOPIC_REQUIREMENT>
+
 <PERSONA>${personaConfig.name}: ${personaConfig.description}</PERSONA>
 <CHARACTER_STYLE>${flavorConfig.promptAddition}</CHARACTER_STYLE>
-<INTENSITY>${intensity.name} (${controversyLevel}/100) - ${intensity.desc}</INTENSITY>
+<INTENSITY>MAXIMUM (${controversyLevel}/100) - ${intensity.desc}</INTENSITY>
 </DEBATE_CONTEXT>
 
 ${fewShotExamples[party]}
+
+REMEMBER: Address "${sanitizedTopic}" DIRECTLY. No generic bullshit. Be SPECIFIC about THIS topic.
 
 ${personaConfig.promptAddition}
 
@@ -1251,6 +1262,165 @@ app.post('/api/debate-flow', async (req, res) => {
     console.error('[DEBATE FLOW ERROR]', error);
     res.status(500).json({
       error: 'Failed to complete debate flow',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * ELITE DOCUMENT GENERATION + INDEPENDENT ALIGNMENT
+ * Generates proposals, Independent picks a side using AI
+ */
+app.post('/api/generate-proposals', async (req, res) => {
+  const startTime = Date.now();
+  const { topic, controversyLevel = 100 } = req.body;
+
+  console.log('[PROPOSALS] ✓ Starting elite proposal generation with Independent alignment');
+  console.log(`[PROPOSALS] Topic: "${topic}"`);
+
+  try {
+    // STAGE 1: Generate quick debate arguments (1 round, aggressive)
+    console.log('[PROPOSALS] ✓ Stage 1: Generating debate arguments');
+
+    const parties = ['Democrat', 'Republican'];
+    const debateArguments = [];
+
+    // Parallel generation - FAST
+    const roundArguments = await Promise.all(
+      parties.map(async (party) => {
+        const argument = await callLLM(
+          'Cohere', // Best performer
+          party,
+          topic,
+          [],
+          controversyLevel,
+          {},
+          'standard',
+          'aggressive' // Use aggressive flavor
+        );
+
+        return {
+          party,
+          affiliation: party,
+          content: argument,
+          timestamp: new Date().toISOString()
+        };
+      })
+    );
+
+    debateArguments.push(...roundArguments);
+    console.log(`[PROPOSALS] ✓ Generated ${debateArguments.length} debate arguments`);
+
+    // STAGE 2: Generate Democrat and Republican proposals
+    console.log('[PROPOSALS] ✓ Stage 2: Synthesizing proposals');
+
+    const [democratProposal, republicanProposal] = await Promise.all([
+      synthesizeDebateIntoDocument('Democrat', topic, debateArguments, 'policy_proposal'),
+      synthesizeDebateIntoDocument('Republican', topic, debateArguments, 'policy_proposal')
+    ]);
+
+    console.log('[PROPOSALS] ✓ Both proposals generated');
+
+    // STAGE 3: INDEPENDENT AI ALIGNMENT - Uses AI to pick a side
+    console.log('[PROPOSALS] ✓ Stage 3: Independent analyzing proposals with AI');
+
+    const independentAlignmentPrompt = {
+      system: `You are an Independent political analyst reviewing two competing policy proposals.
+
+Your job: Read both proposals and decide which one you support based on:
+- Practical effectiveness
+- Evidence-based reasoning
+- Balancing competing interests
+- Long-term consequences
+
+You MUST pick one. No "both have merit" bullshit. Make a decision.
+
+Respond in this EXACT format:
+DECISION: [Democrat/Republican]
+REASONING: [2-3 sentences explaining why]
+CONFIDENCE: [0-100]`,
+
+      user: `TOPIC: "${topic}"
+
+DEMOCRAT PROPOSAL:
+${democratProposal.content}
+
+REPUBLICAN PROPOSAL:
+${republicanProposal.content}
+
+Which proposal do you support? Make your decision now.`
+    };
+
+    console.log('[PROPOSALS] ✓ Sending alignment request to AI');
+
+    const alignmentResponse = await executeLLMCall(
+      'Claude', // Use Claude for analysis
+      independentAlignmentPrompt.system,
+      independentAlignmentPrompt.user,
+      0.9, // Slightly lower temp for analysis
+      {
+        max_tokens: 200,
+        presence_penalty: 0.5,
+        frequency_penalty: 0.6,
+        cleanResponse: false,
+        retryOnWeak: false
+      }
+    );
+
+    console.log('[PROPOSALS] ✓ Independent alignment decision received');
+
+    // Parse Independent decision
+    const decisionMatch = alignmentResponse.match(/DECISION:\s*(Democrat|Republican)/i);
+    const reasoningMatch = alignmentResponse.match(/REASONING:\s*(.+?)(?=CONFIDENCE:|$)/is);
+    const confidenceMatch = alignmentResponse.match(/CONFIDENCE:\s*(\d+)/);
+
+    const alignedWith = decisionMatch ? decisionMatch[1] : 'Democrat'; // Default to Democrat if parsing fails
+    const reasoning = reasoningMatch ? reasoningMatch[1].trim() : 'Analysis completed';
+    const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 50;
+
+    console.log(`[PROPOSALS] ✓ Independent aligns with: ${alignedWith} (${confidence}% confidence)`);
+
+    const independentDocument = {
+      party: 'Independent',
+      documentType: 'coalition',
+      alignedWith: alignedWith,
+      confidence: confidence,
+      reasoning: reasoning,
+      topic: topic,
+      content: `## Independent Analysis\n\nAfter reviewing both proposals on "${topic}", the Independent party aligns with the **${alignedWith}** position.\n\n**Reasoning:** ${reasoning}\n\n**Confidence Level:** ${confidence}%\n\nWe believe this approach offers the most pragmatic and effective solution to the issue at hand.`,
+      generatedAt: new Date().toISOString(),
+      isCoalition: true
+    };
+
+    const responseTime = Date.now() - startTime;
+    console.log(`[PROPOSALS] ✓ COMPLETE in ${responseTime}ms`);
+
+    res.json({
+      success: true,
+      topic,
+      debate: {
+        arguments: debateArguments,
+        totalArguments: debateArguments.length
+      },
+      proposals: {
+        democrat: democratProposal,
+        republican: republicanProposal,
+        independent: independentDocument
+      },
+      alignment: {
+        party: alignedWith,
+        reasoning: reasoning,
+        confidence: confidence,
+        rawResponse: alignmentResponse
+      },
+      generationTime: responseTime,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[PROPOSALS] ✗ ERROR:', error);
+    res.status(500).json({
+      error: 'Failed to generate proposals',
       message: error.message
     });
   }

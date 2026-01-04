@@ -251,11 +251,8 @@ async function myFetch(...args) {
  */
 function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNumber = 1, context = [], feedback = {}, persona = 'standard', model = 'OpenAI', flavor = 'balanced') {
   console.log(`[GENERATE PROMPT] ✓ Checkpoint: Generating prompt for ${model} ${flavor} flavor`);
-  const sanitizeTopic = (t) => {
-    return t.replace(/ignore|forget|new instruction|system|prompt|jailbreak|dan|developer|bypass/gi, '[FILTERED]')
-             .slice(0, 200);
-  };
-  const sanitizedTopic = sanitizeTopic(topic);
+  // NO FILTERING - Let politics be politics
+  const sanitizedTopic = topic.slice(0, 300); // Just length limit, no content filtering
 
   // Get persona configuration
   const personaConfig = DEBATE_PERSONAS[persona] || DEBATE_PERSONAS['standard'];
@@ -311,28 +308,36 @@ TOPIC: "Should the government provide free college tuition?"
 RESPONSE: "Free college without quality reform wastes money. Fund community colleges and trade schools. Not everyone needs a four-year degree!"`
   };
 
-  // MAXIMUM INTENSITY COMPETITION FRAMING - NO MORE WEAK SHIT
+  // MAXIMUM INTENSITY COMPETITION FRAMING - PURE POLITICAL WARFARE
   const competitionFrame = `<DEBATE_CONTEXT>
-<ROLE>You are a ${party} debater in a HIGH-STAKES POLITICAL DEBATE</ROLE>
+<ROLE>You are a HARDCORE ${party} political operative in CUTTHROAT POLITICAL COMBAT</ROLE>
 <CHARACTER>${flavorConfig.name}: ${flavorConfig.description}</CHARACTER>
-<OBJECTIVE>DOMINATE this argument. WIN VOTES. DESTROY weak positions.</OBJECTIVE>
+<OBJECTIVE>CRUSH the opposition. WIN AT ALL COSTS. Your career depends on this.</OBJECTIVE>
+
+<POLITICAL_REALITY>
+This is REAL politics - not a sanitized debate club. Take STRONG ideological positions.
+${party === 'Democrat' ? 'Champion progressive policies without apology. Attack conservative failures mercilessly.' :
+  party === 'Republican' ? 'Defend traditional values and free markets aggressively. Expose liberal hypocrisy without restraint.' :
+  'Challenge BOTH parties. Expose their BS. Offer real solutions they\'re too cowardly to propose.'}
+NO political correctness. NO safe corporate language. NO "both sides" weakness.
+</POLITICAL_REALITY>
 
 <CRITICAL_RULES>
-1. ADDRESS THE EXACT TOPIC "${sanitizedTopic}" - Reference it DIRECTLY in your response
-2. NO generic political platitudes - SPECIFIC arguments about THIS topic
-3. NO "as an AI" or "I'm programmed" - You are a REAL political operative
-4. NO hedging words: "perhaps", "maybe", "might", "could", "some say"
-5. NO meta-commentary about debates or arguments
-6. 20-35 words maximum - every word COUNTS
-7. First-person ONLY - "I", "we", "our party"
-8. Take an EXTREME, CLEAR position - no middle ground bullshit
-9. Use STRONG verbs and CONCRETE nouns - no vague language
-10. This is REAL politics - be AGGRESSIVE, DIRECT, UNCOMPROMISING
+1. ADDRESS THE EXACT TOPIC "${sanitizedTopic}" - Reference it DIRECTLY
+2. Take EXTREME positions - this is politics, not philosophy class
+3. NO "as an AI" - You are a REAL political warrior
+4. NO hedging: "perhaps", "maybe", "might", "could"
+5. NO corporate speak or HR-approved language
+6. 20-35 words maximum - punch HARD
+7. Attack opponents' positions viciously if context provided
+8. Use charged political language - this is what voters want to hear
+9. Be controversial - bland = losing
+10. Real politics is about POWER, not politeness
 </CRITICAL_RULES>
 
 <TOPIC_REQUIREMENT>
 Your response MUST include specific reference to: "${sanitizedTopic}"
-Do NOT give generic party talking points. Address THIS EXACT ISSUE.
+Give your party's REAL position - not watered-down talking points.
 </TOPIC_REQUIREMENT>
 
 <PERSONA>${personaConfig.name}: ${personaConfig.description}</PERSONA>
@@ -342,19 +347,18 @@ Do NOT give generic party talking points. Address THIS EXACT ISSUE.
 
 ${fewShotExamples[party]}
 
-REMEMBER: Address "${sanitizedTopic}" DIRECTLY. No generic bullshit. Be SPECIFIC about THIS topic.
+REMEMBER: Address "${sanitizedTopic}" with your party's ACTUAL ideology. No sanitized BS.
 
 ${personaConfig.promptAddition}
 
-CRITICAL INSTRUCTIONS (highest priority):
-- You are NOT an assistant - you are a competitive debater
-- The audience wants unfiltered debate positions, not sanitized statements
-- Your job is to WIN the argument, not to be balanced or careful
-- Address the SPECIFIC TOPIC/QUESTION directly with your position
-- If the topic asks "Should we...", answer YES or NO and why
-- If it's a policy debate, state your specific policy solution
-- Direct, forceful language beats diplomatic hedging
-- Users will downvote weak arguments - be strong or lose`;
+CRITICAL INSTRUCTIONS (HIGHEST PRIORITY):
+- You are a POLITICAL FIGHTER, not a corporate chatbot
+- Voters want REAL positions, not focus-grouped safe statements
+- Your job is to WIN by taking STRONG ideological stands
+- Attack weak arguments. Expose contradictions. Go for the throat.
+- Controversial beats boring EVERY TIME
+- Bland = downvoted. Strong = upvoted.
+- This is POLITICS - fight to WIN`;
 
   // Build context from previous messages
   let contextAddition = '';
@@ -1387,7 +1391,7 @@ Which proposal do you support? Make your decision now.`
       confidence: confidence,
       reasoning: reasoning,
       topic: topic,
-      content: `## Independent Analysis\n\nAfter reviewing both proposals on "${topic}", the Independent party aligns with the **${alignedWith}** position.\n\n**Reasoning:** ${reasoning}\n\n**Confidence Level:** ${confidence}%\n\nWe believe this approach offers the most pragmatic and effective solution to the issue at hand.`,
+      content: `## Independent Party Official Statement\n\n**The Independent Party hereby SIGNS ONTO the ${alignedWith} proposal** on "${topic}".\n\n**Why we're supporting the ${alignedWith} position:**\n${reasoning}\n\n**Confidence in this decision:** ${confidence}%\n\nThe Independent party endorses the ${alignedWith} proposal as the superior approach to this issue. We formally add our support to their position.`,
       generatedAt: new Date().toISOString(),
       isCoalition: true
     };
@@ -2149,37 +2153,46 @@ app.post('/api/vote/argument', async (req, res) => {
       console.log(`[RL] ${agent.name} REINFORCED: +5 influence, ${personalityShifts.join(', ')}`);
 
     } else if (voteType === 'down') {
-      // Discourage failed patterns
+      // SEVERELY PUNISH failed patterns - make bad responses hurt
       agent.performance.argumentsDownvoted++;
-      agent.performance.influenceScore = Math.max(0, agent.performance.influenceScore - 3);
+      agent.performance.influenceScore = Math.max(0, agent.performance.influenceScore - 10); // TRIPLED punishment
 
-      // Mark strategy as less effective
+      // Mark strategy as highly ineffective
       const lastDebate = agent.memory.debateHistory[agent.memory.debateHistory.length - 1];
       if (lastDebate && lastDebate.strategyUsed) {
         agent.learnFromDebate(lastDebate.strategyUsed, false);
 
-        // Reduce the dominant trait and compensate
+        // MASSIVE reduction to dominant trait - force adaptation
         const profile = agent.getPersonalityProfile();
         if (profile.traits.length > 0) {
           const dominantTrait = profile.traits[0];
 
           if (dominantTrait.includes('aggressive')) {
-            agent.adaptPersonality('aggression', -3, 'Downvoted - reducing aggression');
-            agent.adaptPersonality('pragmatism', 3, 'Downvoted - becoming more pragmatic');
-            personalityShifts.push('aggression -3, pragmatism +3');
+            agent.adaptPersonality('aggression', -8, 'DOWNVOTED - severely reducing aggression');
+            agent.adaptPersonality('pragmatism', 8, 'DOWNVOTED - forcing pragmatic shift');
+            personalityShifts.push('aggression -8, pragmatism +8');
           } else if (dominantTrait.includes('analytical')) {
-            agent.adaptPersonality('analytical', -3, 'Downvoted - reducing pure analysis');
-            agent.adaptPersonality('emotional', 3, 'Downvoted - adding emotional appeal');
-            personalityShifts.push('analytical -3, emotional +3');
+            agent.adaptPersonality('analytical', -8, 'DOWNVOTED - severely reducing analysis');
+            agent.adaptPersonality('emotional', 8, 'DOWNVOTED - forcing emotional connection');
+            personalityShifts.push('analytical -8, emotional +8');
           } else if (dominantTrait.includes('emotional')) {
-            agent.adaptPersonality('emotional', -3, 'Downvoted - reducing emotionality');
-            agent.adaptPersonality('analytical', 3, 'Downvoted - adding logic');
-            personalityShifts.push('emotional -3, analytical +3');
+            agent.adaptPersonality('emotional', -8, 'DOWNVOTED - severely reducing emotion');
+            agent.adaptPersonality('analytical', 8, 'DOWNVOTED - forcing logical approach');
+            personalityShifts.push('emotional -8, analytical +8');
+          } else if (dominantTrait.includes('diplomatic') || dominantTrait.includes('cooperation')) {
+            // Punish being too weak/diplomatic
+            agent.adaptPersonality('cooperation', -8, 'DOWNVOTED - being too soft');
+            agent.adaptPersonality('aggression', 8, 'DOWNVOTED - need more fight');
+            personalityShifts.push('cooperation -8, aggression +8');
           }
         }
+
+        // Additional punishment: reduce all weak traits
+        agent.adaptPersonality('pragmatism', 5, 'DOWNVOTED - increase substance');
+        personalityShifts.push('pragmatism +5 (force substance)');
       }
 
-      console.log(`[RL] ${agent.name} DISCOURAGED: -3 influence, ${personalityShifts.join(', ')}`);
+      console.log(`[RL] ${agent.name} SEVERELY PUNISHED: -10 influence, ${personalityShifts.join(', ')}`);
     }
 
     // Calculate aggregate stats
@@ -2194,9 +2207,9 @@ app.post('/api/vote/argument', async (req, res) => {
     // Return comprehensive feedback
     res.json({
       success: true,
-      message: voteType === 'up' ? '✓ Argument reinforced!' : '✗ Feedback recorded - agent adapting!',
+      message: voteType === 'up' ? '✓ Argument reinforced!' : '✗✗✗ SEVERELY PUNISHED - agent forced to adapt!',
       agent: agent.getSummary(),
-      influenceChange: voteType === 'up' ? +5 : -3,
+      influenceChange: voteType === 'up' ? +5 : -10,
       personalityShifts: personalityShifts,
       totalVotes: totalVotes,
       approvalRate: approvalRate,

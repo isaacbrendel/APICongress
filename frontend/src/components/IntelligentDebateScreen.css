@@ -384,3 +384,88 @@
     width: 100%;
   }
 }
+
+/* Agents Info Bar - Replacement for Congress Table */
+.agents-info-bar {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(26, 26, 46, 0.95);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 16px;
+  padding: 15px 25px;
+  backdrop-filter: blur(15px);
+  z-index: 40;
+  max-width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.agents-info-bar h3 {
+  font-size: 1rem;
+  color: #FFD700;
+  margin: 0 0 12px 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.agents-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.agent-chip {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid;
+  border-radius: 20px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.agent-chip.speaking {
+  background: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  transform: scale(1.1);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.agent-chip .agent-name {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.agent-chip .agent-party {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .agents-info-bar {
+    top: 70px;
+    padding: 10px 15px;
+  }
+
+  .agents-info-bar h3 {
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+  }
+
+  .agent-chip {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+}

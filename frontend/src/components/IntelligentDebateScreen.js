@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import CongressTable from './CongressTable';
 import TopicBanner from './TopicBanner';
 import ArgumentVoting from './ArgumentVoting';
 import useIntelligentAgents from '../hooks/useIntelligentAgents';
@@ -11,11 +10,11 @@ import './IntelligentDebateScreen.css';
  * INTELLIGENT DEBATE SCREEN
  *
  * Showcases the powerful multi-agent AI system with:
- * - Visual congress table (Last Supper style)
  * - Real agent personalities and learning
  * - Strategic, context-aware debates
  * - Relationship dynamics
  * - Coalition building
+ * - Direct argument display without visual overhead
  */
 const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   const {
@@ -281,13 +280,26 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         </div>
       )}
 
-      {/* Congress Table - The Last Supper */}
-      {initialized && agents.length > 0 && (
-        <CongressTable
-          agents={agents}
-          currentSpeaker={currentSpeaker}
-          onAgentClick={handleAgentClick}
-        />
+      {/* Agent Info Bar - Simple display without round table */}
+      {initialized && agents.length > 0 && !showResults && (
+        <div className="agents-info-bar">
+          <h3>AI Debaters ({agents.length})</h3>
+          <div className="agents-list">
+            {agents.map(agent => (
+              <div
+                key={agent.id}
+                className={`agent-chip ${currentSpeaker && currentSpeaker.id === agent.id ? 'speaking' : ''}`}
+                style={{
+                  borderColor: agent.party === 'Democrat' ? '#4A90E2' :
+                               agent.party === 'Republican' ? '#E24A4A' : '#9B59B6'
+                }}
+              >
+                <span className="agent-name">{agent.name}</span>
+                <span className="agent-party">({agent.party?.charAt(0) || 'I'})</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Debate Status */}

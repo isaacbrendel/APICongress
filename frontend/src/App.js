@@ -137,29 +137,11 @@ function App() {
       <div className={`App ${isTransitioning ? 'transitioning' : ''}`}>
         {!debateStarted ? (
           <HomeScreen onBeginDebate={startDebate} />
-        ) : useIntelligentMode ? (
+        ) : (
           <IntelligentDebateScreen
             topic={topic}
             onReturnHome={handleReturnHome}
           />
-        ) : (
-          <DebateScreen
-            topic={topic}
-            models={models}
-            setModels={setModels}
-            onReturnHome={handleReturnHome}
-          />
-        )}
-
-        {/* Mode Toggle - Top Right Corner */}
-        {debateStarted && (
-          <button
-            className="mode-toggle"
-            onClick={() => setUseIntelligentMode(!useIntelligentMode)}
-            title={useIntelligentMode ? "Switch to Classic Mode" : "Switch to Intelligent Mode"}
-          >
-            {useIntelligentMode ? "🧠 AI" : "📜 Classic"}
-          </button>
         )}
       </div>
     </BackgroundVideo>

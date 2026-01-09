@@ -1,0 +1,311 @@
+.argument-card {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid transparent;
+  transition: box-shadow var(--transition-fast);
+  position: relative;
+}
+
+.argument-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Party-specific left border colors */
+.argument-card--democrat {
+  border-left-color: #3B82F6;
+}
+
+.argument-card--republican {
+  border-left-color: #EF4444;
+}
+
+.argument-card--independent {
+  border-left-color: #A855F7;
+}
+
+/* Header */
+.argument-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.argument-card__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-bg-tertiary);
+  flex-shrink: 0;
+}
+
+.argument-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.argument-card__meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.argument-card__name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.argument-card__party {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  width: fit-content;
+}
+
+.argument-card__party--democrat {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.argument-card__party--republican {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.argument-card__party--independent {
+  background: #F3E8FF;
+  color: #6B21A8;
+}
+
+.argument-card__timestamp {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* Content */
+.argument-card__content {
+  font-size: var(--text-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Files */
+.argument-card__files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.argument-card__file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: var(--transition-fast);
+  font-size: var(--text-sm);
+}
+
+.argument-card__file:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.argument-card__file-icon {
+  font-size: var(--text-lg);
+}
+
+.argument-card__file-name {
+  flex: 1;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-accent);
+}
+
+.argument-card__file-size {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* Footer */
+.argument-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.argument-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Vote buttons */
+.vote-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.vote-button:hover:not(:disabled) {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-text-tertiary);
+  transform: translateY(-1px);
+}
+
+.vote-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.vote-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Active vote states */
+.vote-button--up.vote-button--active {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+}
+
+.vote-button--down.vote-button--active {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: white;
+}
+
+.vote-button--up.vote-button--active:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+}
+
+.vote-button--down.vote-button--active:hover:not(:disabled) {
+  background: #DC2626;
+  border-color: #DC2626;
+}
+
+.argument-card__vote-count {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Response indicator */
+.response-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 var(--space-2) var(--space-8);
+  color: var(--color-text-tertiary);
+}
+
+.response-indicator__line {
+  width: 2px;
+  height: 24px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.response-indicator__label {
+  font-size: var(--text-xs);
+  font-style: italic;
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+  .argument-card {
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .argument-card__header {
+    gap: var(--space-2);
+  }
+
+  .argument-card__avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .argument-card__content {
+    font-size: var(--text-sm);
+  }
+
+  .argument-card__files {
+    padding: var(--space-2);
+  }
+
+  .argument-card__file {
+    font-size: var(--text-xs);
+    padding: var(--space-1);
+  }
+
+  .vote-button {
+    width: 36px;
+    height: 36px;
+    font-size: var(--text-xl);
+  }
+
+  .response-indicator {
+    margin-left: var(--space-4);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .argument-card,
+  .vote-button,
+  .argument-card__file {
+    transition: none;
+  }
+
+  .vote-button:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .argument-card {
+    box-shadow: none;
+    border: 1px solid var(--color-border);
+    page-break-inside: avoid;
+  }
+
+  .argument-card__footer {
+    display: none;
+  }
+}

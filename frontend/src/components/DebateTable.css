@@ -1,0 +1,158 @@
+.debate-table {
+  padding: var(--space-6) var(--space-4);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Header */
+.debate-table__header {
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+.debate-table__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+  letter-spacing: -0.02em;
+}
+
+.debate-table__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Participants grid */
+.debate-table__participants {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  max-width: var(--max-width-wide);
+  margin: 0 auto;
+}
+
+/* Party legend */
+.debate-table__legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.debate-table__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.debate-table__legend-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-xs);
+}
+
+/* Legend party colors */
+.debate-table__legend-item--democrat {
+  color: #1E40AF;
+}
+
+.debate-table__legend-item--democrat .debate-table__legend-count {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.debate-table__legend-item--republican {
+  color: #991B1B;
+}
+
+.debate-table__legend-item--republican .debate-table__legend-count {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.debate-table__legend-item--independent {
+  color: #6B21A8;
+}
+
+.debate-table__legend-item--independent .debate-table__legend-count {
+  background: #F3E8FF;
+  color: #6B21A8;
+}
+
+/* Responsive - Tablet */
+@media (max-width: 1024px) {
+  .debate-table {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .debate-table__participants {
+    gap: var(--space-2);
+  }
+
+  .debate-table__legend {
+    gap: var(--space-4);
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+  .debate-table {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .debate-table__title {
+    font-size: var(--text-xl);
+  }
+
+  .debate-table__subtitle {
+    font-size: var(--text-xs);
+  }
+
+  .debate-table__participants {
+    gap: var(--space-2);
+  }
+
+  .debate-table__legend {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+  }
+
+  .debate-table__legend-item {
+    font-size: var(--text-xs);
+    gap: var(--space-1);
+  }
+
+  .debate-table__legend-count {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.625rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .debate-table {
+    position: static;
+    box-shadow: none;
+  }
+}

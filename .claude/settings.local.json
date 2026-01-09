@@ -9,7 +9,8 @@
       "Bash(CI=true npm test)",
       "Bash(curl:*)",
       "Bash(grep:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)"
     ]
   },
   "enableAllProjectMcpServers": false

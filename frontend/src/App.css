@@ -11,6 +11,11 @@
   color: #ffffff;
   transition: opacity 0.4s ease;
   opacity: 1;
+  /* Safe area for notched devices */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .App.transitioning {
@@ -58,6 +63,7 @@ html {
   font-size: 0.9rem;
   font-weight: bold;
   cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;

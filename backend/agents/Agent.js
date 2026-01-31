@@ -325,9 +325,13 @@ class Agent {
    * Get relevant knowledge for a topic
    */
   getRelevantKnowledge(topic, limit = 5) {
+    if (!this.knowledgeBase || !Array.isArray(this.knowledgeBase)) {
+      this.knowledgeBase = [];
+      return [];
+    }
     return this.knowledgeBase
-      .filter(item => item.topic.toLowerCase().includes(topic.toLowerCase()))
-      .sort((a, b) => b.confidence - a.confidence)
+      .filter(item => item.topic && item.topic.toLowerCase().includes(topic.toLowerCase()))
+      .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
       .slice(0, limit);
   }
 

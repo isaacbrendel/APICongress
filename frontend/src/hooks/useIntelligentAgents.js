@@ -1,14 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { API_BASE_URL, API_ENDPOINTS, getApiUrl } from '../config/api';
 
 /**
- * Hook for Intelligent Agent System Integration
- *
- * Connects frontend to the powerful backend agent system with:
- * - Multi-model debates
- * - Agent personalities and learning
- * - Relationship dynamics
- * - Research committees
- * - Constitutional documents
+ * Hook for Intelligent Agent System
+ * Connects to backend debate system with full agent management
  */
 const useIntelligentAgents = () => {
   const [agents, setAgents] = useState([]);
@@ -17,33 +12,31 @@ const useIntelligentAgents = () => {
   const [currentDebateId, setCurrentDebateId] = useState(null);
   const [debateTurns, setDebateTurns] = useState([]);
 
-  const API_BASE = 'http://localhost:5001/api';
-
   /**
-   * Initialize a full congress of AI agents
+   * Initialize congress of AI agents
    */
-  const initializeCongress = useCallback(async (count = 10) => {
+  const initializeCongress = useCallback(async (count = 5) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/congress/initialize`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.CONGRESS_INITIALIZE), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ count })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to initialize congress: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to initialize congress: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       setAgents(data.agents || []);
-      console.log('[INTELLIGENT AGENTS] Congress initialized:', data.agents);
-
+      console.log('[AGENTS] Congress initialized:', data.agents?.length);
       return data.agents;
     } catch (err) {
-      console.error('[INTELLIGENT AGENTS] Error:', err);
+      console.error('[AGENTS] Init error:', err);
       setError(err.message);
       return [];
     } finally {
@@ -52,29 +45,25 @@ const useIntelligentAgents = () => {
   }, []);
 
   /**
-   * Get all registered agents
+   * Fetch all registered agents
    */
   const fetchAgents = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/agents`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch agents');
-      }
+      const response = await fetch(getApiUrl(API_ENDPOINTS.AGENTS));
+      if (!response.ok) throw new Error('Failed to fetch agents');
 
       const data = await response.json();
       setAgents(data.agents || []);
-
       return data.agents;
     } catch (err) {
-      console.error('[INTELLIGENT AGENTS] Error fetching agents:', err);
+      console.error('[AGENTS] Fetch error:', err);
       setError(err.message);
       return [];
     }
   }, []);
 
   /**
-   * Start an intelligent debate with full context
+   * Start a debate
    */
   const startIntelligentDebate = useCallback(async (topic, participantIds, options = {}) => {
     setLoading(true);
@@ -82,7 +71,7 @@ const useIntelligentAgents = () => {
     setDebateTurns([]);
 
     try {
-      const response = await fetch(`${API_BASE}/debate/start`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.DEBATE_START), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -95,16 +84,16 @@ const useIntelligentAgents = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start debate');
+        const errorText = await response.text();
+        throw new Error(`Failed to start debate: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       setCurrentDebateId(data.debateId);
-      console.log('[INTELLIGENT DEBATE] Started:', data.debateId);
-
+      console.log('[DEBATE] Started:', data.debateId);
       return data.debateId;
     } catch (err) {
-      console.error('[INTELLIGENT DEBATE] Error:', err);
+      console.error('[DEBATE] Start error:', err);
       setError(err.message);
       return null;
     } finally {
@@ -113,60 +102,62 @@ const useIntelligentAgents = () => {
   }, []);
 
   /**
-   * Generate next debate argument
+   * Generate next argument in debate
    */
   const generateArgument = useCallback(async (debateId, agentId) => {
+    if (!debateId) {
+      console.error('[DEBATE] No debateId provided');
+      return null;
+    }
+
     try {
-      const response = await fetch(`${API_BASE}/debate/${debateId}/argument`, {
+      const url = `${API_BASE_URL}${API_ENDPOINTS.DEBATE_ARGUMENT}/${debateId}/argument`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentId })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate argument');
+        const errorText = await response.text();
+        throw new Error(`Failed to generate argument: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       const turn = data.turn;
 
-      // Add to debate turns
       setDebateTurns(prev => [...prev, turn]);
-
-      console.log('[INTELLIGENT DEBATE] New argument:', turn);
-
+      console.log('[DEBATE] Argument generated');
       return turn;
     } catch (err) {
-      console.error('[INTELLIGENT DEBATE] Error generating argument:', err);
+      console.error('[DEBATE] Argument error:', err);
       setError(err.message);
       return null;
     }
   }, []);
 
   /**
-   * Process debate outcome and trigger agent learning
+   * Process debate outcome and trigger learning
    */
   const processDebateOutcome = useCallback(async (debateId, votingResults) => {
+    if (!debateId) return null;
+
     try {
-      const response = await fetch(`${API_BASE}/debate/${debateId}/outcome`, {
+      const url = `${API_BASE_URL}${API_ENDPOINTS.DEBATE_OUTCOME}/${debateId}/outcome`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ votingResults })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to process debate outcome');
-      }
+      if (!response.ok) throw new Error('Failed to process outcome');
 
       const data = await response.json();
-      console.log('[INTELLIGENT DEBATE] Outcome processed:', data.result);
-
-      // Refresh agent data to show learning
+      console.log('[DEBATE] Outcome processed');
       await fetchAgents();
-
       return data.result;
     } catch (err) {
-      console.error('[INTELLIGENT DEBATE] Error processing outcome:', err);
+      console.error('[DEBATE] Outcome error:', err);
       setError(err.message);
       return null;
     }
@@ -177,22 +168,18 @@ const useIntelligentAgents = () => {
    */
   const createResearchCommittee = useCallback(async (topic, memberIds) => {
     try {
-      const response = await fetch(`${API_BASE}/research/committee`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.RESEARCH_COMMITTEE), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, memberAgentIds: memberIds })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create research committee');
-      }
+      if (!response.ok) throw new Error('Failed to create committee');
 
       const data = await response.json();
-      console.log('[RESEARCH COMMITTEE] Created:', data.committeeId);
-
       return data.committeeId;
     } catch (err) {
-      console.error('[RESEARCH COMMITTEE] Error:', err);
+      console.error('[RESEARCH] Create error:', err);
       setError(err.message);
       return null;
     }
@@ -203,23 +190,19 @@ const useIntelligentAgents = () => {
    */
   const conductResearch = useCallback(async (committeeId) => {
     setLoading(true);
-
     try {
-      const response = await fetch(`${API_BASE}/research/${committeeId}/conduct`, {
+      const url = `${API_BASE_URL}${API_ENDPOINTS.RESEARCH_CONDUCT}/${committeeId}/conduct`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to conduct research');
-      }
+      if (!response.ok) throw new Error('Failed to conduct research');
 
       const data = await response.json();
-      console.log('[RESEARCH] Completed:', data.committee);
-
       return data.committee;
     } catch (err) {
-      console.error('[RESEARCH] Error:', err);
+      console.error('[RESEARCH] Conduct error:', err);
       setError(err.message);
       return null;
     } finally {
@@ -232,25 +215,19 @@ const useIntelligentAgents = () => {
    */
   const createCoalition = useCallback(async (name, memberIds, purpose) => {
     try {
-      const response = await fetch(`${API_BASE}/coalition/create`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.COALITION_CREATE), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, memberAgentIds: memberIds, purpose })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create coalition');
-      }
+      if (!response.ok) throw new Error('Failed to create coalition');
 
       const data = await response.json();
-      console.log('[COALITION] Created:', data.coalitionId);
-
-      // Refresh agents to show updated coalitions
       await fetchAgents();
-
       return data.coalitionId;
     } catch (err) {
-      console.error('[COALITION] Error:', err);
+      console.error('[COALITION] Create error:', err);
       setError(err.message);
       return null;
     }
@@ -261,22 +238,18 @@ const useIntelligentAgents = () => {
    */
   const initializeConstitution = useCallback(async (title, authors = []) => {
     try {
-      const response = await fetch(`${API_BASE}/constitution/initialize`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.CONSTITUTION_INITIALIZE), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, preambleAuthors: authors })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to initialize constitution');
-      }
+      if (!response.ok) throw new Error('Failed to init constitution');
 
       const data = await response.json();
-      console.log('[CONSTITUTION] Initialized:', data.constitutionId);
-
       return data.constitutionId;
     } catch (err) {
-      console.error('[CONSTITUTION] Error:', err);
+      console.error('[CONSTITUTION] Init error:', err);
       setError(err.message);
       return null;
     }
@@ -287,16 +260,14 @@ const useIntelligentAgents = () => {
    */
   const getConstitution = useCallback(async (constitutionId = 'constitution_main') => {
     try {
-      const response = await fetch(`${API_BASE}/constitution/${constitutionId}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to get constitution');
-      }
+      const url = `${API_BASE_URL}${API_ENDPOINTS.CONSTITUTION}/${constitutionId}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to get constitution');
 
       const data = await response.json();
       return data.constitution;
     } catch (err) {
-      console.error('[CONSTITUTION] Error:', err);
+      console.error('[CONSTITUTION] Get error:', err);
       setError(err.message);
       return null;
     }
@@ -307,24 +278,19 @@ const useIntelligentAgents = () => {
    */
   const draftCollaborativeBill = useCallback(async (title, topic, contributorIds) => {
     setLoading(true);
-
     try {
-      const response = await fetch(`${API_BASE}/bill/collaborative`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.BILL_COLLABORATIVE), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, topic, contributorAgentIds: contributorIds })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to draft bill');
-      }
+      if (!response.ok) throw new Error('Failed to draft bill');
 
       const data = await response.json();
-      console.log('[COLLABORATIVE BILL] Drafted:', data.bill);
-
       return data.bill;
     } catch (err) {
-      console.error('[COLLABORATIVE BILL] Error:', err);
+      console.error('[BILL] Draft error:', err);
       setError(err.message);
       return null;
     } finally {
@@ -332,15 +298,28 @@ const useIntelligentAgents = () => {
     }
   }, []);
 
+  /**
+   * Clear error state
+   */
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  /**
+   * Reset debate state
+   */
+  const resetDebate = useCallback(() => {
+    setCurrentDebateId(null);
+    setDebateTurns([]);
+    setError(null);
+  }, []);
+
   return {
-    // State
     agents,
     loading,
     error,
     currentDebateId,
     debateTurns,
-
-    // Actions
     initializeCongress,
     fetchAgents,
     startIntelligentDebate,
@@ -351,7 +330,9 @@ const useIntelligentAgents = () => {
     createCoalition,
     initializeConstitution,
     getConstitution,
-    draftCollaborativeBill
+    draftCollaborativeBill,
+    clearError,
+    resetDebate
   };
 };
 

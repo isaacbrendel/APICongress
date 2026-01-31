@@ -1,20 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ArgumentVoting from './ArgumentVoting';
 import useIntelligentAgents from '../hooks/useIntelligentAgents';
-import logger from '../utils/logger';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import './IntelligentDebateScreen.css';
 
-/**
- * INTELLIGENT DEBATE SCREEN - MINIMALIST DESIGN
- *
- * Clean, stationary display of 5 AI debaters:
- * - ChatGPT, Claude, Gemini, Grok, Cohere
- * - Logos displayed prominently
- * - Minimalist aesthetic matching landing page
- */
-
-// Map of AI model names to their logos
 const AI_MODELS = [
   { name: 'ChatGPT', logo: process.env.PUBLIC_URL + '/logos/chatgpt.png' },
   { name: 'Claude', logo: process.env.PUBLIC_URL + '/logos/claude.png' },
@@ -27,156 +16,126 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   const {
     agents,
     loading,
+    error,
     initializeCongress,
     startIntelligentDebate,
     generateArgument,
     processDebateOutcome,
-    currentDebateId
+    currentDebateId,
+    clearError,
+    resetDebate
   } = useIntelligentAgents();
 
-  const [initialized, setInitialized] = useState(false);
-  const [debateActive, setDebateActive] = useState(false);
-  const [currentSpeakerIndex, setCurrentSpeakerIndex] = useState(0);
-  const [currentArgument, setCurrentArgument] = useState(null);
-  const [countdown, setCountdown] = useState(null);
-  const [showResults, setShowResults] = useState(false);
-  const [allArguments, setAllArguments] = useState([]); // Store ALL arguments with unique IDs
+  // Phase: init -> debating -> voting -> complete
+  const [phase, setPhase] = useState('init');
+  const [currentSpeaker, setCurrentSpeaker] = useState(0);
+  const [arguments_, setArguments] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedWinner, setSelectedWinner] = useState(null);
+  const [voteSubmitted, setVoteSubmitted] = useState(false);
 
-  // Initialize congress on mount - 5 agents for 5 AI models
+  const debateIdRef = useRef(null);
+  const initStarted = useRef(false);
+
+  // Get logo for an agent
+  const getLogo = useCallback((agent) => {
+    if (!agent) return AI_MODELS[0].logo;
+    const model = AI_MODELS.find(m =>
+      agent.model?.toLowerCase().includes(m.name.toLowerCase()) ||
+      agent.name?.toLowerCase().includes(m.name.toLowerCase())
+    );
+    return model?.logo || AI_MODELS[0].logo;
+  }, []);
+
+  // Initialize congress and start debate
   useEffect(() => {
-    if (!initialized) {
-      logger.agent('Initializing intelligent congress', { agentCount: 5 });
-      logger.markStart('congress_init');
-      initializeCongress(5).then(() => {
-        const duration = logger.markEnd('congress_init');
-        logger.success(logger.LogCategory.AGENT, 'Congress initialized successfully', { duration: `${duration}ms` });
-        setInitialized(true);
-      });
-    }
-  }, [initialized, initializeCongress]);
+    if (initStarted.current) return;
+    initStarted.current = true;
 
-  // Start debate once agents are initialized
-  useEffect(() => {
-    if (initialized && agents.length > 0 && !debateActive && !currentDebateId) {
-      logger.debate('Starting intelligent debate', {
-        agentCount: agents.length,
-        topic,
-        controversyLevel: 100
-      });
+    const init = async () => {
+      try {
+        console.log('[DEBATE] Initializing...');
+        const agentList = await initializeCongress(5);
 
-      // Get agent IDs
-      const agentIds = agents.map(a => a.id);
-
-      logger.markStart('intelligent_debate');
-
-      // Start the debate
-      startIntelligentDebate(topic, agentIds, {
-        controversyLevel: 100,
-        enablePeerReview: false, // Can enable for even more depth
-        enableResearch: false
-      }).then(debateId => {
-        if (debateId) {
-          logger.success(logger.LogCategory.DEBATE, 'Intelligent debate started', { debateId });
-          setDebateActive(true);
-          // Start first argument after a delay
-          setTimeout(() => {
-            nextTurn(0);
-          }, 2000);
+        if (!agentList || agentList.length === 0) {
+          console.error('[DEBATE] No agents returned');
+          return;
         }
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized, agents, debateActive, currentDebateId, topic, startIntelligentDebate]);
 
-  // Generate next argument
-  const nextTurn = useCallback(async (speakerIndex) => {
-    if (!currentDebateId || !agents[speakerIndex]) return;
-
-    const agent = agents[speakerIndex];
-    logger.speakerAction('generating argument', agent.name, {
-      speakerIndex,
-      totalAgents: agents.length,
-      agentParty: agent.party
-    });
-
-    setCurrentSpeakerIndex(speakerIndex);
-    setCurrentArgument(null);
-    setCountdown(3);
-
-    // Countdown
-    const countdownInterval = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    // Generate argument after countdown
-    setTimeout(async () => {
-      logger.markStart(`argument_gen_${speakerIndex}`);
-      const turn = await generateArgument(currentDebateId, agent.id);
-      const duration = logger.markEnd(`argument_gen_${speakerIndex}`);
-
-      if (turn) {
-        // Create UNIQUE ID for this specific argument
-        const uniqueArgumentId = `arg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        const argumentData = {
-          ...turn,
-          uniqueId: uniqueArgumentId,
-          timestamp: Date.now(),
-          turnIndex: speakerIndex
-        };
-
-        logger.success(logger.LogCategory.DEBATE, `Argument generated for ${agent.name}`, {
-          duration: `${duration}ms`,
-          argumentLength: turn.argument?.length,
-          strategy: turn.strategy,
-          phase: turn.phase
+        console.log('[DEBATE] Starting with agents:', agentList.map(a => a.id));
+        const agentIds = agentList.map(a => a.id);
+        const debateId = await startIntelligentDebate(topic, agentIds, {
+          controversyLevel: 100
         });
 
-        setCurrentArgument(argumentData);
+        if (!debateId) {
+          console.error('[DEBATE] No debate ID returned');
+          return;
+        }
 
-        // Store this argument for later voting
-        setAllArguments(prev => [...prev, argumentData]);
+        debateIdRef.current = debateId;
+        setPhase('debating');
 
-        // Move to next speaker after displaying argument
-        setTimeout(() => {
-          const nextIndex = speakerIndex + 1;
-
-          if (nextIndex < agents.length) {
-            // Continue to next speaker
-            nextTurn(nextIndex);
-          } else {
-            // Debate complete
-            logger.success(logger.LogCategory.DEBATE, 'Intelligent debate complete!', {
-              totalArguments: agents.length,
-              duration: logger.markEnd('intelligent_debate')
-            });
-            setDebateActive(false);
-            setShowResults(true);
-          }
-        }, 6000); // Show each argument for 6 seconds
+        // Start generating arguments
+        generateNextArgument(0, debateId, agentList);
+      } catch (err) {
+        console.error('[DEBATE] Init failed:', err);
       }
-    }, 3000);
-  }, [currentDebateId, agents, generateArgument]);
+    };
 
-  // Handle vote on argument - REINFORCEMENT LEARNING
-  // Each vote is independent and sent to backend for aggregation
+    init();
+  }, [topic, initializeCongress, startIntelligentDebate]);
+
+  // Generate argument for a speaker
+  const generateNextArgument = useCallback(async (speakerIndex, debateId, agentList) => {
+    if (!debateId || !agentList[speakerIndex]) {
+      console.log('[DEBATE] Complete or invalid state');
+      setPhase('voting');
+      return;
+    }
+
+    setIsGenerating(true);
+    setCurrentSpeaker(speakerIndex);
+
+    const agent = agentList[speakerIndex];
+    console.log(`[DEBATE] Generating for ${agent.model || agent.name}`);
+
+    const turn = await generateArgument(debateId, agent.id);
+
+    if (turn) {
+      const argData = {
+        ...turn,
+        uniqueId: `arg_${Date.now()}_${speakerIndex}`,
+        speakerIndex,
+        model: agent.model,
+        agentName: agent.name
+      };
+
+      setArguments(prev => [...prev, argData]);
+      setIsGenerating(false);
+
+      // Next speaker after delay
+      setTimeout(() => {
+        if (speakerIndex + 1 < agentList.length) {
+          generateNextArgument(speakerIndex + 1, debateId, agentList);
+        } else {
+          setPhase('voting');
+        }
+      }, 4000);
+    } else {
+      setIsGenerating(false);
+      // Try next speaker even if this one failed
+      if (speakerIndex + 1 < agentList.length) {
+        generateNextArgument(speakerIndex + 1, debateId, agentList);
+      } else {
+        setPhase('voting');
+      }
+    }
+  }, [generateArgument]);
+
+  // Handle argument vote
   const handleArgumentVote = async (argumentId, agentId, voteType) => {
-    logger.vote('Reinforcement Learning vote', {
-      argumentId,
-      agentId,
-      voteType
-    });
-
     try {
-      logger.markStart(`rl_vote_${argumentId}`);
-      logger.apiRequest(API_ENDPOINTS.VOTE_ARGUMENT, 'POST', { argumentId, agentId, voteType });
-
       const response = await fetch(getApiUrl(API_ENDPOINTS.VOTE_ARGUMENT), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -188,213 +147,184 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         })
       });
 
-      const duration = logger.markEnd(`rl_vote_${argumentId}`);
-
       if (!response.ok) {
-        throw new Error('Failed to process vote');
+        throw new Error(`Vote failed: ${response.status}`);
       }
 
-      const data = await response.json();
-
-      logger.apiResponse(API_ENDPOINTS.VOTE_ARGUMENT, response.status, duration, {
-        message: data.message,
-        totalVotes: data.totalVotes,
-        approvalRate: data.approvalRate
-      });
-
-      // Show immediate feedback in console
-      if (data.personalityShifts) {
-        logger.agent('Personality evolution triggered', {
-          agentId,
-          shifts: data.personalityShifts
-        });
-      }
-
-      return data;
-    } catch (error) {
-      logger.error(logger.LogCategory.VOTE, 'RL vote failed', {
-        argumentId,
-        agentId,
-        error: error.message
-      });
-      throw error; // Re-throw so ArgumentVoting can handle it
+      return await response.json();
+    } catch (err) {
+      console.error('[VOTE] Error:', err);
+      throw err;
     }
   };
 
-  // Handle vote and process outcome
-  const handleVote = async (winnerId) => {
-    const winner = agents.find(a => a.id === winnerId);
-    logger.vote('Debate winner selected', {
-      winnerId,
-      winnerName: winner?.name,
-      winnerParty: winner?.party
-    });
+  // Handle winner selection
+  const handleSelectWinner = async (winnerId) => {
+    setSelectedWinner(winnerId);
+    setVoteSubmitted(true);
 
-    // Create voting results
     const votingResults = {};
     agents.forEach(agent => {
       votingResults[agent.id] = {
         upvotes: agent.id === winnerId ? 15 : Math.floor(Math.random() * 10),
-        downvotes: agent.id === winnerId ? 3 : Math.floor(Math.random() * 8)
+        downvotes: agent.id === winnerId ? 2 : Math.floor(Math.random() * 8)
       };
     });
 
-    // Process outcome and trigger learning
-    logger.markStart('debate_outcome_processing');
-    await processDebateOutcome(currentDebateId, votingResults);
-    const duration = logger.markEnd('debate_outcome_processing');
+    await processDebateOutcome(debateIdRef.current, votingResults);
 
-    logger.success(logger.LogCategory.AGENT, 'Debate outcome processed - Agents evolved', {
-      duration: `${duration}ms`,
-      winnerId,
-      totalAgents: agents.length
-    });
-
-    // Show final results
     setTimeout(() => {
-      // Note: Using alert for now, but could be replaced with a modal
-      alert('Debate outcome processed! Agents have learned and evolved.');
-    }, 1000);
+      setPhase('complete');
+    }, 1500);
   };
 
-  const currentSpeaker = agents[currentSpeakerIndex];
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      resetDebate();
+    };
+  }, [resetDebate]);
 
-  // Get logo for agent based on model name
-  const getAgentLogo = (agent) => {
-    if (!agent) return null;
-    const modelInfo = AI_MODELS.find(m =>
-      agent.model?.toLowerCase().includes(m.name.toLowerCase()) ||
-      agent.name?.toLowerCase().includes(m.name.toLowerCase())
-    );
-    return modelInfo?.logo || AI_MODELS[0].logo; // Default to first logo if not found
-  };
+  const currentAgent = agents[currentSpeaker];
+  const latestArgument = arguments_[arguments_.length - 1];
 
   return (
-    <div className="intelligent-debate-screen">
-      {/* Exit Button - Minimal top-left */}
-      <button className="exit-button" onClick={onReturnHome}>
+    <div className="debate-screen">
+      <button className="exit-btn" onClick={onReturnHome}>
         Exit
       </button>
 
-      {/* Loading State */}
-      {loading && !initialized && (
-        <div className="loading-container">
-          <div className="loading-text">Assembling AI Congress...</div>
+      <header className="debate-header">
+        <h1 className="debate-topic">{topic}</h1>
+      </header>
+
+      {/* Error Display */}
+      {error && (
+        <div className="error-banner">
+          <span>{error}</span>
+          <button onClick={clearError}>Dismiss</button>
         </div>
       )}
 
-      {/* Main Content - Only show when initialized */}
-      {initialized && !showResults && (
-        <>
-          {/* Topic Display - Minimal top center */}
-          <div className="topic-display">
-            {topic}
-          </div>
+      {/* INIT PHASE */}
+      {phase === 'init' && (
+        <div className="phase-init">
+          <div className="loader"></div>
+          <p className="status-text">Assembling Congress</p>
+        </div>
+      )}
 
-          {/* AI Debaters - Stationary logos in horizontal row */}
-          <div className="ai-debaters">
-            {agents.map((agent, index) => {
-              const isSpeaking = currentSpeaker && currentSpeaker.id === agent.id;
-              const hasSpoken = index < currentSpeakerIndex;
-
-              return (
-                <div
-                  key={agent.id}
-                  className={`ai-debater ${isSpeaking ? 'speaking' : ''} ${hasSpoken ? 'spoken' : ''}`}
-                >
-                  <div className="ai-logo-container">
-                    <img
-                      src={getAgentLogo(agent)}
-                      alt={agent.model || agent.name}
-                      className="ai-logo"
-                    />
-                  </div>
-                  <div className="ai-name">{agent.model || agent.name}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Current Argument - Clean centered display */}
-          {currentArgument && (
-            <div className="argument-container">
-              <div className="argument-text">
-                {currentArgument.argument}
+      {/* DEBATING PHASE */}
+      {phase === 'debating' && (
+        <div className="phase-debate">
+          {/* Progress Bar */}
+          <div className="progress-bar">
+            {agents.map((agent, i) => (
+              <div
+                key={agent.id}
+                className={`progress-item ${i < currentSpeaker ? 'done' : ''} ${i === currentSpeaker ? 'active' : ''}`}
+              >
+                <img src={getLogo(agent)} alt="" />
+                <span>{agent.model || agent.name}</span>
               </div>
+            ))}
+          </div>
 
-              {/* Voting - Minimal design */}
+          {/* Current Speaker */}
+          {currentAgent && (
+            <div className="speaker-section">
+              <div className={`speaker-avatar ${isGenerating ? 'generating' : ''}`}>
+                <img src={getLogo(currentAgent)} alt={currentAgent.model} />
+              </div>
+              <h2 className="speaker-name">{currentAgent.model || currentAgent.name}</h2>
+            </div>
+          )}
+
+          {/* Argument Display */}
+          {isGenerating ? (
+            <div className="generating-indicator">
+              <div className="typing-dots">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          ) : latestArgument ? (
+            <div className="argument-card">
+              <p className="argument-text">{latestArgument.argument}</p>
               <ArgumentVoting
-                key={currentArgument.uniqueId}
-                argumentId={currentArgument.uniqueId}
-                agentId={currentArgument.agentId}
-                agentName={currentArgument.agentName}
+                key={latestArgument.uniqueId}
+                argumentId={latestArgument.uniqueId}
+                agentId={latestArgument.agentId}
+                agentName={latestArgument.agentName || latestArgument.model}
                 onVote={handleArgumentVote}
               />
             </div>
-          )}
-
-          {/* Countdown indicator - only show during countdown */}
-          {countdown !== null && (
-            <div className="countdown-display">{countdown}</div>
-          )}
-        </>
+          ) : null}
+        </div>
       )}
 
-      {/* Debate Complete - Results with Minimalist Design */}
-      {showResults && (
-        <div className="results-container">
-          <div className="results-content">
-            <h2 className="results-title">Debate Complete</h2>
-            <p className="results-subtitle">
-              Vote on each argument to help train the AI
-            </p>
+      {/* VOTING PHASE */}
+      {phase === 'voting' && (
+        <div className="phase-voting">
+          <h2 className="voting-title">Debate Complete</h2>
+          <p className="voting-subtitle">Review arguments and select a winner</p>
 
-            {/* All arguments for voting */}
-            <div className="results-arguments">
-              {allArguments.map((arg) => (
-                <div key={arg.uniqueId} className="result-argument">
-                  <div className="result-argument-header">
-                    <img
-                      src={getAgentLogo(arg)}
-                      alt={arg.model}
-                      className="result-ai-logo"
-                    />
-                    <span className="result-ai-name">{arg.model || arg.agentName}</span>
-                  </div>
-                  <div className="result-argument-text">
-                    {arg.argument}
-                  </div>
-                  <ArgumentVoting
-                    key={arg.uniqueId}
-                    argumentId={arg.uniqueId}
-                    agentId={arg.agentId}
-                    agentName={arg.agentName}
-                    onVote={handleArgumentVote}
-                  />
+          <div className="arguments-review">
+            {arguments_.map((arg, i) => (
+              <div key={arg.uniqueId} className="review-card">
+                <div className="review-header">
+                  <img src={getLogo(agents[i])} alt="" className="review-logo" />
+                  <span className="review-name">{agents[i]?.model || agents[i]?.name}</span>
                 </div>
+                <p className="review-text">{arg.argument}</p>
+                <ArgumentVoting
+                  key={`review-${arg.uniqueId}`}
+                  argumentId={arg.uniqueId}
+                  agentId={arg.agentId}
+                  agentName={arg.agentName || arg.model}
+                  onVote={handleArgumentVote}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="winner-selection">
+            <h3>Select Winner</h3>
+            <div className="winner-options">
+              {agents.map(agent => (
+                <button
+                  key={agent.id}
+                  className={`winner-btn ${selectedWinner === agent.id ? 'selected' : ''}`}
+                  onClick={() => handleSelectWinner(agent.id)}
+                  disabled={voteSubmitted}
+                >
+                  <img src={getLogo(agent)} alt="" />
+                  <span>{agent.model || agent.name}</span>
+                </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Winner selection */}
-            <div className="winner-section">
-              <h3 className="winner-title">Select Winner</h3>
-              <div className="winner-buttons">
-                {agents.map(agent => (
-                  <button
-                    key={agent.id}
-                    className="winner-button"
-                    onClick={() => handleVote(agent.id)}
-                  >
-                    {agent.model || agent.name}
-                  </button>
-                ))}
+      {/* COMPLETE PHASE */}
+      {phase === 'complete' && (
+        <div className="phase-complete">
+          <h2>Results Recorded</h2>
+          <p>AI agents have learned from this debate</p>
+
+          {selectedWinner && (
+            <div className="winner-display">
+              <span>Winner</span>
+              <div className="winner-badge">
+                <img src={getLogo(agents.find(a => a.id === selectedWinner))} alt="" />
+                <span>{agents.find(a => a.id === selectedWinner)?.model}</span>
               </div>
             </div>
+          )}
 
-            <button className="results-home-button" onClick={onReturnHome}>
-              Return Home
-            </button>
-          </div>
+          <button className="home-btn" onClick={onReturnHome}>
+            Return Home
+          </button>
         </div>
       )}
     </div>

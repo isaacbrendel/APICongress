@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const app = express();
-const portFallbacks = [5000, 5001, 5002, 5003, 5004, 5005]; // Multiple port options
+const portFallbacks = [5001, 5000, 5002, 5003, 5004, 5005]; // Multiple port options
 
 // Import intelligent agent system
 const DebateContextManager = require('./agents/DebateContextManager');
@@ -510,7 +510,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
       apiKeyName = 'OPENAI_API_KEY';
       break;
     case 'Claude':
-      apiKeyName = 'CLAUDE_API_KEY';
+      apiKeyName = 'ANTHROPIC_API_KEY';
       break;
     case 'Cohere':
       apiKeyName = 'COHERE_API_KEY';
@@ -621,7 +621,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-api-key": process.env.CLAUDE_API_KEY,
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
             "anthropic-version": "2023-06-01"
           },
           body: JSON.stringify(requestBody),
@@ -1851,10 +1851,37 @@ app.post('/api/debate/:debateId/argument', async (req, res) => {
       return res.status(400).json({ error: 'Agent ID required' });
     }
 
-    // Use executeLLMCall as the LLM executor
-    const llmExecutor = executeLLMCall;
+    // Get agent and debate
+    const agent = debateManager.getAgent(agentId);
+    const debate = debateManager.activeDebates.get(debateId);
 
-    const turn = await debateManager.generateDebateArgument(debateId, agentId, llmExecutor);
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+    if (!debate) {
+      return res.status(404).json({ error: 'Debate not found' });
+    }
+
+    // Get party from agent
+    const party = agent.party || 'Independent';
+    const model = agent.model || 'ChatGPT';
+
+    // Use the callLLM function which handles mock responses
+    const argument = await callLLM(model, party, debate.topic, [], debate.controversyLevel || 100, {});
+
+    // Create turn object
+    const turn = {
+      agentId: agent.id,
+      agentName: agent.name,
+      party: party,
+      model: model,
+      argument: argument,
+      timestamp: new Date().toISOString()
+    };
+
+    // Add to debate turns
+    debate.turns = debate.turns || [];
+    debate.turns.push(turn);
 
     res.json({
       success: true,
@@ -2720,7 +2747,7 @@ function startServer(portOptions) {
     // Log available API keys (without exposing the actual keys)
     const availableAPIs = {
       'OpenAI': !!process.env.OPENAI_API_KEY,
-      'Claude': !!process.env.CLAUDE_API_KEY,
+      'Claude': !!process.env.ANTHROPIC_API_KEY,
       'Cohere': !!process.env.COHERE_API_KEY,
       'Gemini': !!process.env.GEMINI_API_KEY,
       'Grok': !!process.env.GROK_API_KEY

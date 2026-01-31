@@ -90,3 +90,6 @@ $RECYCLE.BIN/
 *.temp
 .cache/
 .parcel-cache/
+
+# Runtime-generated agent data
+backend/memory/

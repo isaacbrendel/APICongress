@@ -360,28 +360,46 @@ Provide your peer review.`
    * Generate debate argument with full context and strategy
    */
   async generateDebateArgument(debateId, agentId, llmExecutor) {
+    console.log(`[DEBUG] generateDebateArgument called: debateId=${debateId}, agentId=${agentId}`);
+
     const debate = this.activeDebates.get(debateId);
     const agent = this.agents.get(agentId);
 
-    if (!debate || !agent) {
-      throw new Error('Invalid debate or agent');
+    console.log(`[DEBUG] debate exists: ${!!debate}, agent exists: ${!!agent}`);
+
+    if (!debate) {
+      throw new Error(`Debate ${debateId} not found`);
     }
+    if (!agent) {
+      throw new Error(`Agent ${agentId} not found`);
+    }
+
+    // Ensure arrays exist
+    debate.turns = debate.turns || [];
+    debate.participants = debate.participants || [];
+
+    console.log(`[DEBUG] turns: ${debate.turns.length}, participants: ${debate.participants.length}`);
 
     // Determine debate phase
     const turnCount = debate.turns.length;
+    const participantCount = debate.participants.length || 1;
     if (turnCount === 0) {
       debate.phase = 'opening';
-    } else if (turnCount >= debate.participants.length * 2) {
+    } else if (turnCount >= participantCount * 2) {
       debate.phase = 'closing';
     } else {
       debate.phase = 'middle';
     }
 
+    console.log(`[DEBUG] phase: ${debate.phase}`);
+
     // Get agent's debate context
     const context = agent.getDebateContext(debate.topic);
+    console.log(`[DEBUG] context keys: ${Object.keys(context).join(', ')}`);
 
     // Build strategic prompt
     const prompt = this.buildStrategicDebatePrompt(agent, debate, context);
+    console.log(`[DEBUG] prompt built successfully`);
 
     // Execute LLM call
     let argument = await llmExecutor(agent.model, prompt.system, prompt.user, prompt.temperature);
@@ -426,8 +444,9 @@ Provide your peer review.`
    * Build strategic debate prompt with full context
    */
   buildStrategicDebatePrompt(agent, debate, context) {
-    const profile = context.personality;
-    const previousTurns = debate.turns.slice(-3); // Last 3 turns for context
+    const profile = context.personality || { summary: 'balanced' };
+    const turns = debate.turns || [];
+    const previousTurns = turns.slice(-3); // Last 3 turns for context
 
     // Build context string
     let contextString = '';
@@ -438,13 +457,15 @@ Provide your peer review.`
 
     // Add knowledge context
     let knowledgeString = '';
-    if (context.relevantKnowledge.length > 0) {
+    const relevantKnowledge = context.relevantKnowledge || [];
+    if (relevantKnowledge.length > 0) {
       knowledgeString = '\n\nYOUR RELEVANT KNOWLEDGE:\n' +
-        context.relevantKnowledge.map(k => `- ${k.fact}`).join('\n');
+        relevantKnowledge.map(k => `- ${k.fact}`).join('\n');
     }
 
     // Add relationship context
-    const opponents = debate.participants.filter(id => id !== agent.id);
+    const participants = debate.participants || [];
+    const opponents = participants.filter(id => id !== agent.id);
     let relationshipString = '';
     if (opponents.length > 0) {
       const relationships = opponents.map(oppId => {

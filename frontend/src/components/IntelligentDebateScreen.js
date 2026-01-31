@@ -170,12 +170,12 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
       {/* VOTING */}
       {phase === 'voting' && (
         <div className="phase-voting">
-          <h2 className="voting-title">WHO WON?</h2>
-          <div className="winner-options">
+          <p className="voting-prompt">select the winner</p>
+          <div className="voting-names">
             {AI_MODELS.filter(ai => arguments_.some(a => a.model === ai.model)).map(ai => (
               <button
                 key={ai.id}
-                className={`winner-btn ${selectedWinner === ai.id ? 'selected' : ''}`}
+                className={`vote-name ${selectedWinner === ai.id ? 'selected' : ''}`}
                 onClick={() => handleSelectWinner(ai.id)}
                 disabled={selectedWinner !== null}
               >

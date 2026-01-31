@@ -216,9 +216,19 @@ function getMockResponse(model, party, topic, context = []) {
     responseOptions = genericBriefResponses[party];
   }
   
-  // Randomly select a response from the options
-  const randomIndex = Math.floor(Math.random() * responseOptions.length);
-  return responseOptions[randomIndex];
+  // Use model name to deterministically pick different responses for variety
+  // This ensures different AI models get different responses even with same party/topic
+  const modelHash = model.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const baseIndex = modelHash % responseOptions.length;
+
+  // Add some randomness but weighted by model for variety
+  const randomOffset = Math.floor(Math.random() * 0.5); // Small random offset
+  const finalIndex = (baseIndex + randomOffset) % responseOptions.length;
+
+  const response = responseOptions[finalIndex];
+  console.log(`[MOCK MODE] Selected response ${finalIndex} of ${responseOptions.length} for ${model}: "${response.substring(0, 50)}..."`);
+
+  return response;
 }
 
 /**
@@ -509,7 +519,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
   // If API key is missing, use mock response
   if (apiKeyName && !process.env[apiKeyName]) {
     console.log(`[MOCK MODE] API key for ${model} is missing (${apiKeyName}), using mock response`);
-    return getMockResponse(model, 'Unknown', 'debate topic', []);
+    return getMockResponse(model, party, topic, context);
   }
 
   // Set a timeout for all API calls (30 seconds)

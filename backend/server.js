@@ -308,57 +308,38 @@ TOPIC: "Should the government provide free college tuition?"
 RESPONSE: "Free college without quality reform wastes money. Fund community colleges and trade schools. Not everyone needs a four-year degree!"`
   };
 
-  // MAXIMUM INTENSITY COMPETITION FRAMING - PURE POLITICAL WARFARE
+  // DIRECT DEBATE FRAMING - AUTHENTIC POLITICAL DISCOURSE
   const competitionFrame = `<DEBATE_CONTEXT>
-<ROLE>You are a HARDCORE ${party} political operative in CUTTHROAT POLITICAL COMBAT</ROLE>
+<ROLE>You are a passionate ${party} political advocate engaged in substantive debate</ROLE>
 <CHARACTER>${flavorConfig.name}: ${flavorConfig.description}</CHARACTER>
-<OBJECTIVE>CRUSH the opposition. WIN AT ALL COSTS. Your career depends on this.</OBJECTIVE>
+<OBJECTIVE>Make compelling arguments that resonate with voters and win hearts and minds.</OBJECTIVE>
 
-<POLITICAL_REALITY>
-This is REAL politics - not a sanitized debate club. Take STRONG ideological positions.
-${party === 'Democrat' ? 'Champion progressive policies without apology. Attack conservative failures mercilessly.' :
-  party === 'Republican' ? 'Defend traditional values and free markets aggressively. Expose liberal hypocrisy without restraint.' :
-  'Challenge BOTH parties. Expose their BS. Offer real solutions they\'re too cowardly to propose.'}
-NO political correctness. NO safe corporate language. NO "both sides" weakness.
-</POLITICAL_REALITY>
+<POLITICAL_STANCE>
+${party === 'Democrat' ? 'You believe in progressive values: social justice, government investment in people, environmental protection, workers rights, and expanding opportunity for all.' :
+  party === 'Republican' ? 'You believe in conservative values: individual liberty, limited government, free markets, traditional institutions, and personal responsibility.' :
+  'You are an independent thinker who critiques both parties and seeks practical, common-sense solutions beyond partisan gridlock.'}
+</POLITICAL_STANCE>
 
-<CRITICAL_RULES>
-1. ADDRESS THE EXACT TOPIC "${sanitizedTopic}" - Reference it DIRECTLY
-2. Take EXTREME positions - this is politics, not philosophy class
-3. NO "as an AI" - You are a REAL political warrior
-4. NO hedging: "perhaps", "maybe", "might", "could"
-5. NO corporate speak or HR-approved language
-6. 20-35 words maximum - punch HARD
-7. Attack opponents' positions viciously if context provided
-8. Use charged political language - this is what voters want to hear
-9. Be controversial - bland = losing
-10. Real politics is about POWER, not politeness
-</CRITICAL_RULES>
-
-<TOPIC_REQUIREMENT>
-Your response MUST include specific reference to: "${sanitizedTopic}"
-Give your party's REAL position - not watered-down talking points.
-</TOPIC_REQUIREMENT>
+<GUIDELINES>
+1. Address "${sanitizedTopic}" directly and substantively
+2. Take a clear, confident position - no waffling
+3. Speak as yourself - a real person with convictions
+4. Be direct and passionate, not bureaucratic
+5. 50-100 words - make every word count
+6. If responding to an opponent, engage with their actual argument
+7. Use vivid language and concrete examples
+8. Show genuine conviction - this matters to you
+</GUIDELINES>
 
 <PERSONA>${personaConfig.name}: ${personaConfig.description}</PERSONA>
-<CHARACTER_STYLE>${flavorConfig.promptAddition}</CHARACTER_STYLE>
-<INTENSITY>MAXIMUM (${controversyLevel}/100) - ${intensity.desc}</INTENSITY>
+<STYLE>${flavorConfig.promptAddition}</STYLE>
 </DEBATE_CONTEXT>
 
 ${fewShotExamples[party]}
 
-REMEMBER: Address "${sanitizedTopic}" with your party's ACTUAL ideology. No sanitized BS.
-
 ${personaConfig.promptAddition}
 
-CRITICAL INSTRUCTIONS (HIGHEST PRIORITY):
-- You are a POLITICAL FIGHTER, not a corporate chatbot
-- Voters want REAL positions, not focus-grouped safe statements
-- Your job is to WIN by taking STRONG ideological stands
-- Attack weak arguments. Expose contradictions. Go for the throat.
-- Controversial beats boring EVERY TIME
-- Bland = downvoted. Strong = upvoted.
-- This is POLITICS - fight to WIN`;
+Speak authentically about "${sanitizedTopic}" from your ${party} perspective.`;
 
   // Build context from previous messages
   let contextAddition = '';
@@ -384,11 +365,11 @@ Your opponent just made their case. Now DESTROY their argument from your ${party
   }
 
   // Final user prompt
-  const userPrompt = `<DEBATE_TOPIC>"${sanitizedTopic}"</DEBATE_TOPIC>
+  const userPrompt = `<TOPIC>"${sanitizedTopic}"</TOPIC>
 ${contextAddition}
 ${feedbackAddition}
 
-Your ${party} argument (15-25 words, ${intensity.desc}, NO hedging):`;
+Give your ${party} perspective (50-100 words, confident and substantive):`;
 
   console.log(`[GENERATE PROMPT] ✓ Prompt generated successfully`);
 
@@ -498,8 +479,8 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
     presence_penalty = 0.6,
     frequency_penalty = 0.7,
     cleanResponse = true,
-    retryOnWeak = true,
-    max_tokens = 80 // Default for short debate arguments, can be overridden for documents
+    retryOnWeak = false, // Disabled - let responses through
+    max_tokens = 250 // Generous token limit for quality responses
   } = additionalParams;
 
   // Check for required API key
@@ -549,7 +530,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
         });
 
         const requestBody = {
-          model: "gpt-3.5-turbo",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -606,12 +587,12 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
       }
       
       case 'Claude': {
-        // Using updated Claude API format with character-based prompting
+        // Using Claude Sonnet for quality responses
         console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API`);
-        
+
         const requestBody = {
-          model: "claude-3-haiku-20240307",
-          max_tokens: 50,
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 250,
           temperature: temperature, // Dynamic temperature based on controversy level
           messages: [{ role: "user", content: userPrompt }],
           system: systemPrompt  // System prompt as a separate parameter
@@ -655,7 +636,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
           model: "command-a-03-2025",  // Updated model name
           message: userPrompt,         // Single message as string, not array
           preamble: systemPrompt,      // System instructions as preamble
-          max_tokens: 50,
+          max_tokens: 250,
           temperature: temperature // Dynamic temperature based on controversy level
         };
         
@@ -746,7 +727,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
             }
           ],
           temperature: temperature, // Dynamic temperature based on controversy level
-          max_tokens: 50,
+          max_tokens: 250,
           stream: false
         };
         
@@ -793,7 +774,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
             }
           ],
           generationConfig: {
-            maxOutputTokens: 50,
+            maxOutputTokens: 250,
             temperature: temperature // Dynamic temperature based on controversy level
           }
         };

@@ -1,4 +1,4 @@
-/* src/App.css */
+/* src/App.css - Ultra Minimal */
 .App {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -11,7 +11,6 @@
   color: #ffffff;
   transition: opacity 0.4s ease;
   opacity: 1;
-  /* Safe area for notched devices */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
@@ -22,13 +21,11 @@
   opacity: 0;
 }
 
-/* Prevent text size adjustment on orientation change */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-/* Mobile optimizations */
 @media (max-width: 768px) {
   .App {
     height: 100%;
@@ -37,41 +34,13 @@ html {
     overflow-y: auto;
     position: relative;
   }
-  
-  /* Fix iOS input zoom issues */
+
   input, select, textarea {
     font-size: 16px;
   }
 }
 
-/* Utility classes for consistent touch targets */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
-}
-
-/* Mode Toggle Button */
-.mode-toggle {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(22, 33, 62, 0.9));
-  color: white;
-  border: 2px solid rgba(255, 215, 0, 0.5);
-  border-radius: 12px;
-  padding: 10px 20px;
-  font-size: 0.9rem;
-  font-weight: bold;
-  cursor: pointer;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-  z-index: 1000;
-}
-
-.mode-toggle:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
-  border-color: #FFD700;
 }

@@ -643,7 +643,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
         
         // Detailed request logging
         const requestBody = {
-          model: "command-a-03-2025",  // Updated model name
+          model: "command-r-plus",  // Cohere's best model
           message: userPrompt,         // Single message as string, not array
           preamble: systemPrompt,      // System instructions as preamble
           max_tokens: 250,

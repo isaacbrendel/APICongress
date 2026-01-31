@@ -2455,7 +2455,33 @@ app.get('/api/agents/:agentId/feedback', (req, res) => {
   }
 });
 
-// API endpoint to call an LLM with the given parameters
+// API endpoint to call an LLM with the given parameters (POST version)
+app.post('/api/llm', async (req, res) => {
+  const startTime = Date.now();
+  const { model, party, topic, context, controversyLevel, feedback, persona, flavor } = req.body;
+
+  console.log(`[API /api/llm POST] Request: model=${model}, party=${party}, topic=${topic?.substring(0, 30)}`);
+
+  try {
+    const response = await callLLM(
+      model || 'ChatGPT',
+      party || 'Independent',
+      topic || 'general debate',
+      context || [],
+      controversyLevel || 100,
+      feedback || {},
+      persona || 'standard',
+      flavor || 'balanced'
+    );
+
+    res.json({ success: true, response });
+  } catch (error) {
+    console.error('[API /api/llm POST] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API endpoint to call an LLM with the given parameters (GET version)
 app.get('/api/llm', async (req, res) => {
   const startTime = Date.now();
   const { model, party, topic, context, controversyLevel, feedback, persona, flavor } = req.query;

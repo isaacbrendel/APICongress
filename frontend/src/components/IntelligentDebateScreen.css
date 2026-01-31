@@ -1,4 +1,4 @@
-/* Debate Screen - Ultra Sharp Minimal */
+/* Debate Screen - Sharp, Readable, Impressive */
 
 .debate-screen {
   min-height: 100vh;
@@ -14,34 +14,40 @@
   position: fixed;
   top: calc(24px + env(safe-area-inset-top, 0px));
   left: calc(24px + env(safe-area-inset-left, 0px));
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.8rem;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 1px;
+  padding: 10px 16px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s;
   z-index: 100;
 }
 
 .exit-btn:hover {
-  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Header */
 .debate-header {
   text-align: center;
-  margin-bottom: 80px;
+  margin-bottom: 60px;
 }
 
 .debate-topic {
-  font-size: 1rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-  letter-spacing: 3px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 2px;
   text-transform: uppercase;
   margin: 0;
+  padding: 16px 28px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Error */
@@ -49,23 +55,24 @@
   position: fixed;
   top: calc(24px + env(safe-area-inset-top, 0px));
   right: calc(24px + env(safe-area-inset-right, 0px));
-  background: rgba(180, 60, 60, 0.95);
+  background: rgba(200, 50, 50, 0.95);
   color: white;
-  padding: 12px 16px;
-  font-size: 0.8rem;
+  padding: 14px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 12px;
   z-index: 100;
+  border: 1px solid rgba(255, 100, 100, 0.5);
 }
 
 .error-banner button {
   background: none;
   border: none;
   color: white;
-  font-size: 1rem;
+  font-size: 1.2rem;
   cursor: pointer;
-  opacity: 0.7;
 }
 
 /* INIT */
@@ -79,12 +86,12 @@
 }
 
 .loader {
-  width: 32px;
-  height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.5);
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -92,10 +99,12 @@
 }
 
 .status-text {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  color: #ffffff;
   letter-spacing: 2px;
   text-transform: uppercase;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* DEBATE PHASE */
@@ -104,62 +113,62 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 700px;
+  max-width: 750px;
 }
 
 /* Progress */
 .progress-bar {
   display: flex;
-  gap: 6px;
-  margin-bottom: 80px;
+  gap: 8px;
+  margin-bottom: 60px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .progress-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  opacity: 0.35;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 0.4;
   transition: all 0.3s ease;
 }
 
 .progress-item img {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
   filter: grayscale(1);
   transition: filter 0.3s;
 }
 
 .progress-item span {
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+  color: #ffffff;
   letter-spacing: 1px;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
 .progress-item.done {
-  opacity: 0.5;
+  opacity: 0.6;
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .progress-item.done img {
-  filter: grayscale(0.6);
+  filter: grayscale(0.5);
 }
 
 .progress-item.active {
   opacity: 1;
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .progress-item.active img {
   filter: grayscale(0);
-}
-
-.progress-item.active span {
-  color: rgba(255, 255, 255, 0.9);
 }
 
 /* Speaker */
@@ -168,42 +177,43 @@
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  margin-bottom: 50px;
+  margin-bottom: 40px;
 }
 
 .speaker-avatar {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.02);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .speaker-avatar img {
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   object-fit: contain;
 }
 
 .speaker-avatar.generating {
-  border-color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.7);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
+  50% { opacity: 0.8; box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.1); }
 }
 
 .speaker-name {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
   letter-spacing: 3px;
   text-transform: uppercase;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Generating */
@@ -213,13 +223,13 @@
 
 .typing-dots {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .typing-dots span {
-  width: 6px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.3);
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
   border-radius: 50%;
   animation: bounce 1.4s ease-in-out infinite;
 }
@@ -229,31 +239,32 @@
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
-  40% { transform: translateY(-6px); opacity: 1; }
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-12px); opacity: 1; }
 }
 
 /* Argument Card */
 .argument-card {
   width: 100%;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   padding: 48px;
   animation: fadeIn 0.4s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .argument-text {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   line-height: 1.9;
-  color: rgba(255, 255, 255, 0.92);
-  font-weight: 300;
+  color: #ffffff;
+  font-weight: 400;
   margin: 0;
   text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* VOTING */
@@ -262,21 +273,23 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 700px;
+  max-width: 750px;
 }
 
 .voting-title {
-  font-size: 1.25rem;
-  font-weight: 300;
-  color: white;
-  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0 0 10px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .voting-subtitle {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 0 0 60px 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 50px 0;
   letter-spacing: 1px;
+  font-weight: 400;
 }
 
 .arguments-review {
@@ -284,41 +297,41 @@
   flex-direction: column;
   gap: 20px;
   width: 100%;
-  margin-bottom: 60px;
+  margin-bottom: 50px;
 }
 
 .review-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 28px;
 }
 
 .review-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 16px;
 }
 
 .review-logo {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
 .review-name {
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
 
 .review-text {
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 300;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 400;
   margin: 0;
 }
 
@@ -326,54 +339,53 @@
 .winner-selection {
   width: 100%;
   padding-top: 40px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .winner-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
 }
 
 .winner-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.7);
+  gap: 12px;
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .winner-btn img {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
 .winner-btn span {
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
 
 .winner-btn:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .winner-btn.selected {
-  border-color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .winner-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: default;
 }
 
@@ -389,12 +401,13 @@
 }
 
 .phase-complete h2 {
-  font-size: 1.1rem;
-  font-weight: 300;
-  color: white;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: #ffffff;
   margin: 0;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .winner-display {
@@ -404,33 +417,33 @@
 .winner-badge {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px 28px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  gap: 16px;
+  padding: 24px 36px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 .winner-badge img {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
 }
 
 .winner-badge span {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: white;
-  letter-spacing: 2px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 3px;
   text-transform: uppercase;
 }
 
 .home-btn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 16px 36px;
-  font-size: 0.7rem;
-  font-weight: 500;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  padding: 18px 40px;
+  font-size: 0.8rem;
+  font-weight: 600;
   letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
@@ -438,40 +451,41 @@
 }
 
 .home-btn:hover {
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.03);
-  color: white;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.8);
 }
 
 /* Mobile */
 @media (max-width: 768px) {
   .debate-screen {
-    padding: 60px 20px 40px;
+    padding: 70px 20px 40px;
   }
 
   .debate-topic {
-    font-size: 0.85rem;
-    letter-spacing: 2px;
+    font-size: 0.95rem;
+    padding: 14px 20px;
   }
 
   .progress-bar {
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 60px;
+    margin-bottom: 50px;
   }
 
   .progress-item span {
     display: none;
   }
 
+  .progress-item {
+    padding: 10px 12px;
+  }
+
   .speaker-avatar {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
   }
 
   .speaker-avatar img {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
   }
 
   .argument-card {
@@ -479,11 +493,15 @@
   }
 
   .argument-text {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .review-card {
-    padding: 20px;
+    padding: 22px;
+  }
+
+  .review-text {
+    font-size: 1rem;
   }
 
   .winner-options {
@@ -498,11 +516,16 @@
 
 @media (max-width: 480px) {
   .debate-topic {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
   }
 
   .argument-text {
-    font-size: 0.95rem;
+    font-size: 1rem;
     line-height: 1.8;
+  }
+
+  .exit-btn {
+    padding: 8px 12px;
+    font-size: 0.75rem;
   }
 }

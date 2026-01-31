@@ -1,212 +1,114 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import ArgumentVoting from './ArgumentVoting';
-import useIntelligentAgents from '../hooks/useIntelligentAgents';
+import React, { useState, useEffect, useRef } from 'react';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import './IntelligentDebateScreen.css';
 
 const AI_MODELS = [
-  { name: 'ChatGPT', logo: process.env.PUBLIC_URL + '/logos/chatgpt.png' },
-  { name: 'Claude', logo: process.env.PUBLIC_URL + '/logos/claude.png' },
-  { name: 'Gemini', logo: process.env.PUBLIC_URL + '/logos/gemini.png' },
-  { name: 'Grok', logo: process.env.PUBLIC_URL + '/logos/grok.png' },
-  { name: 'Cohere', logo: process.env.PUBLIC_URL + '/logos/cohere.png' }
+  { id: 'chatgpt', name: 'ChatGPT', model: 'ChatGPT', logo: process.env.PUBLIC_URL + '/logos/chatgpt.png' },
+  { id: 'claude', name: 'Claude', model: 'Claude', logo: process.env.PUBLIC_URL + '/logos/claude.png' },
+  { id: 'gemini', name: 'Gemini', model: 'Gemini', logo: process.env.PUBLIC_URL + '/logos/gemini.png' },
+  { id: 'grok', name: 'Grok', model: 'Grok', logo: process.env.PUBLIC_URL + '/logos/grok.png' },
+  { id: 'cohere', name: 'Cohere', model: 'Cohere', logo: process.env.PUBLIC_URL + '/logos/cohere.png' }
 ];
 
 const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
-  const {
-    agents,
-    loading,
-    error,
-    initializeCongress,
-    startIntelligentDebate,
-    generateArgument,
-    processDebateOutcome,
-    currentDebateId,
-    clearError,
-    resetDebate
-  } = useIntelligentAgents();
-
-  // Phase: init -> debating -> voting -> complete
   const [phase, setPhase] = useState('init');
   const [currentSpeaker, setCurrentSpeaker] = useState(0);
   const [arguments_, setArguments] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState(null);
-  const [voteSubmitted, setVoteSubmitted] = useState(false);
-
-  const debateIdRef = useRef(null);
+  const [error, setError] = useState(null);
   const initStarted = useRef(false);
 
-  // Get logo for an agent
-  const getLogo = useCallback((agent) => {
-    if (!agent) return AI_MODELS[0].logo;
-    const model = AI_MODELS.find(m =>
-      agent.model?.toLowerCase().includes(m.name.toLowerCase()) ||
-      agent.name?.toLowerCase().includes(m.name.toLowerCase())
-    );
-    return model?.logo || AI_MODELS[0].logo;
-  }, []);
-
-  // Initialize congress and start debate
-  useEffect(() => {
-    if (initStarted.current) return;
-    initStarted.current = true;
-
-    const init = async () => {
-      try {
-        console.log('[DEBATE] Initializing...');
-        const agentList = await initializeCongress(5);
-
-        if (!agentList || agentList.length === 0) {
-          console.error('[DEBATE] No agents returned');
-          return;
-        }
-
-        console.log('[DEBATE] Starting with agents:', agentList.map(a => a.id));
-        const agentIds = agentList.map(a => a.id);
-        const debateId = await startIntelligentDebate(topic, agentIds, {
-          controversyLevel: 100
-        });
-
-        if (!debateId) {
-          console.error('[DEBATE] No debate ID returned');
-          return;
-        }
-
-        debateIdRef.current = debateId;
-        setPhase('debating');
-
-        // Start generating arguments
-        generateNextArgument(0, debateId, agentList);
-      } catch (err) {
-        console.error('[DEBATE] Init failed:', err);
-      }
-    };
-
-    init();
-  }, [topic, initializeCongress, startIntelligentDebate]);
-
-  // Generate argument for a speaker
-  const generateNextArgument = useCallback(async (speakerIndex, debateId, agentList) => {
-    if (!debateId || !agentList[speakerIndex]) {
-      console.log('[DEBATE] Complete or invalid state');
-      setPhase('voting');
-      return;
-    }
-
-    setIsGenerating(true);
-    setCurrentSpeaker(speakerIndex);
-
-    const agent = agentList[speakerIndex];
-    console.log(`[DEBATE] Generating for ${agent.model || agent.name}`);
-
-    const turn = await generateArgument(debateId, agent.id);
-
-    if (turn) {
-      const argData = {
-        ...turn,
-        uniqueId: `arg_${Date.now()}_${speakerIndex}`,
-        speakerIndex,
-        model: agent.model,
-        agentName: agent.name
-      };
-
-      setArguments(prev => [...prev, argData]);
-      setIsGenerating(false);
-
-      // Next speaker after delay
-      setTimeout(() => {
-        if (speakerIndex + 1 < agentList.length) {
-          generateNextArgument(speakerIndex + 1, debateId, agentList);
-        } else {
-          setPhase('voting');
-        }
-      }, 4000);
-    } else {
-      setIsGenerating(false);
-      // Try next speaker even if this one failed
-      if (speakerIndex + 1 < agentList.length) {
-        generateNextArgument(speakerIndex + 1, debateId, agentList);
-      } else {
-        setPhase('voting');
-      }
-    }
-  }, [generateArgument]);
-
-  // Handle argument vote
-  const handleArgumentVote = async (argumentId, agentId, voteType) => {
+  // Generate argument directly via LLM API
+  const generateArgument = async (model, modelName) => {
     try {
-      const response = await fetch(getApiUrl(API_ENDPOINTS.VOTE_ARGUMENT), {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.LLM), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          argumentId,
-          agentId,
-          voteType,
-          timestamp: Date.now()
+          model: model,
+          party: 'Independent',
+          topic: topic,
+          controversyLevel: 100
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Vote failed: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return data.response || data.message || 'No response generated';
     } catch (err) {
-      console.error('[VOTE] Error:', err);
-      throw err;
+      console.error(`[${modelName}] Error:`, err);
+      return null;
     }
   };
 
-  // Handle winner selection
-  const handleSelectWinner = async (winnerId) => {
-    setSelectedWinner(winnerId);
-    setVoteSubmitted(true);
+  // Run debate
+  useEffect(() => {
+    if (initStarted.current) return;
+    initStarted.current = true;
 
-    const votingResults = {};
-    agents.forEach(agent => {
-      votingResults[agent.id] = {
-        upvotes: agent.id === winnerId ? 15 : Math.floor(Math.random() * 10),
-        downvotes: agent.id === winnerId ? 2 : Math.floor(Math.random() * 8)
-      };
-    });
+    const runDebate = async () => {
+      setPhase('debating');
 
-    await processDebateOutcome(debateIdRef.current, votingResults);
+      for (let i = 0; i < AI_MODELS.length; i++) {
+        const ai = AI_MODELS[i];
+        setCurrentSpeaker(i);
+        setIsGenerating(true);
 
-    setTimeout(() => {
-      setPhase('complete');
-    }, 1500);
+        const argument = await generateArgument(ai.model, ai.name);
+
+        if (argument) {
+          setArguments(prev => [...prev, {
+            id: `arg_${i}`,
+            model: ai.model,
+            name: ai.name,
+            logo: ai.logo,
+            argument: argument
+          }]);
+        }
+
+        setIsGenerating(false);
+
+        // Brief pause between speakers
+        if (i < AI_MODELS.length - 1) {
+          await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+
+      setPhase('voting');
+    };
+
+    runDebate();
+  }, [topic]);
+
+  const handleSelectWinner = (modelId) => {
+    setSelectedWinner(modelId);
+    setTimeout(() => setPhase('complete'), 1000);
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      resetDebate();
-    };
-  }, [resetDebate]);
-
-  const currentAgent = agents[currentSpeaker];
-  const latestArgument = arguments_[arguments_.length - 1];
+  const currentAI = AI_MODELS[currentSpeaker];
+  const latestArg = arguments_[arguments_.length - 1];
 
   return (
     <div className="debate-screen">
-      <button className="exit-btn" onClick={onReturnHome}>
-        Exit
-      </button>
+      <button className="exit-btn" onClick={onReturnHome}>← Exit</button>
 
       <header className="debate-header">
         <h1 className="debate-topic">{topic}</h1>
       </header>
 
-      {/* Error Display */}
       {error && (
         <div className="error-banner">
           <span>{error}</span>
-          <button onClick={clearError}>Dismiss</button>
+          <button onClick={() => setError(null)}>×</button>
         </div>
       )}
 
-      {/* INIT PHASE */}
+      {/* INIT */}
       {phase === 'init' && (
         <div className="phase-init">
           <div className="loader"></div>
@@ -214,91 +116,70 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         </div>
       )}
 
-      {/* DEBATING PHASE */}
+      {/* DEBATING */}
       {phase === 'debating' && (
         <div className="phase-debate">
-          {/* Progress Bar */}
           <div className="progress-bar">
-            {agents.map((agent, i) => (
-              <div
-                key={agent.id}
-                className={`progress-item ${i < currentSpeaker ? 'done' : ''} ${i === currentSpeaker ? 'active' : ''}`}
-              >
-                <img src={getLogo(agent)} alt="" />
-                <span>{agent.model || agent.name}</span>
+            {AI_MODELS.map((ai, i) => (
+              <div key={ai.id} className={`progress-item ${i < currentSpeaker ? 'done' : ''} ${i === currentSpeaker ? 'active' : ''}`}>
+                <img src={ai.logo} alt={ai.name} />
+                <span>{ai.name}</span>
               </div>
             ))}
           </div>
 
-          {/* Current Speaker */}
-          {currentAgent && (
+          {currentAI && (
             <div className="speaker-section">
               <div className={`speaker-avatar ${isGenerating ? 'generating' : ''}`}>
-                <img src={getLogo(currentAgent)} alt={currentAgent.model} />
+                <img src={currentAI.logo} alt={currentAI.name} />
               </div>
-              <h2 className="speaker-name">{currentAgent.model || currentAgent.name}</h2>
+              <h2 className="speaker-name">{currentAI.name}</h2>
             </div>
           )}
 
-          {/* Argument Display */}
           {isGenerating ? (
             <div className="generating-indicator">
               <div className="typing-dots">
                 <span></span><span></span><span></span>
               </div>
             </div>
-          ) : latestArgument ? (
+          ) : latestArg ? (
             <div className="argument-card">
-              <p className="argument-text">{latestArgument.argument}</p>
-              <ArgumentVoting
-                key={latestArgument.uniqueId}
-                argumentId={latestArgument.uniqueId}
-                agentId={latestArgument.agentId}
-                agentName={latestArgument.agentName || latestArgument.model}
-                onVote={handleArgumentVote}
-              />
+              <p className="argument-text">{latestArg.argument}</p>
             </div>
           ) : null}
         </div>
       )}
 
-      {/* VOTING PHASE */}
+      {/* VOTING */}
       {phase === 'voting' && (
         <div className="phase-voting">
           <h2 className="voting-title">Debate Complete</h2>
-          <p className="voting-subtitle">Review arguments and select a winner</p>
+          <p className="voting-subtitle">Select the winner</p>
 
           <div className="arguments-review">
-            {arguments_.map((arg, i) => (
-              <div key={arg.uniqueId} className="review-card">
+            {arguments_.map((arg) => (
+              <div key={arg.id} className="review-card">
                 <div className="review-header">
-                  <img src={getLogo(agents[i])} alt="" className="review-logo" />
-                  <span className="review-name">{agents[i]?.model || agents[i]?.name}</span>
+                  <img src={arg.logo} alt={arg.name} className="review-logo" />
+                  <span className="review-name">{arg.name}</span>
                 </div>
                 <p className="review-text">{arg.argument}</p>
-                <ArgumentVoting
-                  key={`review-${arg.uniqueId}`}
-                  argumentId={arg.uniqueId}
-                  agentId={arg.agentId}
-                  agentName={arg.agentName || arg.model}
-                  onVote={handleArgumentVote}
-                />
               </div>
             ))}
           </div>
 
           <div className="winner-selection">
-            <h3>Select Winner</h3>
             <div className="winner-options">
-              {agents.map(agent => (
+              {AI_MODELS.map(ai => (
                 <button
-                  key={agent.id}
-                  className={`winner-btn ${selectedWinner === agent.id ? 'selected' : ''}`}
-                  onClick={() => handleSelectWinner(agent.id)}
-                  disabled={voteSubmitted}
+                  key={ai.id}
+                  className={`winner-btn ${selectedWinner === ai.id ? 'selected' : ''}`}
+                  onClick={() => handleSelectWinner(ai.id)}
+                  disabled={selectedWinner !== null}
                 >
-                  <img src={getLogo(agent)} alt="" />
-                  <span>{agent.model || agent.name}</span>
+                  <img src={ai.logo} alt={ai.name} />
+                  <span>{ai.name}</span>
                 </button>
               ))}
             </div>
@@ -306,25 +187,19 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         </div>
       )}
 
-      {/* COMPLETE PHASE */}
+      {/* COMPLETE */}
       {phase === 'complete' && (
         <div className="phase-complete">
-          <h2>Results Recorded</h2>
-          <p>AI agents have learned from this debate</p>
-
+          <h2>Winner Selected</h2>
           {selectedWinner && (
             <div className="winner-display">
-              <span>Winner</span>
               <div className="winner-badge">
-                <img src={getLogo(agents.find(a => a.id === selectedWinner))} alt="" />
-                <span>{agents.find(a => a.id === selectedWinner)?.model}</span>
+                <img src={AI_MODELS.find(a => a.id === selectedWinner)?.logo} alt="" />
+                <span>{AI_MODELS.find(a => a.id === selectedWinner)?.name}</span>
               </div>
             </div>
           )}
-
-          <button className="home-btn" onClick={onReturnHome}>
-            Return Home
-          </button>
+          <button className="home-btn" onClick={onReturnHome}>New Debate</button>
         </div>
       )}
     </div>

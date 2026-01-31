@@ -507,10 +507,10 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
       apiKeyName = 'COHERE_API_KEY';
       break;
     case 'Gemini':
-      apiKeyName = 'GEMINI_API_KEY';
+      apiKeyName = 'GOOGLE_API_KEY';
       break;
     case 'Grok':
-      apiKeyName = 'GROK_API_KEY';
+      apiKeyName = 'XAI_API_KEY';
       break;
     default:
       apiKeyName = null;
@@ -745,7 +745,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.GROK_API_KEY}`
+            "Authorization": `Bearer ${process.env.XAI_API_KEY}`
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal
@@ -789,7 +789,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
           }
         };
         
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.GOOGLE_API_KEY;
         const response = await myFetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
           {
@@ -2766,8 +2766,8 @@ function startServer(portOptions) {
       'OpenAI': !!process.env.OPENAI_API_KEY,
       'Claude': !!process.env.ANTHROPIC_API_KEY,
       'Cohere': !!process.env.COHERE_API_KEY,
-      'Gemini': !!process.env.GEMINI_API_KEY,
-      'Grok': !!process.env.GROK_API_KEY
+      'Gemini': !!process.env.GOOGLE_API_KEY,
+      'Grok': !!process.env.XAI_API_KEY
     };
     
     console.log('Available API configurations:', availableAPIs);

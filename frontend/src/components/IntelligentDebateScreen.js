@@ -17,6 +17,7 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState(null);
   const [error, setError] = useState(null);
+  const [mockWarning, setMockWarning] = useState(false);
   const initStarted = useRef(false);
 
   // Generate argument via API
@@ -41,6 +42,13 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
       }
 
       const data = await response.json();
+
+      // Check if this is a mock/stock response
+      if (data.mock) {
+        console.warn(`⚠️ [STOCK RESPONSE] ${ai.name} returned a pre-written fallback response - API may be failing`);
+        setMockWarning(true);
+      }
+
       return data.response || data.message || null;
     } catch (err) {
       console.error(`[${ai.name}] Error:`, err);
@@ -83,6 +91,8 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         }
       }
 
+      // 5 second delay to read the final response before voting
+      await new Promise(r => setTimeout(r, 5000));
       setPhase('voting');
     };
 
@@ -108,6 +118,13 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         <div className="error-banner">
           <span>{error}</span>
           <button onClick={() => setError(null)}>×</button>
+        </div>
+      )}
+
+      {mockWarning && (
+        <div className="mock-warning">
+          <span>⚠️ STOCK RESPONSES DETECTED - API may be failing</span>
+          <button onClick={() => setMockWarning(false)}>×</button>
         </div>
       )}
 
@@ -153,38 +170,18 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
       {/* VOTING */}
       {phase === 'voting' && (
         <div className="phase-voting">
-          <h2 className="voting-title">Debate Complete</h2>
-          <p className="voting-subtitle">Review all arguments and select the winner</p>
-
-          <div className="arguments-scroll">
-            {arguments_.map((arg, index) => (
-              <div key={arg.id} className="review-card">
-                <div className="review-header">
-                  <span className="review-number">{index + 1}</span>
-                  <div className="review-info">
-                    <span className="review-name">{arg.name}</span>
-                    <span className="review-party">{arg.party}</span>
-                  </div>
-                </div>
-                <p className="review-text">{arg.argument}</p>
-              </div>
+          <h2 className="voting-title">WHO WON?</h2>
+          <div className="winner-options">
+            {AI_MODELS.filter(ai => arguments_.some(a => a.model === ai.model)).map(ai => (
+              <button
+                key={ai.id}
+                className={`winner-btn ${selectedWinner === ai.id ? 'selected' : ''}`}
+                onClick={() => handleSelectWinner(ai.id)}
+                disabled={selectedWinner !== null}
+              >
+                {ai.name}
+              </button>
             ))}
-          </div>
-
-          <div className="winner-section">
-            <h3 className="winner-prompt">Who won the debate?</h3>
-            <div className="winner-options">
-              {AI_MODELS.filter(ai => arguments_.some(a => a.model === ai.model)).map(ai => (
-                <button
-                  key={ai.id}
-                  className={`winner-btn ${selectedWinner === ai.id ? 'selected' : ''}`}
-                  onClick={() => handleSelectWinner(ai.id)}
-                  disabled={selectedWinner !== null}
-                >
-                  {ai.name}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       )}

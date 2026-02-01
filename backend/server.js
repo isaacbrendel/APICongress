@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -516,10 +517,10 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
       apiKeyName = null;
   }
 
-  // If API key is missing, use mock response
+  // If API key is missing, throw error (caller will handle fallback)
   if (apiKeyName && !process.env[apiKeyName]) {
-    console.log(`[MOCK MODE] API key for ${model} is missing (${apiKeyName}), using mock response`);
-    return getMockResponse(model, party, topic, context);
+    console.log(`[API KEY MISSING] ${model} API key (${apiKeyName}) is not configured`);
+    throw new Error(`API key for ${model} is missing`);
   }
 
   // Set a timeout for all API calls (30 seconds)
@@ -600,10 +601,13 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
         // Using Claude Sonnet for quality responses
         console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API`);
 
+        // Claude API only accepts temperature between 0 and 1
+        const claudeTemperature = Math.min(1.0, temperature);
+
         const requestBody = {
           model: "claude-sonnet-4-20250514",
           max_tokens: 250,
-          temperature: temperature, // Dynamic temperature based on controversy level
+          temperature: claudeTemperature, // Clamped to Claude's 0-1 range
           messages: [{ role: "user", content: userPrompt }],
           system: systemPrompt  // System prompt as a separate parameter
         };
@@ -643,7 +647,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
         
         // Detailed request logging
         const requestBody = {
-          model: "command-r-plus",  // Cohere's best model
+          model: "command-a-03-2025",  // Cohere's latest model (command-r-plus removed Sept 2025)
           message: userPrompt,         // Single message as string, not array
           preamble: systemPrompt,      // System instructions as preamble
           max_tokens: 250,
@@ -725,7 +729,7 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
         console.log(`[GROK REQUEST] Calling xAI Grok API`);
         
         const requestBody = {
-          model: "grok-2-latest",
+          model: "grok-3",
           messages: [
             {
               role: "system",

@@ -257,6 +257,17 @@
   border: 2px solid rgba(255, 255, 255, 0.4);
   padding: 48px;
   animation: fadeIn 0.5s ease;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.argument-card:hover {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.argument-card.paused {
+  border-color: #fff;
 }
 
 @keyframes fadeIn {
@@ -271,6 +282,22 @@
   font-weight: 500;
   margin: 0;
   text-align: center;
+}
+
+.pause-indicator {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 2px;
+  font-weight: 700;
+  animation: pausePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pausePulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 /* VOTING */
@@ -444,6 +471,12 @@
     font-size: 1.2rem;
   }
 
+  .pause-indicator {
+    font-size: 0.65rem;
+    top: 12px;
+    right: 16px;
+  }
+
   .voting-names {
     gap: 32px;
   }
@@ -467,5 +500,11 @@
 
   .argument-text {
     font-size: 1.1rem;
+  }
+
+  .pause-indicator {
+    font-size: 0.6rem;
+    top: 10px;
+    right: 12px;
   }
 }

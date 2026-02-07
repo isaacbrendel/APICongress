@@ -18,7 +18,9 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   const [selectedWinner, setSelectedWinner] = useState(null);
   const [error, setError] = useState(null);
   const [mockWarning, setMockWarning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const initStarted = useRef(false);
+  const pauseTimerRef = useRef(null);
 
   // Generate argument via API
   const generateArgument = async (ai, index) => {
@@ -57,6 +59,24 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
     }
   };
 
+  // Pausable delay function
+  const pausableDelay = (ms) => {
+    return new Promise((resolve) => {
+      let elapsed = 0;
+      const interval = 50;
+
+      pauseTimerRef.current = setInterval(() => {
+        if (!isPaused) {
+          elapsed += interval;
+          if (elapsed >= ms) {
+            clearInterval(pauseTimerRef.current);
+            resolve();
+          }
+        }
+      }, interval);
+    });
+  };
+
   // Run debate
   useEffect(() => {
     if (initStarted.current) return;
@@ -85,19 +105,25 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
 
         setIsGenerating(false);
 
-        // 3 second pause between speakers
+        // 8 second pause between speakers (hover to pause)
         if (i < AI_MODELS.length - 1) {
-          await new Promise(r => setTimeout(r, 3000));
+          await pausableDelay(8000);
         }
       }
 
-      // 5 second delay to read the final response before voting
-      await new Promise(r => setTimeout(r, 5000));
+      // 10 second delay to read the final response before voting
+      await pausableDelay(10000);
       setPhase('voting');
     };
 
     runDebate();
-  }, [topic]);
+
+    return () => {
+      if (pauseTimerRef.current) {
+        clearInterval(pauseTimerRef.current);
+      }
+    };
+  }, [topic, isPaused]);
 
   const handleSelectWinner = (modelId) => {
     setSelectedWinner(modelId);
@@ -160,8 +186,13 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
               <p className="generating-text">Generating response...</p>
             </div>
           ) : arguments_.length > 0 ? (
-            <div className="argument-card">
+            <div
+              className={`argument-card ${isPaused ? 'paused' : ''}`}
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
               <p className="argument-text">{arguments_[arguments_.length - 1]?.argument}</p>
+              {isPaused && <span className="pause-indicator">PAUSED</span>}
             </div>
           ) : null}
         </div>

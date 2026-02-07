@@ -18,9 +18,10 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
   const [selectedWinner, setSelectedWinner] = useState(null);
   const [error, setError] = useState(null);
   const [mockWarning, setMockWarning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const initStarted = useRef(false);
   const pauseTimerRef = useRef(null);
+  const isPausedRef = useRef(false);
 
   // Generate argument via API
   const generateArgument = async (ai, index) => {
@@ -66,7 +67,7 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
       const interval = 50;
 
       pauseTimerRef.current = setInterval(() => {
-        if (!isPaused) {
+        if (!isPausedRef.current) {
           elapsed += interval;
           if (elapsed >= ms) {
             clearInterval(pauseTimerRef.current);
@@ -123,7 +124,7 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
         clearInterval(pauseTimerRef.current);
       }
     };
-  }, [topic, isPaused]);
+  }, [topic]);
 
   const handleSelectWinner = (modelId) => {
     setSelectedWinner(modelId);
@@ -187,12 +188,18 @@ const IntelligentDebateScreen = ({ topic, onReturnHome }) => {
             </div>
           ) : arguments_.length > 0 ? (
             <div
-              className={`argument-card ${isPaused ? 'paused' : ''}`}
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
+              className={`argument-card ${isHovering ? 'paused' : ''}`}
+              onMouseEnter={() => {
+                setIsHovering(true);
+                isPausedRef.current = true;
+              }}
+              onMouseLeave={() => {
+                setIsHovering(false);
+                isPausedRef.current = false;
+              }}
             >
               <p className="argument-text">{arguments_[arguments_.length - 1]?.argument}</p>
-              {isPaused && <span className="pause-indicator">PAUSED</span>}
+              {isHovering && <span className="pause-indicator">PAUSED</span>}
             </div>
           ) : null}
         </div>

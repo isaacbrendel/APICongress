@@ -8,6 +8,7 @@ function App() {
   const [debateStarted, setDebateStarted] = useState(false);
   const [topic, setTopic] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [bgMode, setBgMode] = useState('home'); // 'home' | 'debate' | 'voting' | 'signing'
 
   const startDebate = (enteredTopic) => {
     setIsTransitioning(true);
@@ -15,6 +16,7 @@ function App() {
     setTimeout(() => {
       setTopic(enteredTopic);
       setDebateStarted(true);
+      setBgMode('debate');
 
       setTimeout(() => {
         setIsTransitioning(false);
@@ -28,6 +30,7 @@ function App() {
     setTimeout(() => {
       setDebateStarted(false);
       setTopic('');
+      setBgMode('home');
 
       setTimeout(() => {
         setIsTransitioning(false);
@@ -35,8 +38,16 @@ function App() {
     }, 400);
   };
 
+  const handlePhaseChange = (phase) => {
+    if (phase === 'voting' || phase === 'complete' || phase === 'signing') {
+      setBgMode('champions');
+    } else if (phase === 'debating') {
+      setBgMode('debate');
+    }
+  };
+
   return (
-    <BackgroundVideo isDebateScreen={debateStarted}>
+    <BackgroundVideo bgMode={bgMode}>
       <div className={`App ${isTransitioning ? 'transitioning' : ''}`}>
         {!debateStarted ? (
           <HomeScreen onBeginDebate={startDebate} />
@@ -44,6 +55,7 @@ function App() {
           <IntelligentDebateScreen
             topic={topic}
             onReturnHome={handleReturnHome}
+            onPhaseChange={handlePhaseChange}
           />
         )}
       </div>

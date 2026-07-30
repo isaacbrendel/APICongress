@@ -50,4 +50,5 @@ export const API_ENDPOINTS = {
 
 export const getApiUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;
 
-export default { API_BASE_URL, API_ENDPOINTS, getApiUrl };
+const apiConfig = { API_BASE_URL, API_ENDPOINTS, getApiUrl };
+export default apiConfig;

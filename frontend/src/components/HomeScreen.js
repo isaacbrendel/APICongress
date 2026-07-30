@@ -1,4 +1,3 @@
-// src/components/HomeScreen.js
 import React, { useRef } from 'react';
 import './HomeScreen.css';
 
@@ -15,18 +14,24 @@ const HomeScreen = ({ onBeginDebate }) => {
 
   return (
     <div className="home-screen">
-      <div className="welcome-card">
-        <h1 className="title">APICongress</h1>
-        <p className="subtitle">Enter your debate topic below.</p>
-        <form onSubmit={handleSubmit} className="topic-form">
+      {/* Top Floating Title Header */}
+      <header className="home-top-header">
+        <h1 className="title">APICONGRESS</h1>
+        <p className="subtitle">AI POLITICAL DEBATE SIMULATOR</p>
+      </header>
+
+      {/* Bottom Floating Input Console (Center Graphic Unblocked) */}
+      <div className="home-bottom-console">
+        <form onSubmit={handleSubmit} className="topic-form-horizontal">
           <input
             ref={inputRef}
             type="text"
-            placeholder="e.g. Should AI be regulated?"
-            className="topic-input"
+            placeholder="Enter debate topic (e.g. Should AI be regulated?)"
+            className="topic-input-horizontal"
+            autoFocus
           />
-          <button type="submit" className="begin-button">
-            Begin Debate
+          <button type="submit" className="begin-button-horizontal">
+            Begin Debate ➔
           </button>
         </form>
       </div>

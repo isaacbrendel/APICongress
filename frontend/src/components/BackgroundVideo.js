@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './BackgroundVideo.css';
 
-const BackgroundVideo = ({ children, isDebateScreen = false }) => {
+const BackgroundVideo = ({ children, bgMode = 'home' }) => {
   const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const landscapeRef = useRef(null);
@@ -16,7 +16,25 @@ const BackgroundVideo = ({ children, isDebateScreen = false }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Preload images
+  // Determine media src based on mode
+  const getMediaSrc = () => {
+    switch (bgMode) {
+      case 'debate':
+        return '/images/APICONGRESS1.gif';
+      case 'voting':
+      case 'signing':
+      case 'champions':
+        return '/images/CHAMPIONS.gif';
+      case 'home':
+      default:
+        return '/images/APICONGRESS0.gif';
+    }
+  };
+
+  const landscapeSrc = process.env.PUBLIC_URL + getMediaSrc();
+  const portraitSrc = process.env.PUBLIC_URL + '/images/APICONGRESS3PORTRAITgif.gif';
+
+  // Preload image assets
   useEffect(() => {
     const landscapeImg = new Image();
     const portraitImg = new Image();
@@ -30,15 +48,12 @@ const BackgroundVideo = ({ children, isDebateScreen = false }) => {
     landscapeImg.onload = checkLoaded;
     portraitImg.onload = checkLoaded;
 
-    landscapeImg.src = process.env.PUBLIC_URL + (isDebateScreen ? '/images/APICONGRESS0.gif' : '/images/APICONGRESS1.gif');
-    portraitImg.src = process.env.PUBLIC_URL + '/images/APICONGRESS3PORTRAITgif.gif';
+    landscapeImg.src = landscapeSrc;
+    portraitImg.src = portraitSrc;
 
-    const timeout = setTimeout(() => setImagesLoaded(true), 2000);
+    const timeout = setTimeout(() => setImagesLoaded(true), 1500);
     return () => clearTimeout(timeout);
-  }, [isDebateScreen]);
-
-  const landscapeSrc = process.env.PUBLIC_URL + (isDebateScreen ? '/images/APICONGRESS0.gif' : '/images/APICONGRESS1.gif');
-  const portraitSrc = process.env.PUBLIC_URL + '/images/APICONGRESS3PORTRAITgif.gif';
+  }, [bgMode, landscapeSrc, portraitSrc]);
 
   return (
     <>
@@ -46,13 +61,13 @@ const BackgroundVideo = ({ children, isDebateScreen = false }) => {
         <img
           ref={landscapeRef}
           src={landscapeSrc}
-          alt=""
+          alt="APICongress Background Media"
           className={`background-video landscape ${!isPortrait ? 'active' : ''} ${imagesLoaded ? 'loaded' : ''}`}
         />
         <img
           ref={portraitRef}
           src={portraitSrc}
-          alt=""
+          alt="APICongress Portrait Media"
           className={`background-video portrait ${isPortrait ? 'active' : ''} ${imagesLoaded ? 'loaded' : ''}`}
         />
         {!imagesLoaded && (

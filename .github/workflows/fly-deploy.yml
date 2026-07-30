@@ -10,21 +10,26 @@ jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
-    concurrency: deploy-group    # optional: ensure only one action runs at a time
+    concurrency: deploy-group    # ensure only one action runs at a time
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # Set secrets BEFORE deploying so the app boots with all env vars present
+      # (avoids a machine restart mid-serve that breaks active connections)
       - name: Set secrets
         run: |
           flyctl secrets set \
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
-            CLAUDE_API_KEY="${{ secrets.CLAUDE_API_KEY }}" \
+            ANTHROPIC_API_KEY="${{ secrets.CLAUDE_API_KEY }}" \
             COHERE_API_KEY="${{ secrets.COHERE_API_KEY }}" \
-            GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            GROK_API_KEY="${{ secrets.GROK_API_KEY }}"
+            GOOGLE_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+            XAI_API_KEY="${{ secrets.GROK_API_KEY }}" \
+            --stage
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

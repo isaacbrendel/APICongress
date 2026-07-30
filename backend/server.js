@@ -66,8 +66,24 @@ console.log('[SYSTEM INIT] ✓ Party agent mapping ready');
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the "public" folder (React build)
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve images and media with long-lived cache headers (30 days)
+// This prevents GIFs from being re-downloaded on every page load in production
+app.use('/images', express.static(path.join(__dirname, 'public', 'images'), {
+  maxAge: '30d',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.gif') || filePath.endsWith('.png') || filePath.endsWith('.jpg')) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    }
+  }
+}));
+
+// Serve all other static files from the "public" folder (React build)
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: true
+}));
 
 /**
  * Generate mock responses that are brief and character-driven

@@ -93,3 +93,6 @@ $RECYCLE.BIN/
 
 # Runtime-generated agent data
 backend/memory/
+
+# Eval run reports
+evals/results/

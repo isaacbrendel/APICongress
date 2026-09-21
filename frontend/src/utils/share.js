@@ -1,5 +1,5 @@
 /**
- * Share + URL helpers for viral rematch loops.
+ * Share + URL helpers — LinkedIn / X / rematch friendly.
  */
 
 export function readTopicFromUrl() {
@@ -18,6 +18,7 @@ export function writeTopicToUrl(topic) {
     if (topic) url.searchParams.set('topic', topic);
     else url.searchParams.delete('topic');
     url.searchParams.delete('winner');
+    url.searchParams.delete('champ');
     window.history.replaceState({}, '', url.toString());
   } catch {
     /* ignore */
@@ -33,22 +34,26 @@ export function buildRematchUrl(topic, winnerName) {
 
 export function buildSharePayload({ topic, winner, party, quote }) {
   const rematch = buildRematchUrl(topic, winner);
+  const cleanQuote = (quote || 'The chamber has spoken.').replace(/\s+/g, ' ').trim();
+
   const text = [
-    `APICONGRESS verdict: ${winner} (${party}) took the floor.`,
+    `APICONGRESS chamber verdict`,
+    `${winner} (${party}) carried the floor.`,
     ``,
     `Topic: ${topic}`,
-    quote ? `"${quote}"` : null,
+    `"${cleanQuote}"`,
     ``,
-    `Rematch → ${rematch}`
-  ]
-    .filter((line) => line !== null)
-    .join('\n');
+    `Open the rematch → ${rematch}`
+  ].join('\n');
 
   const xIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-    `APICONGRESS: ${winner} (${party}) won on "${topic}"\n\n"${quote || 'The chamber has spoken.'}"\n\n${rematch}`
+    `APICONGRESS: ${winner} (${party}) on "${topic}"\n\n"${cleanQuote.slice(0, 160)}${cleanQuote.length > 160 ? '…' : ''}"\n\n${rematch}`
   )}`;
 
-  return { text, rematch, xIntent };
+  // LinkedIn share-offsite — Featured / feed grab the og: tags from the URL
+  const linkedInIntent = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(rematch)}`;
+
+  return { text, rematch, xIntent, linkedInIntent };
 }
 
 export async function copyText(text) {
@@ -71,6 +76,16 @@ export async function copyText(text) {
     const ok = document.execCommand('copy');
     document.body.removeChild(ta);
     return ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function nativeShare({ title, text, url }) {
+  if (!navigator.share) return false;
+  try {
+    await navigator.share({ title, text, url });
+    return true;
   } catch {
     return false;
   }

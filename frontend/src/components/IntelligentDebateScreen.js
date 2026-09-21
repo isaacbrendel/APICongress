@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import { castFighters, partyClass, bestQuote } from '../utils/casting';
-import { buildSharePayload, copyText, writeTopicToUrl } from '../utils/share';
+import { buildSharePayload, copyText, writeTopicToUrl, nativeShare } from '../utils/share';
 import './IntelligentDebateScreen.css';
 
 const REACTIONS = [
@@ -256,6 +256,17 @@ const IntelligentDebateScreen = ({
 
   const handleCopyShare = async () => {
     if (!share) return;
+    // Prefer OS share sheet on mobile when available
+    const shared = await nativeShare({
+      title: 'APICONGRESS verdict',
+      text: share.text,
+      url: share.rematch
+    });
+    if (shared) {
+      setCopyState('copied');
+      setTimeout(() => setCopyState('idle'), 2000);
+      return;
+    }
     const ok = await copyText(share.text);
     setCopyState(ok ? 'copied' : 'failed');
     setTimeout(() => setCopyState('idle'), 2000);
@@ -469,14 +480,17 @@ const IntelligentDebateScreen = ({
             <blockquote className="share-quote">“{bestQuote(arguments_, winner.model)}”</blockquote>
 
             <div className="share-actions">
+              <a className="share-linkedin" href={share.linkedInIntent} target="_blank" rel="noreferrer">
+                LinkedIn
+              </a>
               <a className="share-x" href={share.xIntent} target="_blank" rel="noreferrer">
                 Post to X
               </a>
               <button type="button" className="share-copy" onClick={handleCopyShare}>
-                {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy verdict'}
+                {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy / Share'}
               </button>
               <button type="button" className="share-rematch" onClick={onReturnHome}>
-                New fight
+                New debate
               </button>
             </div>
 

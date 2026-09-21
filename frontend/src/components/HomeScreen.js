@@ -69,10 +69,10 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
   const sourceLabel = trendMeta.xLive
     ? 'Live from X · US trends'
     : trendMeta.sources.includes('google_trends')
-      ? 'Google Trends US · chamber heat'
+      ? 'Google Trends US · chamber topics'
       : trendMeta.sources.includes('reddit')
-        ? 'Hot from Reddit + chamber seeds'
-        : 'Chamber seeds · set X_BEARER_TOKEN for live X'
+        ? 'From Reddit + chamber seeds'
+        : 'Chamber topic seeds';
 
   return (
     <div className="home-screen">
@@ -80,7 +80,7 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
         <p className="home-kicker">Five models. Random parties. One verdict.</p>
         <h1 className="home-brand">APICONGRESS</h1>
         <p className="home-tagline">
-          Drop a topic. Watch the floor erupt. Share the knockout.
+          Drop a topic. Watch the chamber argue. Share the verdict.
         </p>
       </header>
 
@@ -89,7 +89,7 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
           <span className={`trend-live ${trendMeta.xLive ? 'is-live' : ''}`}>
             {trendMeta.xLive ? '● LIVE ON X' : '● TRENDING'}
           </span>
-          <span className="trend-source">{trendMeta.loading ? 'Loading pulse…' : sourceLabel}</span>
+          <span className="trend-source">{trendMeta.loading ? 'Loading topics…' : sourceLabel}</span>
         </div>
         <div className="trend-chips" role="list">
           {trends.map((t) => (
@@ -99,7 +99,7 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
               className="trend-chip"
               role="listitem"
               onClick={() => pickTrend(t)}
-              title={`Debate: ${t.topic}`}
+              title={`Open debate: ${t.topic}`}
             >
               <span className="trend-heat">{t.heat || '—'}</span>
               <span className="trend-text">{t.topic}</span>
@@ -119,11 +119,12 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="Enter a fight — or tap a trend above"
+            placeholder="Enter a topic — or tap a trend above"
             className="topic-input"
             autoFocus
             maxLength={180}
             autoComplete="off"
+            enterKeyHint="go"
           />
           <button type="submit" className="begin-button">
             Open Floor
@@ -132,7 +133,7 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
 
         <div className="heat-row">
           <label htmlFor="heat-slider">
-            Floor heat <strong>{heat}</strong>
+            Intensity <strong>{heat}</strong>
           </label>
           <input
             id="heat-slider"
@@ -143,7 +144,7 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
             value={heat}
             onChange={(e) => setHeat(Number(e.target.value))}
           />
-          <span className="heat-hint">{heat >= 90 ? 'Bloodsport' : heat >= 70 ? 'Spicy' : 'Civil'}</span>
+          <span className="heat-hint">{heat >= 90 ? 'Intense' : heat >= 70 ? 'Spirited' : 'Civil'}</span>
         </div>
       </div>
     </div>

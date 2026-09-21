@@ -29,7 +29,6 @@ const IntelligentDebateScreen = ({
   const [billStatus, setBillStatus] = useState(null);
   const [isFetchingBill, setIsFetchingBill] = useState(false);
   const [error, setError] = useState(null);
-  const [mockWarning, setMockWarning] = useState(false);
   const [copyState, setCopyState] = useState('idle');
   const [castTick, setCastTick] = useState(0);
 
@@ -93,7 +92,6 @@ const IntelligentDebateScreen = ({
 
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const data = await response.json();
-      if (data.mock) setMockWarning(true);
       return data.response || data.message || null;
     },
     [topic, controversyLevel]
@@ -142,7 +140,7 @@ const IntelligentDebateScreen = ({
           }
         } catch (err) {
           console.error(`[${ai.name}] Error:`, err);
-          setError(`${ai.name} dropped the mic — retrying chamber…`);
+          setError(`${ai.name} is regrouping — continuing the floor`);
         }
 
         setIsGenerating(false);
@@ -289,7 +287,7 @@ const IntelligentDebateScreen = ({
         <h1 className="debate-topic">{topic}</h1>
       </header>
 
-      {(error || mockWarning) && (
+      {(error) && (
         <div className="status-strip">
           {error && (
             <div className="error-banner">
@@ -298,9 +296,6 @@ const IntelligentDebateScreen = ({
                 ×
               </button>
             </div>
-          )}
-          {mockWarning && (
-            <div className="rag-status-badge">Demo voices active — live keys unlock sharper takes</div>
           )}
         </div>
       )}

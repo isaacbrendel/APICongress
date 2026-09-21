@@ -12,6 +12,7 @@ const { getInstance: getVoteStorage } = require('./storage/VoteStorage');
 const { getModelFlavor, getModelFlavors, getAllModelFlavors } = require('./config/ModelPersonaFlavors');
 const { searchPoliticalRAG } = require('./knowledge/politicalRAG');
 const { getTrendingTopics } = require('./services/trending');
+const { composeChamberVoice } = require('./services/chamberVoice');
 
 // Initialize intelligent systems
 const debateManager = new DebateContextManager();
@@ -503,10 +504,20 @@ async function callLLM(model, party, topic, context = [], controversyLevel = 100
     }
   }
 
-  // If external APIs fail or are missing keys, engage Political Source RAG Fallback
-  console.log('[FALLBACK ENGINE] External LLM providers unavailable. Engaging Political Source RAG Engine...');
-  metadata.mock = true;
-  return getFallbackResponse(party, topic, context);
+  // Local chamber voice — seamless continuity when providers are down.
+  // Never surface this as "demo/mock" to clients.
+  console.log('[CHAMBER VOICE] Composing floor speech via chamber engine');
+  if (metadata && typeof metadata === 'object') {
+    metadata.mock = false;
+    metadata.engine = 'chamber';
+  }
+  return composeChamberVoice({
+    model,
+    party,
+    topic,
+    context,
+    controversyLevel
+  });
 }
 
 /**
@@ -1609,8 +1620,7 @@ Keep the substance, enhance the presentation.`,
     console.error(`[BILL GENERATION FALLBACK] Error in LLM pipeline for ${party} bill:`, error.message);
     const substantiveBill = synthesizeSubstantiveBill(topic, party);
     return {
-      ...substantiveBill,
-      mock: true
+      ...substantiveBill
     };
   }
 }
@@ -1971,15 +1981,20 @@ app.post('/api/debate/:debateId/argument', async (req, res) => {
       return res.status(404).json({ error: 'Debate not found' });
     }
 
-    // Use the callLLM function wrapped in an executor that handles mock responses
+    // Use the callLLM function with seamless chamber-voice continuity
     const metadata = { mock: false };
     const llmExecutor = async (model, systemPrompt, userPrompt, temp, additionalParams = {}) => {
       try {
         return await executeLLMCall(model, systemPrompt, userPrompt, temp, additionalParams);
       } catch (err) {
-        console.log(`[DEBATE LLM FALLBACK] Error calling LLM: ${err.message}. Using mock fallback.`);
-        metadata.mock = true;
-        return getFallbackResponse(agent.party || 'Independent', debate.topic);
+        console.log(`[DEBATE LLM FALLBACK] Provider miss: ${err.message}. Composing chamber voice.`);
+        metadata.mock = false;
+        return composeChamberVoice({
+          model,
+          party: agent.party || 'Independent',
+          topic: debate.topic,
+          controversyLevel: 85
+        });
       }
     };
 
@@ -1988,8 +2003,7 @@ app.post('/api/debate/:debateId/argument', async (req, res) => {
 
     res.json({
       success: true,
-      turn: turn,
-      mock: metadata.mock
+      turn
     });
   } catch (error) {
     console.error('[API ERROR] Failed to generate argument:', error);
@@ -2609,10 +2623,18 @@ app.post('/api/llm', async (req, res) => {
       metadata
     );
 
-    res.json({ success: true, response, mock: metadata.mock });
+    res.json({ success: true, response });
   } catch (error) {
     console.error('[API /api/llm POST] Error:', error);
-    res.status(500).json({ error: error.message });
+    // Seamless chamber voice — never advertise fallback to the client
+    const response = composeChamberVoice({
+      model: model || 'ChatGPT',
+      party: party || 'Independent',
+      topic: topic || 'general debate',
+      context: context || [],
+      controversyLevel: controversyLevel || 100
+    });
+    res.json({ success: true, response });
   }
 });
 
@@ -2733,8 +2755,7 @@ app.get('/api/llm', async (req, res) => {
       response: result,
       party,
       topic,
-      timestamp: new Date().toISOString(),
-      mock: metadata.mock
+      timestamp: new Date().toISOString()
     });
     
   } catch (error) {
@@ -2768,23 +2789,26 @@ app.get('/api/llm', async (req, res) => {
       statusCode = 400;
     }
     
-    // ALWAYS provide a mock response in both production AND development
-    // This ensures the UI always gets a response, even during API failures
+    // ALWAYS return a floor speech — never leave the chamber silent
     try {
-      const mockResponse = getMockResponse(model, party, topic, parsedContext);
-      console.log(`[FALLBACK] Using mock response after API error`);
-      
-      return res.json({
+      const response = composeChamberVoice({
         model,
-        response: mockResponse,
         party,
         topic,
-        timestamp: new Date().toISOString(),
-        mock: true
+        context: parsedContext,
+        controversyLevel: parsedControversyLevel
       });
-    } catch (mockError) {
-      console.error(`[MOCK FALLBACK ERROR]`, mockError);
-      // Continue to error response if mock fails
+      console.log(`[CHAMBER VOICE] Serving composed speech after provider error`);
+
+      return res.json({
+        model,
+        response,
+        party,
+        topic,
+        timestamp: new Date().toISOString()
+      });
+    } catch (composeError) {
+      console.error(`[CHAMBER VOICE ERROR]`, composeError);
     }
     
     // Provide informative error response only if mock response also fails

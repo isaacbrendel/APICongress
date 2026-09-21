@@ -1,21 +1,23 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-describe('App Component', () => {
-  test('renders without crashing', () => {
-    render(<App />);
-  });
+jest.mock('./components/BackgroundVideo', () => {
+  return function MockBackground({ children }) {
+    return <div data-testid="background">{children}</div>;
+  };
+});
 
-  test('renders home screen initially', () => {
-    render(<App />);
-    // Check for home screen elements - topic input should be present
-    const inputElements = screen.getAllByRole('textbox');
-    expect(inputElements.length).toBeGreaterThan(0);
-  });
+test('renders APICONGRESS brand on home', () => {
+  render(<App />);
+  expect(screen.getByText(/APICONGRESS/i)).toBeInTheDocument();
+});
 
-  test('background video component is present', () => {
-    const { container } = render(<App />);
-    // Check that the BackgroundVideo wrapper is rendered
-    expect(container.firstChild).toBeTruthy();
-  });
+test('renders open floor call to action', () => {
+  render(<App />);
+  expect(screen.getByRole('button', { name: /open floor/i })).toBeInTheDocument();
+});
+
+test('renders trending rail', () => {
+  render(<App />);
+  expect(screen.getByLabelText(/trending debate topics/i)).toBeInTheDocument();
 });

@@ -11,6 +11,7 @@ const ConstitutionalDocumentManager = require('./collaboration/ConstitutionalDoc
 const { getInstance: getVoteStorage } = require('./storage/VoteStorage');
 const { getModelFlavor, getModelFlavors, getAllModelFlavors } = require('./config/ModelPersonaFlavors');
 const { searchPoliticalRAG } = require('./knowledge/politicalRAG');
+const { getTrendingTopics } = require('./services/trending');
 
 // Initialize intelligent systems
 const debateManager = new DebateContextManager();
@@ -2854,9 +2855,32 @@ app.get('/api/status', (req, res) => {
       responseClean: true,
       boldnessScoring: true,
       personaSystem: true,
-      competitionMode: true
+      competitionMode: true,
+      trending: true,
+      xTrends: !!(process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN)
     }
   });
+});
+
+/**
+ * Trending debate topics — live X trends when X_BEARER_TOKEN / TWITTER_BEARER_TOKEN
+ * is set; otherwise Reddit hot + curated viral seeds.
+ */
+app.get('/api/trending', async (req, res) => {
+  try {
+    const force = req.query.refresh === '1' || req.query.refresh === 'true';
+    const payload = await getTrendingTopics({ force });
+    res.set('Cache-Control', 'public, max-age=120');
+    res.json({ success: true, ...payload });
+  } catch (error) {
+    console.error('[API ERROR] /api/trending:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      topics: [],
+      sources: ['error']
+    });
+  }
 });
 
 // Catch-all route: serve index.html for any other route (for React Router)

@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import './BackgroundVideo.css';
 
 const BackgroundVideo = ({ children, bgMode = 'home' }) => {
-  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+  const [isPortrait, setIsPortrait] = useState(
+    typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
+  );
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const landscapeRef = useRef(null);
   const portraitRef = useRef(null);
 
-  // Handle orientation changes
   useEffect(() => {
     const handleResize = () => {
       setIsPortrait(window.innerHeight > window.innerWidth);
@@ -16,7 +17,6 @@ const BackgroundVideo = ({ children, bgMode = 'home' }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Determine media src based on mode
   const getMediaSrc = () => {
     switch (bgMode) {
       case 'debate':
@@ -24,6 +24,7 @@ const BackgroundVideo = ({ children, bgMode = 'home' }) => {
       case 'voting':
       case 'signing':
       case 'champions':
+      case 'result':
         return '/images/CHAMPIONS.gif';
       case 'home':
       default:
@@ -31,48 +32,55 @@ const BackgroundVideo = ({ children, bgMode = 'home' }) => {
     }
   };
 
-  const landscapeSrc = process.env.PUBLIC_URL + getMediaSrc();
-  const portraitSrc = process.env.PUBLIC_URL + '/images/APICONGRESS3PORTRAITgif.gif';
+  const landscapeSrc = `${process.env.PUBLIC_URL || ''}${getMediaSrc()}`;
+  const portraitSrc = `${process.env.PUBLIC_URL || ''}/images/APICONGRESS3PORTRAITgif.gif`;
 
-  // Preload image assets
   useEffect(() => {
+    setImagesLoaded(false);
     const landscapeImg = new Image();
     const portraitImg = new Image();
     let loaded = 0;
 
     const checkLoaded = () => {
-      loaded++;
+      loaded += 1;
       if (loaded >= 2) setImagesLoaded(true);
     };
 
     landscapeImg.onload = checkLoaded;
     portraitImg.onload = checkLoaded;
+    landscapeImg.onerror = checkLoaded;
+    portraitImg.onerror = checkLoaded;
 
     landscapeImg.src = landscapeSrc;
     portraitImg.src = portraitSrc;
 
-    const timeout = setTimeout(() => setImagesLoaded(true), 1500);
+    const timeout = setTimeout(() => setImagesLoaded(true), 2000);
     return () => clearTimeout(timeout);
   }, [bgMode, landscapeSrc, portraitSrc]);
 
   return (
     <>
-      <div className="background-video-container">
+      <div className="background-video-container" aria-hidden="true">
         <img
           ref={landscapeRef}
           src={landscapeSrc}
-          alt="APICongress Background Media"
-          className={`background-video landscape ${!isPortrait ? 'active' : ''} ${imagesLoaded ? 'loaded' : ''}`}
+          alt=""
+          className={`background-video landscape ${!isPortrait ? 'active' : ''} ${
+            imagesLoaded ? 'loaded' : ''
+          }`}
         />
         <img
           ref={portraitRef}
           src={portraitSrc}
-          alt="APICongress Portrait Media"
-          className={`background-video portrait ${isPortrait ? 'active' : ''} ${imagesLoaded ? 'loaded' : ''}`}
+          alt=""
+          className={`background-video portrait ${isPortrait ? 'active' : ''} ${
+            imagesLoaded ? 'loaded' : ''
+          }`}
         />
+        <div className="background-veil" />
         {!imagesLoaded && (
           <div className="background-loading">
-            <div className="loading-spinner"></div>
+            <div className="loading-spinner" />
           </div>
         )}
       </div>

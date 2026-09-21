@@ -1,33 +1,33 @@
 # APICongress
 
-Welcome to **APICongress** – a fun, interactive platform where multiple AI debate champions take on a topic of your choice! Each AI model (like ChatGPT, Claude, Gemini, and more) will be assigned a unique political persona and will generate lively, debate-style responses. Watch as the discussion unfolds and even cast your vote for the best argument.
+**APICONGRESS** — five AI models cast as random political parties fight a topic you drop. Crown a winner. Share the knockout.
 
----
+## What you get
 
-## What Is APICongress?
+- **Trending topics** — live **X/Twitter US trends** when `X_BEARER_TOKEN` or `TWITTER_BEARER_TOKEN` is set; otherwise Reddit hot + chamber seeds
+- **Random cast** every bout (Dem / Rep / Independent rivalry)
+- **Live scoreboard + reactions** while arguments land
+- **Share card** — copy verdict or post to X, rematch via `?topic=`
+- **Optional bill** sign/veto after the verdict (secondary, not the climax)
 
-APICongress is a demo application that simulates a political debate by calling on several AI models. Here's how it works:
-- **User Input:** You enter a debate topic.
-- **AI Assignment:** The system assigns each AI a random political stance.
-- **Debate Simulation:** Each AI responds with arguments reflecting its persona.
-- **Voting:** Either you or an automated system picks the winner of the debate!
+## Quick start
 
----
+```bash
+# Backend
+cd backend && npm install && node server.js
 
-## Features
+# Frontend
+cd frontend && npm install && npm start
+```
 
-- **Multi-AI Debate:** Integrates five AI models (ChatGPT, Claude, Gemini, Grok, Cohere) to provide diverse perspectives.
-- **Political Personas:** Each AI is assigned a political party (Republican, Democrat, Independent) for partisan debate.
-- **Advanced Prompting:** Multiple prompt strategies with controversy scaling to generate engaging responses.
-- **Bill Generation:** AI-powered competitive bill drafting with multi-stage chaining.
-- **Real-Time Display:** See the debate happen live on a user-friendly React interface with animated backgrounds.
-- **Voting System:** Vote for the best arguments and see winners displayed with animations.
-- **Fallback Responses:** Mock responses ensure the debate continues even without API keys.
+Optional env (backend):
 
----
+```
+X_BEARER_TOKEN=...          # live X trends
+TWITTER_BEARER_TOKEN=...    # alias
+OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_API_KEY / XAI_API_KEY / COHERE_API_KEY
+```
 
-## Tech Stack
+## Stack
 
-- **Frontend:** React (for a smooth, interactive experience)
-- **Backend:** Node.js with Express (to handle API calls and debate logic)
-- **Containerization:** Docker (for easy deployment and management)
+React frontend · Node/Express backend · Docker optional

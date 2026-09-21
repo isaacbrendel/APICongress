@@ -1,31 +1,17 @@
-/* src/components/BackgroundVideo.css */
+/* Background chamber media */
 
-/* Container for the background GIFs */
 .background-video-container {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  z-index: -1;
-  background-color: #1a1a1a;
-}
-
-/* Dark overlay for better text contrast and depth */
-.background-video-container::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(11, 15, 23, 0.5);
-  z-index: 1;
+  z-index: 0;
+  background: var(--ink-950, #0b1220);
   pointer-events: none;
 }
 
-/* Individual background GIF styling */
 .background-video {
   position: absolute;
   top: 50%;
@@ -37,110 +23,60 @@
   height: auto;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.5s ease-in-out;
-  pointer-events: none;
-  /* Ultra slow motion effect */
-  animation: ultraSlowMotion 120s ease-in-out infinite alternate;
+  transition: opacity 0.55s var(--ease-out, ease);
+  will-change: opacity;
+  backface-visibility: hidden;
 }
 
-@keyframes ultraSlowMotion {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.005);
-  }
+.background-video.active.loaded {
+  opacity: 0.55;
 }
 
-/* Active state - show the appropriate background */
-.background-video.active {
-  opacity: 1;
+.background-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at 50% 20%, oklch(0.35 0.06 90 / 0.18), transparent 55%),
+    linear-gradient(180deg, oklch(0.14 0.025 255 / 0.55) 0%, oklch(0.12 0.02 255 / 0.78) 55%, oklch(0.1 0.02 255 / 0.92) 100%);
 }
 
-/* Loaded state for smooth fade-in */
-.background-video.loaded {
-  transition: opacity 0.5s ease-in-out;
-}
-
-/* Loading indicator */
 .background-loading {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #fff;
+  width: 40px;
+  height: 40px;
+  border: 3px solid oklch(1 0 0 / 0.2);
+  border-top-color: var(--brass, #c9a227);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: bg-spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+@keyframes bg-spin {
+  to { transform: rotate(360deg); }
 }
 
-/* Content overlay - sits above the background */
 .content-overlay {
   position: relative;
   z-index: 1;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
-}
-
-/* Media query as fallback for older browsers that don't support resize events well */
-@media (orientation: portrait) {
-  .background-video:not(.portrait-mode) {
-    opacity: 0;
-  }
-}
-
-@media (orientation: landscape) {
-  .background-video.portrait-mode {
-    opacity: 0;
-  }
-}
-
-/* Performance optimizations */
-.background-video {
-  will-change: opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* Ensure smooth scrolling on content */
-.content-overlay {
-  overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* Mobile-specific optimizations */
-@media screen and (max-width: 768px) {
-  .background-video-container {
-    /* Fix for mobile viewport height issues */
-    height: 100dvh; /* Dynamic viewport height */
-    min-height: -webkit-fill-available;
-  }
-
-  .content-overlay {
-    min-height: 100dvh;
-  }
-}
-
-/* Tablet and larger screens */
-@media screen and (min-width: 769px) {
+@media (prefers-reduced-motion: reduce) {
   .background-video {
-    /* Ensure crisp rendering on larger screens */
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
+    transition: none;
+  }
+
+  .loading-spinner {
+    animation: none;
   }
 }

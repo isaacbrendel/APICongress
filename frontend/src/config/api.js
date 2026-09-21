@@ -45,7 +45,8 @@ export const API_ENDPOINTS = {
   // System
   STATUS: '/api/status',
   PERSONAS: '/api/personas',
-  MODEL_FLAVORS: '/api/model-flavors'
+  MODEL_FLAVORS: '/api/model-flavors',
+  TRENDING: '/api/trending'
 };
 
 export const getApiUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;

@@ -10,6 +10,13 @@ const REACTIONS = [
   { id: 'burn', label: 'Burn', score: 4 }
 ];
 
+/** ~220 WPM reading + buffer; clamp so short takes still breathe */
+function readingPauseMs(text) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+  const ms = Math.round((words / 2.8) * 1000) + 2500;
+  return Math.min(18000, Math.max(7000, ms));
+}
+
 const IntelligentDebateScreen = ({
   topic,
   controversyLevel = 85,
@@ -24,18 +31,25 @@ const IntelligentDebateScreen = ({
     Object.fromEntries(fighters.map((f) => [f.id, 0]))
   );
   const [isGenerating, setIsGenerating] = useState(false);
+  const [awaitingContinue, setAwaitingContinue] = useState(false);
+  const [autoRemainSec, setAutoRemainSec] = useState(0);
   const [selectedWinner, setSelectedWinner] = useState(null);
+  const [pendingCrown, setPendingCrown] = useState(null);
   const [billDocument, setBillDocument] = useState(null);
   const [billStatus, setBillStatus] = useState(null);
   const [isFetchingBill, setIsFetchingBill] = useState(false);
   const [error, setError] = useState(null);
   const [copyState, setCopyState] = useState('idle');
   const [castTick, setCastTick] = useState(0);
+  const [focusedArgId, setFocusedArgId] = useState(null);
 
   const initStarted = useRef(false);
   const skipToVoteRef = useRef(false);
   const feedRef = useRef(null);
   const abortRef = useRef(false);
+  const continueResolverRef = useRef(null);
+  const autoTimerRef = useRef(null);
+  const autoTickRef = useRef(null);
 
   useEffect(() => {
     writeTopicToUrl(topic);
@@ -46,12 +60,25 @@ const IntelligentDebateScreen = ({
   }, [phase, onPhaseChange]);
 
   useEffect(() => {
-    const feed = feedRef.current;
-    if (!feed) return;
-    feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
-  }, [arguments_.length, isGenerating, phase]);
+    if (!focusedArgId) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setFocusedArgId(null);
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [focusedArgId]);
 
-  // Cast reveal choreography then debate
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed || focusedArgId) return;
+    feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+  }, [arguments_.length, isGenerating, phase, awaitingContinue, focusedArgId]);
+
   useEffect(() => {
     if (phase !== 'casting') return undefined;
     let tick = 0;
@@ -62,12 +89,56 @@ const IntelligentDebateScreen = ({
     const t = setTimeout(() => {
       clearInterval(iv);
       setPhase('debating');
-    }, 1600);
+    }, 1800);
     return () => {
       clearInterval(iv);
       clearTimeout(t);
     };
   }, [phase]);
+
+  const clearAutoAdvance = () => {
+    if (autoTimerRef.current) {
+      clearTimeout(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    if (autoTickRef.current) {
+      clearInterval(autoTickRef.current);
+      autoTickRef.current = null;
+    }
+    setAutoRemainSec(0);
+  };
+
+  const resolveContinue = useCallback(() => {
+    clearAutoAdvance();
+    setAwaitingContinue(false);
+    if (continueResolverRef.current) {
+      const r = continueResolverRef.current;
+      continueResolverRef.current = null;
+      r();
+    }
+  }, []);
+
+  const waitForContinue = useCallback(
+    (argumentText) =>
+      new Promise((resolve) => {
+        clearAutoAdvance();
+        setAwaitingContinue(true);
+        continueResolverRef.current = resolve;
+
+        const totalMs = readingPauseMs(argumentText);
+        const totalSec = Math.ceil(totalMs / 1000);
+        setAutoRemainSec(totalSec);
+
+        autoTickRef.current = setInterval(() => {
+          setAutoRemainSec((s) => Math.max(0, s - 1));
+        }, 1000);
+
+        autoTimerRef.current = setTimeout(() => {
+          resolveContinue();
+        }, totalMs);
+      }),
+    [resolveContinue]
+  );
 
   const generateArgument = useCallback(
     async (ai, currentArguments = []) => {
@@ -99,6 +170,13 @@ const IntelligentDebateScreen = ({
 
   const handleSkipToVote = () => {
     skipToVoteRef.current = true;
+    clearAutoAdvance();
+    setAwaitingContinue(false);
+    if (continueResolverRef.current) {
+      const r = continueResolverRef.current;
+      continueResolverRef.current = null;
+      r();
+    }
     setPhase('voting');
   };
 
@@ -132,27 +210,28 @@ const IntelligentDebateScreen = ({
             };
             currentArguments.push(newArg);
             setArguments((prev) => [...prev, newArg]);
-            // Opening bonus so scoreboard moves immediately
             setScores((prev) => ({
               ...prev,
               [ai.id]: (prev[ai.id] || 0) + 2
             }));
+            setIsGenerating(false);
+
+            // Always pause so the latest speech is readable (incl. last before vote)
+            if (!skipToVoteRef.current && !abortRef.current) {
+              await waitForContinue(argument);
+            }
+          } else {
+            setIsGenerating(false);
           }
         } catch (err) {
           console.error(`[${ai.name}] Error:`, err);
           setError(`${ai.name} is regrouping — continuing the floor`);
-        }
-
-        setIsGenerating(false);
-
-        // Short dramatic beat only — no fake multi-second waits
-        if (i < fighters.length - 1 && !skipToVoteRef.current) {
-          await new Promise((r) => setTimeout(r, 450));
+          setIsGenerating(false);
         }
       }
 
       if (!skipToVoteRef.current && !abortRef.current) {
-        await new Promise((r) => setTimeout(r, 600));
+        setAwaitingContinue(false);
         setPhase('voting');
       }
     };
@@ -160,10 +239,16 @@ const IntelligentDebateScreen = ({
     runDebate();
     return () => {
       abortRef.current = true;
+      clearAutoAdvance();
+      if (continueResolverRef.current) {
+        continueResolverRef.current();
+        continueResolverRef.current = null;
+      }
     };
-  }, [phase, fighters, generateArgument]);
+  }, [phase, fighters, generateArgument, waitForContinue]);
 
-  const reactToArgument = (argId, fighterId, reactionId) => {
+  const reactToArgument = (e, argId, fighterId, reactionId) => {
+    e?.stopPropagation?.();
     const reaction = REACTIONS.find((r) => r.id === reactionId);
     if (!reaction) return;
 
@@ -185,13 +270,12 @@ const IntelligentDebateScreen = ({
       [fighterId]: (prev[fighterId] || 0) + reaction.score
     }));
 
-    // Fire-and-forget RL vote when available
     fetch(getApiUrl(API_ENDPOINTS.VOTE_ARGUMENT), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         argumentId: argId,
-        vote: reactionId === 'burn' ? 'up' : reactionId === 'fire' ? 'up' : 'up',
+        vote: 'up',
         model: fighters.find((f) => f.id === fighterId)?.model
       })
     }).catch(() => {});
@@ -208,8 +292,11 @@ const IntelligentDebateScreen = ({
     };
   };
 
-  const handleSelectWinner = async (fighterId) => {
+  const confirmCrown = async () => {
+    if (!pendingCrown || isFetchingBill) return;
+    const fighterId = pendingCrown;
     setSelectedWinner(fighterId);
+    setPendingCrown(null);
     setIsFetchingBill(true);
     const winningAI = fighters.find((a) => a.id === fighterId) || fighters[0];
 
@@ -244,6 +331,11 @@ const IntelligentDebateScreen = ({
     [fighters, selectedWinner]
   );
 
+  const focusedArg = useMemo(
+    () => arguments_.find((a) => a.id === focusedArgId) || null,
+    [arguments_, focusedArgId]
+  );
+
   const share = useMemo(() => {
     if (!winner) return null;
     return buildSharePayload({
@@ -256,7 +348,6 @@ const IntelligentDebateScreen = ({
 
   const handleCopyShare = async () => {
     if (!share) return;
-    // Prefer OS share sheet on mobile when available
     const shared = await nativeShare({
       title: 'APICONGRESS verdict',
       text: share.text,
@@ -284,8 +375,54 @@ const IntelligentDebateScreen = ({
     return best;
   }, [scores, fighters]);
 
+  const pendingFighter = fighters.find((f) => f.id === pendingCrown) || null;
   const currentAI = fighters[currentSpeaker];
   const showArena = phase === 'debating' || phase === 'voting' || phase === 'casting';
+
+  const renderArgCard = (arg, idx, { compact = false, expanded = false } = {}) => (
+    <article
+      key={arg.id || idx}
+      className={`feed-card ${partyClass(arg.party)} ${compact ? 'compact' : ''} ${
+        expanded ? 'is-expanded' : ''
+      } is-tappable`}
+      role="button"
+      tabIndex={0}
+      onClick={() => setFocusedArgId(arg.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setFocusedArgId(arg.id);
+        }
+      }}
+      aria-label={`Read full argument from ${arg.name}`}
+    >
+      <header className="feed-card-header">
+        <div className="feed-speaker">
+          <img src={arg.logo} alt="" width={28} height={28} />
+          <span className="feed-speaker-name">{arg.name}</span>
+          <span className={`party-pill ${partyClass(arg.party)}`}>{arg.party}</span>
+        </div>
+        <span className="feed-turn">Turn {idx + 1}</span>
+      </header>
+      <p className="feed-argument-text">{arg.argument}</p>
+      <div className="feed-card-hint">{expanded ? 'Reading now — tap for focus view' : 'Tap to read full →'}</div>
+      {!compact && (
+        <div className="reaction-row">
+          {REACTIONS.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              className={`react-btn react-${r.id}`}
+              onClick={(e) => reactToArgument(e, arg.id, arg.fighterId, r.id)}
+            >
+              {r.label}
+              {arg.reactions?.[r.id] ? ` ${arg.reactions[r.id]}` : ''}
+            </button>
+          ))}
+        </div>
+      )}
+    </article>
+  );
 
   return (
     <div className={`debate-screen ${showArena ? 'has-arena' : ''}`}>
@@ -298,20 +435,17 @@ const IntelligentDebateScreen = ({
         <h1 className="debate-topic">{topic}</h1>
       </header>
 
-      {(error) && (
+      {error && (
         <div className="status-strip">
-          {error && (
-            <div className="error-banner">
-              <span>{error}</span>
-              <button type="button" onClick={() => setError(null)} aria-label="Dismiss">
-                ×
-              </button>
-            </div>
-          )}
+          <div className="error-banner">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} aria-label="Dismiss">
+              ×
+            </button>
+          </div>
         </div>
       )}
 
-      {/* CASTING */}
       {phase === 'casting' && (
         <section className="phase-casting" aria-live="polite">
           <p className="cast-label">Assigning the chamber…</p>
@@ -320,7 +454,6 @@ const IntelligentDebateScreen = ({
               <div
                 key={f.id}
                 className={`cast-card ${partyClass(f.party)} ${castTick > i ? 'revealed' : ''}`}
-                style={{ animationDelay: `${i * 90}ms` }}
               >
                 <img src={f.logo} alt="" className="cast-logo" width={48} height={48} />
                 <div>
@@ -333,10 +466,10 @@ const IntelligentDebateScreen = ({
         </section>
       )}
 
-      {/* DEBATE + VOTE arena */}
       {(phase === 'debating' || phase === 'voting') && (
         <div className="arena-layout">
-          <aside className="fighter-rail" aria-label="Scoreboard">
+          <aside className="fighter-rail" aria-label="Reaction scoreboard">
+            <p className="rail-caption">Your reactions</p>
             {fighters.map((f) => (
               <div
                 key={f.id}
@@ -361,40 +494,19 @@ const IntelligentDebateScreen = ({
                   {fighters.map((ai, i) => (
                     <div
                       key={ai.id}
-                      className={`progress-item ${i < currentSpeaker ? 'done' : ''} ${
-                        i === currentSpeaker ? 'active' : ''
+                      className={`progress-item ${i < currentSpeaker || (i === currentSpeaker && !isGenerating && arguments_.length > i) ? 'done' : ''} ${
+                        i === currentSpeaker && (isGenerating || awaitingContinue) ? 'active' : ''
                       }`}
                     />
                   ))}
                 </div>
 
                 <div className="argument-feed" ref={feedRef}>
-                  {arguments_.map((arg, idx) => (
-                    <article key={arg.id || idx} className={`feed-card ${partyClass(arg.party)}`}>
-                      <header className="feed-card-header">
-                        <div className="feed-speaker">
-                          <img src={arg.logo} alt="" width={28} height={28} />
-                          <span className="feed-speaker-name">{arg.name}</span>
-                          <span className={`party-pill ${partyClass(arg.party)}`}>{arg.party}</span>
-                        </div>
-                        <span className="feed-turn">Turn {idx + 1}</span>
-                      </header>
-                      <p className="feed-argument-text">{arg.argument}</p>
-                      <div className="reaction-row">
-                        {REACTIONS.map((r) => (
-                          <button
-                            key={r.id}
-                            type="button"
-                            className={`react-btn react-${r.id}`}
-                            onClick={() => reactToArgument(arg.id, arg.fighterId, r.id)}
-                          >
-                            {r.label}
-                            {arg.reactions?.[r.id] ? ` ${arg.reactions[r.id]}` : ''}
-                          </button>
-                        ))}
-                      </div>
-                    </article>
-                  ))}
+                  {arguments_.map((arg, idx) =>
+                    renderArgCard(arg, idx, {
+                      expanded: awaitingContinue && idx === arguments_.length - 1
+                    })
+                  )}
 
                   {isGenerating && (
                     <div className="generating-indicator">
@@ -406,9 +518,23 @@ const IntelligentDebateScreen = ({
                   )}
                 </div>
 
-                <div className="rail-foot">
+                <div className="rail-foot debate-controls">
+                  {awaitingContinue ? (
+                    <button type="button" className="continue-btn" onClick={resolveContinue}>
+                      {arguments_.length >= fighters.length
+                        ? 'Proceed to crown winner'
+                        : 'Next speaker'}
+                      {autoRemainSec > 0 ? ` · auto in ${autoRemainSec}s` : ''}
+                    </button>
+                  ) : (
+                    <p className="pace-hint">
+                      {isGenerating
+                        ? 'Listening to the floor…'
+                        : 'Take your time — tap any speech to read the full take.'}
+                    </p>
+                  )}
                   <button type="button" className="skip-all-btn" onClick={handleSkipToVote}>
-                    Skip to verdict
+                    Skip to your vote
                   </button>
                 </div>
               </>
@@ -416,22 +542,19 @@ const IntelligentDebateScreen = ({
 
             {phase === 'voting' && (
               <>
-                <p className="voting-prompt">Who won the floor?</p>
-                <div className="argument-feed voting-feed" ref={feedRef}>
-                  {arguments_.map((arg, idx) => (
-                    <article key={arg.id || idx} className={`feed-card compact ${partyClass(arg.party)}`}>
-                      <header className="feed-card-header">
-                        <div className="feed-speaker">
-                          <img src={arg.logo} alt="" width={28} height={28} />
-                          <span className="feed-speaker-name">{arg.name}</span>
-                          <span className={`party-pill ${partyClass(arg.party)}`}>{arg.party}</span>
-                        </div>
-                      </header>
-                      <p className="feed-argument-text">{arg.argument}</p>
-                    </article>
-                  ))}
+                <div className="voting-header">
+                  <p className="voting-prompt">You pick the winner</p>
+                  <p className="voting-explain">
+                    Scores are only your reactions — they don’t decide the verdict. Tap a speech to re-read it, then crown one model.
+                  </p>
                 </div>
+
+                <div className="argument-feed voting-feed" ref={feedRef}>
+                  {arguments_.map((arg, idx) => renderArgCard(arg, idx, { compact: true }))}
+                </div>
+
                 <div className="voting-names">
+                  <p className="voting-names-label">Crown a model</p>
                   {fighters
                     .filter((ai) => arguments_.some((a) => a.model === ai.model))
                     .map((ai) => (
@@ -439,23 +562,40 @@ const IntelligentDebateScreen = ({
                         key={ai.id}
                         type="button"
                         className={`vote-name ${partyClass(ai.party)} ${
-                          selectedWinner === ai.id ? 'selected' : ''
+                          pendingCrown === ai.id ? 'selected' : ''
                         }`}
-                        onClick={() => handleSelectWinner(ai.id)}
+                        onClick={() => setPendingCrown(ai.id)}
                         disabled={isFetchingBill || selectedWinner !== null}
                       >
                         <img src={ai.logo} alt="" width={24} height={24} />
                         <span>
                           {ai.name}
-                          <small>{ai.party} · {scores[ai.id] || 0} pts</small>
+                          <small>{ai.party} · {scores[ai.id] || 0} reaction pts</small>
                         </span>
                       </button>
                     ))}
                 </div>
+
+                {pendingCrown && pendingFighter && !isFetchingBill && (
+                  <div className="crown-confirm">
+                    <p>
+                      Crown <strong>{pendingFighter.name}</strong> ({pendingFighter.party})?
+                    </p>
+                    <div className="crown-confirm-actions">
+                      <button type="button" className="crown-cancel" onClick={() => setPendingCrown(null)}>
+                        Cancel
+                      </button>
+                      <button type="button" className="crown-yes" onClick={confirmCrown}>
+                        Confirm winner
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {isFetchingBill && (
                   <div className="bill-loading">
                     <div className="loader" />
-                    <p>Sealing the verdict…</p>
+                    <p>Recording your verdict…</p>
                   </div>
                 )}
               </>
@@ -464,11 +604,10 @@ const IntelligentDebateScreen = ({
         </div>
       )}
 
-      {/* RESULT + SHARE */}
       {phase === 'result' && winner && share && (
         <section className="phase-result">
           <div className="share-card" role="article">
-            <p className="share-kicker">Chamber verdict</p>
+            <p className="share-kicker">You crowned the winner</p>
             <div className="share-winner">
               <img src={winner.logo} alt="" width={64} height={64} />
               <div>
@@ -477,7 +616,18 @@ const IntelligentDebateScreen = ({
               </div>
             </div>
             <p className="share-topic">{topic}</p>
+            <p className="share-how">
+              Chosen by you — reaction points were just a guide, not an automatic pick.
+            </p>
             <blockquote className="share-quote">“{bestQuote(arguments_, winner.model)}”</blockquote>
+
+            <button
+              type="button"
+              className="reread-all-btn"
+              onClick={() => arguments_[0] && setFocusedArgId(arguments_[0].id)}
+            >
+              Re-read chamber speeches
+            </button>
 
             <div className="share-actions">
               <a className="share-linkedin" href={share.linkedInIntent} target="_blank" rel="noreferrer">
@@ -519,6 +669,79 @@ const IntelligentDebateScreen = ({
             )}
           </div>
         </section>
+      )}
+
+      {/* Full argument reader */}
+      {focusedArg && (
+        <div
+          className="arg-modal-backdrop"
+          role="presentation"
+          onClick={() => setFocusedArgId(null)}
+        >
+          <div
+            className={`arg-modal ${partyClass(focusedArg.party)}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="arg-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="arg-modal-head">
+              <div className="feed-speaker">
+                <img src={focusedArg.logo} alt="" width={36} height={36} />
+                <div>
+                  <h2 id="arg-modal-title">{focusedArg.name}</h2>
+                  <span className={`party-pill ${partyClass(focusedArg.party)}`}>{focusedArg.party}</span>
+                </div>
+              </div>
+              <button type="button" className="arg-modal-close" onClick={() => setFocusedArgId(null)}>
+                Close
+              </button>
+            </header>
+            <div className="arg-modal-body">
+              <p>{focusedArg.argument}</p>
+            </div>
+            <div className="arg-modal-nav">
+              <button
+                type="button"
+                disabled={arguments_.findIndex((a) => a.id === focusedArg.id) <= 0}
+                onClick={() => {
+                  const i = arguments_.findIndex((a) => a.id === focusedArg.id);
+                  if (i > 0) setFocusedArgId(arguments_[i - 1].id);
+                }}
+              >
+                ← Prev
+              </button>
+              <span>
+                {arguments_.findIndex((a) => a.id === focusedArg.id) + 1} / {arguments_.length}
+              </span>
+              <button
+                type="button"
+                disabled={arguments_.findIndex((a) => a.id === focusedArg.id) >= arguments_.length - 1}
+                onClick={() => {
+                  const i = arguments_.findIndex((a) => a.id === focusedArg.id);
+                  if (i < arguments_.length - 1) setFocusedArgId(arguments_[i + 1].id);
+                }}
+              >
+                Next →
+              </button>
+            </div>
+            {phase === 'debating' || phase === 'voting' ? (
+              <div className="reaction-row arg-modal-react">
+                {REACTIONS.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={`react-btn react-${r.id}`}
+                    onClick={(e) => reactToArgument(e, focusedArg.id, focusedArg.fighterId, r.id)}
+                  >
+                    {r.label}
+                    {focusedArg.reactions?.[r.id] ? ` ${focusedArg.reactions[r.id]}` : ''}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
       )}
     </div>
   );

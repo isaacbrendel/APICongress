@@ -68,10 +68,12 @@ const HomeScreen = ({ onBeginDebate, initialTopic = '' }) => {
 
   const sourceLabel = trendMeta.xLive
     ? 'Live from X · US trends'
-    : trendMeta.sources.includes('google_trends')
-      ? 'Google Trends US · chamber topics'
+    : trendMeta.sources.includes('google_news')
+      ? 'Policy & politics headlines'
+      : trendMeta.sources.includes('google_trends')
+      ? 'Political trends · chamber topics'
       : trendMeta.sources.includes('reddit')
-        ? 'From Reddit + chamber seeds'
+        ? 'From politics feeds + chamber seeds'
         : 'Chamber topic seeds';
 
   return (

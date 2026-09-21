@@ -17,8 +17,8 @@
   --cobalt-soft: oklch(0.55 0.16 255 / 0.22);
   --crimson: oklch(0.55 0.19 25);
   --crimson-soft: oklch(0.55 0.19 25 / 0.22);
-  --slate: oklch(0.68 0.02 250);
-  --slate-soft: oklch(0.68 0.02 250 / 0.2);
+  --slate: oklch(0.72 0.04 75);
+  --slate-soft: oklch(0.72 0.04 75 / 0.22);
 
   --text: oklch(0.96 0.01 95);
   --text-dim: oklch(0.78 0.02 250);

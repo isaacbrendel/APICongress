@@ -247,7 +247,12 @@ function getMockResponse(model, party, topic, context = []) {
   const response = responseOptions[finalIndex];
   console.log(`[MOCK MODE] Selected response ${finalIndex} of ${responseOptions.length} for ${model}: "${response.substring(0, 50)}..."`);
 
-  return response;
+  // Always ground the line in the live topic so mock mode still feels topical
+  const grounded = topicCategory === 'general'
+    ? `${response.replace(/!$/, '')} — and on "${topic}", that means we fight for it without apology.`
+    : response;
+
+  return grounded;
 }
 
 /**
@@ -255,9 +260,18 @@ function getMockResponse(model, party, topic, context = []) {
  */
 function getFallbackResponse(party, topic, context = []) {
   console.log(`[RAG FALLBACK] Querying Political Source RAG for ${party} viewpoint on "${topic}"`);
+  const politicalHints = /tax|vote|immigra|gun|health|climate|congress|president|policy|regulat|ai\b|tiktok|debt|border|wealth|college|police|nuclear|crypto|speech/i;
+  // Non-policy viral topics should stay punchy — skip dense RAG essays
+  if (!politicalHints.test(String(topic || ''))) {
+    return getMockResponse('Fallback', party, topic, context);
+  }
   const ragResult = searchPoliticalRAG(topic, party, context);
   if (ragResult && ragResult.content) {
-    return ragResult.content;
+    const clipped = String(ragResult.content).trim();
+    if (clipped.length > 420) {
+      return `${clipped.slice(0, 400).replace(/\s+\S*$/, '')}…`;
+    }
+    return clipped;
   }
   return getMockResponse('Fallback', party, topic, context);
 }
@@ -359,10 +373,11 @@ ${party === 'Democrat' ? 'You believe in progressive values: social justice, gov
 2. Take a clear, confident position - no waffling
 3. Speak as yourself - a real person with convictions
 4. Be direct and passionate, not bureaucratic
-5. 50-100 words - make every word count
+5. 40-70 words MAX — punchy, quotable, no bureaucratic filler
 6. If responding to an opponent, engage with their actual argument
 7. Use vivid language and concrete examples
 8. Show genuine conviction - this matters to you
+9. End with a line someone would screenshot and post
 </GUIDELINES>
 
 <PERSONA>${personaConfig.name}: ${personaConfig.description}</PERSONA>
@@ -403,7 +418,7 @@ Your opponent just made their case. Now DESTROY their argument from your ${party
 ${contextAddition}
 ${feedbackAddition}
 
-Give your ${party} perspective (50-100 words, confident and substantive):`;
+Give your ${party} perspective (40-70 words, confident, quotable, zero bureaucracy):`;
 
   console.log(`[GENERATE PROMPT] ✓ Prompt generated successfully`);
 

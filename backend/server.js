@@ -640,18 +640,24 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
       }
       
       case 'Claude': {
-        // Claude Sonnet 5 (claude-3-5-sonnet-* retired → not_found_error)
-        // Sonnet 5: no non-default temperature; adaptive thinking on by default (disable for short replies)
-        console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API`);
+        // Complete Sonnet 5 migration (from retired Claude 3.5):
+        // 1. model → claude-sonnet-5 (3.5 IDs return not_found_error)
+        // 2. omit temperature/top_p/top_k (non-default → 400)
+        // 3. thinking disabled (3.5 had none; Sonnet 5 defaults to adaptive)
+        // 4. max_tokens +~30% for new tokenizer on short caps
+        // 5. select text by block type; handle stop_reason refusal
+        console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API (claude-sonnet-5)`);
+
+        const claudeMaxTokens = Math.ceil(max_tokens * 1.3);
 
         const requestBody = {
           model: "claude-sonnet-5",
-          max_tokens: 250,
+          max_tokens: claudeMaxTokens,
           thinking: { type: "disabled" },
           messages: [{ role: "user", content: userPrompt }],
           system: systemPrompt
         };
-        
+
         const response = await myFetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -662,17 +668,26 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
           body: JSON.stringify(requestBody),
           signal: controller.signal
         });
-        
+
         if (!response.ok) {
           const errorData = await response.text();
           console.error(`[CLAUDE ERROR] Status ${response.status}:`, errorData);
           throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
-        
-        if (data.content && data.content.length > 0 && data.content[0].text) {
-          result = data.content[0].text.trim();
+
+        if (data.stop_reason === "refusal") {
+          console.error(`[CLAUDE REFUSAL] stop_reason=refusal`, data);
+          throw new Error("Claude refused the request (cybersecurity safeguard)");
+        }
+
+        const textBlock = Array.isArray(data.content)
+          ? data.content.find((block) => block.type === "text" && typeof block.text === "string")
+          : null;
+
+        if (textBlock) {
+          result = textBlock.text.trim();
         } else {
           console.error(`[CLAUDE ERROR] Unexpected response structure:`, data);
           throw new Error("No completion returned from Claude.");

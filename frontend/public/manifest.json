@@ -1,7 +1,7 @@
 {
   "short_name": "CongressAI",
   "name": "APICONGRESS — CongressAI",
-  "description": "Multi-LLM political debate chamber",
+  "description": "Pick a topic. Five AIs argue. You crown the winner.",
   "icons": [
     {
       "src": "favicon.png",

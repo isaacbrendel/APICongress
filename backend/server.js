@@ -640,14 +640,13 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
       }
       
       case 'Claude': {
-        // Claude Sonnet 5 — retired claude-3-5-sonnet-* returns not_found_error
-        console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API (claude-sonnet-5)`);
+        // Claude Sonnet 5 (claude-3-5-sonnet-* retired → not_found_error)
+        // Sonnet 5: no non-default temperature; adaptive thinking on by default (disable for short replies)
+        console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API`);
 
-        // Sonnet 5 rejects non-default temperature/top_p/top_k (400). Style comes from system prompt.
-        // Adaptive thinking is on by default and counts against max_tokens; disable for short debate replies.
         const requestBody = {
           model: "claude-sonnet-5",
-          max_tokens: max_tokens,
+          max_tokens: 250,
           thinking: { type: "disabled" },
           messages: [{ role: "user", content: userPrompt }],
           system: systemPrompt
@@ -671,12 +670,9 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
         }
         
         const data = await response.json();
-        const textBlock = Array.isArray(data.content)
-          ? data.content.find((block) => block.type === "text" && block.text)
-          : null;
-
-        if (textBlock) {
-          result = textBlock.text.trim();
+        
+        if (data.content && data.content.length > 0 && data.content[0].text) {
+          result = data.content[0].text.trim();
         } else {
           console.error(`[CLAUDE ERROR] Unexpected response structure:`, data);
           throw new Error("No completion returned from Claude.");

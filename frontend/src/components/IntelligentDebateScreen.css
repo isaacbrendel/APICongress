@@ -317,32 +317,138 @@
   overflow-wrap: anywhere;
 }
 
+.reaction-legend {
+  margin: 0;
+  padding: 0.35rem 0.85rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.reaction-legend strong {
+  color: var(--ink);
+  font-weight: 800;
+}
+
 .reaction-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.65rem;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
 }
 
 .react-btn {
-  padding: 0.3rem 0.55rem;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  min-width: 5.6rem;
+  padding: 0.4rem 0.55rem 0.38rem;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--ink);
-  color: var(--ink);
   background: var(--paper);
-  transition: transform 0.1s var(--ease-out), background 0.1s ease;
+  color: var(--ink);
+  text-align: left;
+  transition: transform 0.1s var(--ease-out), background 0.12s ease, box-shadow 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.react-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.react-meaning {
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.2;
+  color: var(--ink);
+  opacity: 0.78;
+}
+
+.react-count {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.3rem;
+  min-width: 1.15rem;
+  padding: 0.1rem 0.28rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .react-btn:hover {
-  background: var(--hazard);
+  transform: translateY(-1px);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .react-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.react-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Distinct identities — escalate from agree → strong → decisive */
+.react-agree {
+  border-width: 2px;
+  border-color: var(--stamp-blue);
+  background: oklch(0.93 0.04 255);
+  box-shadow: inset 3px 0 0 var(--stamp-blue);
+}
+
+.react-agree .react-label {
+  color: var(--stamp-blue);
+}
+
+.react-agree:hover {
+  background: oklch(0.89 0.06 255);
+}
+
+.react-strong {
+  border-width: 2px;
+  border-color: var(--stamp-amber);
+  background: oklch(0.93 0.07 80);
+  box-shadow: inset 3px 0 0 var(--stamp-amber);
+}
+
+.react-strong .react-label {
+  color: oklch(0.42 0.13 55);
+}
+
+.react-strong:hover {
+  background: oklch(0.9 0.09 80);
+}
+
+.react-decisive {
+  border-width: 2px;
+  border-color: var(--stamp-red);
+  background: oklch(0.93 0.05 25);
+  box-shadow: inset 3px 0 0 var(--stamp-red);
+}
+
+.react-decisive .react-label {
+  color: var(--stamp-red);
+}
+
+.react-decisive:hover {
+  background: oklch(0.9 0.07 25);
 }
 
 .generating-indicator {
@@ -704,7 +810,17 @@
   }
 
   .react-btn {
-    min-height: 40px;
+    min-height: 44px;
+    min-width: 5.4rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .react-meaning {
+    font-size: 0.66rem;
+  }
+
+  .reaction-legend {
+    font-size: 0.68rem;
     padding-inline: 0.7rem;
   }
 

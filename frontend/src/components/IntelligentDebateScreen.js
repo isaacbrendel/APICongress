@@ -5,9 +5,27 @@ import { buildSharePayload, copyText, writeTopicToUrl, nativeShare } from '../ut
 import './IntelligentDebateScreen.css';
 
 const REACTIONS = [
-  { id: 'fire', label: 'Fire', score: 3 },
-  { id: 'clap', label: 'Clap', score: 2 },
-  { id: 'burn', label: 'Burn', score: 4 }
+  {
+    id: 'agree',
+    label: 'Agree',
+    meaning: 'I side with this',
+    hint: 'Support this argument',
+    score: 2
+  },
+  {
+    id: 'strong',
+    label: 'Strong',
+    meaning: 'Convincing point',
+    hint: 'Clear and persuasive',
+    score: 3
+  },
+  {
+    id: 'decisive',
+    label: 'Decisive',
+    meaning: 'Wins the exchange',
+    hint: 'Best argument on the floor — biggest score boost',
+    score: 4
+  }
 ];
 
 const IntelligentDebateScreen = ({
@@ -128,7 +146,7 @@ const IntelligentDebateScreen = ({
               party: ai.party,
               logo: ai.logo,
               argument,
-              reactions: { fire: 0, clap: 0, burn: 0 }
+              reactions: { agree: 0, strong: 0, decisive: 0 }
             };
             currentArguments.push(newArg);
             setArguments((prev) => [...prev, newArg]);
@@ -191,7 +209,8 @@ const IntelligentDebateScreen = ({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         argumentId: argId,
-        vote: reactionId === 'burn' ? 'up' : reactionId === 'fire' ? 'up' : 'up',
+        vote: 'up',
+        reaction: reactionId,
         model: fighters.find((f) => f.id === fighterId)?.model
       })
     }).catch(() => {});
@@ -368,6 +387,11 @@ const IntelligentDebateScreen = ({
                   ))}
                 </div>
 
+                <p className="reaction-legend">
+                  Rate each speech — <strong>Agree</strong> · <strong>Strong</strong> ·{' '}
+                  <strong>Decisive</strong>
+                </p>
+
                 <div className="argument-feed" ref={feedRef}>
                   {arguments_.map((arg, idx) => (
                     <article key={arg.id || idx} className={`feed-card ${partyClass(arg.party)}`}>
@@ -380,18 +404,32 @@ const IntelligentDebateScreen = ({
                         <span className="feed-turn">Turn {idx + 1}</span>
                       </header>
                       <p className="feed-argument-text">{arg.argument}</p>
-                      <div className="reaction-row">
-                        {REACTIONS.map((r) => (
-                          <button
-                            key={r.id}
-                            type="button"
-                            className={`react-btn react-${r.id}`}
-                            onClick={() => reactToArgument(arg.id, arg.fighterId, r.id)}
-                          >
-                            {r.label}
-                            {arg.reactions?.[r.id] ? ` ${arg.reactions[r.id]}` : ''}
-                          </button>
-                        ))}
+                      <div
+                        className="reaction-row"
+                        role="group"
+                        aria-label="Rate this argument"
+                      >
+                        {REACTIONS.map((r) => {
+                          const count = arg.reactions?.[r.id] || 0;
+                          return (
+                            <button
+                              key={r.id}
+                              type="button"
+                              className={`react-btn react-${r.id}`}
+                              title={r.hint}
+                              aria-label={`${r.label}: ${r.hint}. Adds ${r.score} points.`}
+                              onClick={() => reactToArgument(arg.id, arg.fighterId, r.id)}
+                            >
+                              <span className="react-label">{r.label}</span>
+                              <span className="react-meaning">{r.meaning}</span>
+                              {count > 0 ? (
+                                <span className="react-count" aria-hidden="true">
+                                  {count}
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
                       </div>
                     </article>
                   ))}

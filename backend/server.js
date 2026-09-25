@@ -488,7 +488,11 @@ async function callLLM(model, party, topic, context = [], controversyLevel = 100
         if (result && typeof result === 'string' && result.trim().length > 10) {
           const refusalPatterns = [/I cannot assist/i, /as an AI language model/i];
           if (!refusalPatterns.some(pat => pat.test(result))) {
-            metadata.mock = false;
+            if (metadata && typeof metadata === 'object') {
+              metadata.mock = false;
+              metadata.engine = 'provider';
+              metadata.providerUsed = currentModel;
+            }
             console.log(`[LLM SUCCESS] Completed using model ${currentModel}`);
             return result;
           }
@@ -510,6 +514,7 @@ async function callLLM(model, party, topic, context = [], controversyLevel = 100
   if (metadata && typeof metadata === 'object') {
     metadata.mock = false;
     metadata.engine = 'chamber';
+    metadata.providerUsed = 'chamber';
   }
   return composeChamberVoice({
     model,
@@ -2636,7 +2641,12 @@ app.post('/api/llm', async (req, res) => {
       metadata
     );
 
-    res.json({ success: true, response });
+    res.json({
+      success: true,
+      response,
+      providerUsed: metadata.providerUsed || null,
+      engine: metadata.engine || null
+    });
   } catch (error) {
     console.error('[API /api/llm POST] Error:', error);
     // Seamless chamber voice — never advertise fallback to the client
@@ -2647,7 +2657,7 @@ app.post('/api/llm', async (req, res) => {
       context: context || [],
       controversyLevel: controversyLevel || 100
     });
-    res.json({ success: true, response });
+    res.json({ success: true, response, providerUsed: 'chamber', engine: 'chamber' });
   }
 });
 
@@ -2768,6 +2778,8 @@ app.get('/api/llm', async (req, res) => {
       response: result,
       party,
       topic,
+      providerUsed: metadata.providerUsed || null,
+      engine: metadata.engine || null,
       timestamp: new Date().toISOString()
     });
     
@@ -2818,6 +2830,8 @@ app.get('/api/llm', async (req, res) => {
         response,
         party,
         topic,
+        providerUsed: 'chamber',
+        engine: 'chamber',
         timestamp: new Date().toISOString()
       });
     } catch (composeError) {
@@ -2903,6 +2917,14 @@ app.get('/api/status', (req, res) => {
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
     supportedModels: ['OpenAI', 'ChatGPT', 'Claude', 'Cohere', 'Gemini', 'Grok'],
+    claudeModel: 'claude-sonnet-5',
+    providersConfigured: {
+      OpenAI: !!process.env.OPENAI_API_KEY,
+      Claude: !!process.env.ANTHROPIC_API_KEY,
+      Cohere: !!process.env.COHERE_API_KEY,
+      Gemini: !!process.env.GOOGLE_API_KEY,
+      Grok: !!process.env.XAI_API_KEY
+    },
     features: {
       responseClean: true,
       boldnessScoring: true,

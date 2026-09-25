@@ -5,9 +5,27 @@ import { buildSharePayload, copyText, writeTopicToUrl, nativeShare } from '../ut
 import './IntelligentDebateScreen.css';
 
 const REACTIONS = [
-  { id: 'fire', label: 'Fire', score: 3 },
-  { id: 'clap', label: 'Clap', score: 2 },
-  { id: 'burn', label: 'Burn', score: 4 }
+  {
+    id: 'clap',
+    label: 'Clap',
+    meaning: 'I agree',
+    hint: 'Solid point — you back this take',
+    score: 2
+  },
+  {
+    id: 'fire',
+    label: 'Fire',
+    meaning: 'Hot take',
+    hint: 'Sharp and convincing — this landed hard',
+    score: 3
+  },
+  {
+    id: 'burn',
+    label: 'Burn',
+    meaning: 'Roasted them',
+    hint: 'Destroyed the other side — biggest score boost',
+    score: 4
+  }
 ];
 
 const IntelligentDebateScreen = ({
@@ -368,6 +386,11 @@ const IntelligentDebateScreen = ({
                   ))}
                 </div>
 
+                <p className="reaction-legend">
+                  Rate each speech — <strong>Clap</strong> agree · <strong>Fire</strong> hot take ·{' '}
+                  <strong>Burn</strong> roasted the other side
+                </p>
+
                 <div className="argument-feed" ref={feedRef}>
                   {arguments_.map((arg, idx) => (
                     <article key={arg.id || idx} className={`feed-card ${partyClass(arg.party)}`}>
@@ -380,18 +403,32 @@ const IntelligentDebateScreen = ({
                         <span className="feed-turn">Turn {idx + 1}</span>
                       </header>
                       <p className="feed-argument-text">{arg.argument}</p>
-                      <div className="reaction-row">
-                        {REACTIONS.map((r) => (
-                          <button
-                            key={r.id}
-                            type="button"
-                            className={`react-btn react-${r.id}`}
-                            onClick={() => reactToArgument(arg.id, arg.fighterId, r.id)}
-                          >
-                            {r.label}
-                            {arg.reactions?.[r.id] ? ` ${arg.reactions[r.id]}` : ''}
-                          </button>
-                        ))}
+                      <div
+                        className="reaction-row"
+                        role="group"
+                        aria-label="Rate this argument"
+                      >
+                        {REACTIONS.map((r) => {
+                          const count = arg.reactions?.[r.id] || 0;
+                          return (
+                            <button
+                              key={r.id}
+                              type="button"
+                              className={`react-btn react-${r.id}`}
+                              title={r.hint}
+                              aria-label={`${r.label}: ${r.hint}. Adds ${r.score} points.`}
+                              onClick={() => reactToArgument(arg.id, arg.fighterId, r.id)}
+                            >
+                              <span className="react-label">{r.label}</span>
+                              <span className="react-meaning">{r.meaning}</span>
+                              {count > 0 ? (
+                                <span className="react-count" aria-hidden="true">
+                                  {count}
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
                       </div>
                     </article>
                   ))}

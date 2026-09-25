@@ -640,18 +640,17 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
       }
       
       case 'Claude': {
-        // Using Claude Sonnet for quality responses
-        console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API`);
+        // Claude Sonnet 5 — retired claude-3-5-sonnet-* returns not_found_error
+        console.log(`[CLAUDE REQUEST] Calling Anthropic Claude API (claude-sonnet-5)`);
 
-        // Claude API only accepts temperature between 0 and 1
-        const claudeTemperature = Math.min(1.0, temperature);
-
+        // Sonnet 5 rejects non-default temperature/top_p/top_k (400). Style comes from system prompt.
+        // Adaptive thinking is on by default and counts against max_tokens; disable for short debate replies.
         const requestBody = {
-          model: "claude-3-5-sonnet-latest",
-          max_tokens: 250,
-          temperature: claudeTemperature, // Clamped to Claude's 0-1 range
+          model: "claude-sonnet-5",
+          max_tokens: max_tokens,
+          thinking: { type: "disabled" },
           messages: [{ role: "user", content: userPrompt }],
-          system: systemPrompt  // System prompt as a separate parameter
+          system: systemPrompt
         };
         
         const response = await myFetch("https://api.anthropic.com/v1/messages", {
@@ -672,9 +671,12 @@ async function executeLLMCall(model, systemPrompt, userPrompt, temperature, addi
         }
         
         const data = await response.json();
-        
-        if (data.content && data.content.length > 0 && data.content[0].text) {
-          result = data.content[0].text.trim();
+        const textBlock = Array.isArray(data.content)
+          ? data.content.find((block) => block.type === "text" && block.text)
+          : null;
+
+        if (textBlock) {
+          result = textBlock.text.trim();
         } else {
           console.error(`[CLAUDE ERROR] Unexpected response structure:`, data);
           throw new Error("No completion returned from Claude.");

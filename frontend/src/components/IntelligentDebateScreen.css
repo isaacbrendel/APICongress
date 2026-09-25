@@ -365,12 +365,13 @@
 }
 
 .react-meaning {
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 650;
   letter-spacing: 0;
   text-transform: none;
   line-height: 1.2;
-  color: var(--ink-soft);
+  color: var(--ink);
+  opacity: 0.78;
 }
 
 .react-count {
@@ -406,8 +407,10 @@
 
 /* Distinct identities — escalate from agree → hot → roast */
 .react-clap {
+  border-width: 2px;
   border-color: var(--stamp-blue);
-  background: oklch(0.96 0.02 255);
+  background: oklch(0.93 0.04 255);
+  box-shadow: inset 3px 0 0 var(--stamp-blue);
 }
 
 .react-clap .react-label {
@@ -415,25 +418,29 @@
 }
 
 .react-clap:hover {
-  background: oklch(0.92 0.04 255);
+  background: oklch(0.89 0.06 255);
 }
 
 .react-fire {
+  border-width: 2px;
   border-color: var(--stamp-amber);
-  background: oklch(0.96 0.04 75);
+  background: oklch(0.93 0.07 80);
+  box-shadow: inset 3px 0 0 var(--stamp-amber);
 }
 
 .react-fire .react-label {
-  color: oklch(0.45 0.12 55);
+  color: oklch(0.42 0.13 55);
 }
 
 .react-fire:hover {
-  background: oklch(0.92 0.07 75);
+  background: oklch(0.9 0.09 80);
 }
 
 .react-burn {
+  border-width: 2px;
   border-color: var(--stamp-red);
-  background: oklch(0.96 0.03 25);
+  background: oklch(0.93 0.05 25);
+  box-shadow: inset 3px 0 0 var(--stamp-red);
 }
 
 .react-burn .react-label {
@@ -441,7 +448,7 @@
 }
 
 .react-burn:hover {
-  background: oklch(0.92 0.05 25);
+  background: oklch(0.9 0.07 25);
 }
 
 .generating-indicator {

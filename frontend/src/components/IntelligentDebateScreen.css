@@ -405,49 +405,49 @@
   outline-offset: 2px;
 }
 
-/* Distinct identities — escalate from agree → hot → roast */
-.react-clap {
+/* Distinct identities — escalate from agree → strong → decisive */
+.react-agree {
   border-width: 2px;
   border-color: var(--stamp-blue);
   background: oklch(0.93 0.04 255);
   box-shadow: inset 3px 0 0 var(--stamp-blue);
 }
 
-.react-clap .react-label {
+.react-agree .react-label {
   color: var(--stamp-blue);
 }
 
-.react-clap:hover {
+.react-agree:hover {
   background: oklch(0.89 0.06 255);
 }
 
-.react-fire {
+.react-strong {
   border-width: 2px;
   border-color: var(--stamp-amber);
   background: oklch(0.93 0.07 80);
   box-shadow: inset 3px 0 0 var(--stamp-amber);
 }
 
-.react-fire .react-label {
+.react-strong .react-label {
   color: oklch(0.42 0.13 55);
 }
 
-.react-fire:hover {
+.react-strong:hover {
   background: oklch(0.9 0.09 80);
 }
 
-.react-burn {
+.react-decisive {
   border-width: 2px;
   border-color: var(--stamp-red);
   background: oklch(0.93 0.05 25);
   box-shadow: inset 3px 0 0 var(--stamp-red);
 }
 
-.react-burn .react-label {
+.react-decisive .react-label {
   color: var(--stamp-red);
 }
 
-.react-burn:hover {
+.react-decisive:hover {
   background: oklch(0.9 0.07 25);
 }
 

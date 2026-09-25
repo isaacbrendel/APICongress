@@ -6,24 +6,24 @@ import './IntelligentDebateScreen.css';
 
 const REACTIONS = [
   {
-    id: 'clap',
-    label: 'Clap',
-    meaning: 'I agree',
-    hint: 'Solid point — you back this take',
+    id: 'agree',
+    label: 'Agree',
+    meaning: 'I side with this',
+    hint: 'Support this argument',
     score: 2
   },
   {
-    id: 'fire',
-    label: 'Fire',
-    meaning: 'Hot take',
-    hint: 'Sharp and convincing — this landed hard',
+    id: 'strong',
+    label: 'Strong',
+    meaning: 'Convincing point',
+    hint: 'Clear and persuasive',
     score: 3
   },
   {
-    id: 'burn',
-    label: 'Burn',
-    meaning: 'Roasted them',
-    hint: 'Destroyed the other side — biggest score boost',
+    id: 'decisive',
+    label: 'Decisive',
+    meaning: 'Wins the exchange',
+    hint: 'Best argument on the floor — biggest score boost',
     score: 4
   }
 ];
@@ -146,7 +146,7 @@ const IntelligentDebateScreen = ({
               party: ai.party,
               logo: ai.logo,
               argument,
-              reactions: { fire: 0, clap: 0, burn: 0 }
+              reactions: { agree: 0, strong: 0, decisive: 0 }
             };
             currentArguments.push(newArg);
             setArguments((prev) => [...prev, newArg]);
@@ -209,7 +209,8 @@ const IntelligentDebateScreen = ({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         argumentId: argId,
-        vote: reactionId === 'burn' ? 'up' : reactionId === 'fire' ? 'up' : 'up',
+        vote: 'up',
+        reaction: reactionId,
         model: fighters.find((f) => f.id === fighterId)?.model
       })
     }).catch(() => {});
@@ -387,8 +388,8 @@ const IntelligentDebateScreen = ({
                 </div>
 
                 <p className="reaction-legend">
-                  Rate each speech — <strong>Clap</strong> agree · <strong>Fire</strong> hot take ·{' '}
-                  <strong>Burn</strong> roasted the other side
+                  Rate each speech — <strong>Agree</strong> · <strong>Strong</strong> ·{' '}
+                  <strong>Decisive</strong>
                 </p>
 
                 <div className="argument-feed" ref={feedRef}>

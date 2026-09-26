@@ -5,16 +5,39 @@ import { buildSharePayload, copyText, writeTopicToUrl, nativeShare } from '../ut
 import './IntelligentDebateScreen.css';
 
 const REACTIONS = [
-  { id: 'fire', label: 'Fire', score: 3 },
-  { id: 'clap', label: 'Clap', score: 2 },
-  { id: 'burn', label: 'Burn', score: 4 }
+  {
+    id: 'agree',
+    label: 'Agree',
+    meaning: 'I side with this',
+    hint: 'Support this argument',
+    score: 2
+  },
+  {
+    id: 'strong',
+    label: 'Strong',
+    meaning: 'Convincing point',
+    hint: 'Clear and persuasive',
+    score: 3
+  },
+  {
+    id: 'decisive',
+    label: 'Decisive',
+    meaning: 'Wins the exchange',
+    hint: 'Best argument on the floor — biggest score boost',
+    score: 4
+  }
 ];
 
-/** ~220 WPM reading + buffer; clamp so short takes still breathe */
+/** Phone-first reading pace: slower than desktop skim speed */
 function readingPauseMs(text) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean).length;
-  const ms = Math.round((words / 2.8) * 1000) + 2500;
-  return Math.min(18000, Math.max(7000, ms));
+  const ms = Math.round((words / 2.0) * 1000) + 4000;
+  return Math.min(24000, Math.max(10000, ms));
+}
+
+function isCompactViewport() {
+  if (typeof window === 'undefined') return true;
+  return window.matchMedia('(max-width: 820px)').matches;
 }
 
 const IntelligentDebateScreen = ({
@@ -111,6 +134,7 @@ const IntelligentDebateScreen = ({
   const resolveContinue = useCallback(() => {
     clearAutoAdvance();
     setAwaitingContinue(false);
+    setFocusedArgId(null);
     if (continueResolverRef.current) {
       const r = continueResolverRef.current;
       continueResolverRef.current = null;
@@ -206,7 +230,7 @@ const IntelligentDebateScreen = ({
               party: ai.party,
               logo: ai.logo,
               argument,
-              reactions: { fire: 0, clap: 0, burn: 0 }
+              reactions: { agree: 0, strong: 0, decisive: 0 }
             };
             currentArguments.push(newArg);
             setArguments((prev) => [...prev, newArg]);
@@ -215,6 +239,11 @@ const IntelligentDebateScreen = ({
               [ai.id]: (prev[ai.id] || 0) + 2
             }));
             setIsGenerating(false);
+
+            // On phones, open the full reader so the speech can't flash past unread
+            if (isCompactViewport()) {
+              setFocusedArgId(newArg.id);
+            }
 
             // Always pause so the latest speech is readable (incl. last before vote)
             if (!skipToVoteRef.current && !abortRef.current) {
@@ -405,20 +434,30 @@ const IntelligentDebateScreen = ({
         <span className="feed-turn">Turn {idx + 1}</span>
       </header>
       <p className="feed-argument-text">{arg.argument}</p>
-      <div className="feed-card-hint">{expanded ? 'Reading now — tap for focus view' : 'Tap to read full →'}</div>
+      <div className="feed-card-hint">{expanded ? 'Full text open' : 'Tap speech to re-read full text →'}</div>
       {!compact && (
-        <div className="reaction-row">
-          {REACTIONS.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              className={`react-btn react-${r.id}`}
-              onClick={(e) => reactToArgument(e, arg.id, arg.fighterId, r.id)}
-            >
-              {r.label}
-              {arg.reactions?.[r.id] ? ` ${arg.reactions[r.id]}` : ''}
-            </button>
-          ))}
+        <div className="reaction-row" role="group" aria-label="Rate this argument">
+          {REACTIONS.map((r) => {
+            const count = arg.reactions?.[r.id] || 0;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                className={`react-btn react-${r.id}`}
+                title={r.hint}
+                aria-label={`${r.label}: ${r.hint}. Adds ${r.score} points.`}
+                onClick={(e) => reactToArgument(e, arg.id, arg.fighterId, r.id)}
+              >
+                <span className="react-label">{r.label}</span>
+                <span className="react-meaning">{r.meaning}</span>
+                {count > 0 ? (
+                  <span className="react-count" aria-hidden="true">
+                    {count}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       )}
     </article>
@@ -501,6 +540,11 @@ const IntelligentDebateScreen = ({
                   ))}
                 </div>
 
+                <p className="reaction-legend">
+                  Rate each speech — <strong>Agree</strong> · <strong>Strong</strong> ·{' '}
+                  <strong>Decisive</strong>. Tap any speech anytime to re-read it.
+                </p>
+
                 <div className="argument-feed" ref={feedRef}>
                   {arguments_.map((arg, idx) =>
                     renderArgCard(arg, idx, {
@@ -545,7 +589,8 @@ const IntelligentDebateScreen = ({
                 <div className="voting-header">
                   <p className="voting-prompt">You pick the winner</p>
                   <p className="voting-explain">
-                    Scores are only your reactions — they don’t decide the verdict. Tap a speech to re-read it, then crown one model.
+                    Nobody auto-wins. Reaction scores are only your notes — tap a speech to re-read,
+                    then crown the model you think won the floor.
                   </p>
                 </div>
 
@@ -617,7 +662,7 @@ const IntelligentDebateScreen = ({
             </div>
             <p className="share-topic">{topic}</p>
             <p className="share-how">
-              Chosen by you — reaction points were just a guide, not an automatic pick.
+              You chose this winner. Reaction points were a personal scoreboard only — never an automatic pick.
             </p>
             <blockquote className="share-quote">“{bestQuote(arguments_, winner.model)}”</blockquote>
 
@@ -726,18 +771,38 @@ const IntelligentDebateScreen = ({
               </button>
             </div>
             {phase === 'debating' || phase === 'voting' ? (
-              <div className="reaction-row arg-modal-react">
-                {REACTIONS.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    className={`react-btn react-${r.id}`}
-                    onClick={(e) => reactToArgument(e, focusedArg.id, focusedArg.fighterId, r.id)}
-                  >
-                    {r.label}
-                    {focusedArg.reactions?.[r.id] ? ` ${focusedArg.reactions[r.id]}` : ''}
-                  </button>
-                ))}
+              <div className="reaction-row arg-modal-react" role="group" aria-label="Rate this argument">
+                {REACTIONS.map((r) => {
+                  const count = focusedArg.reactions?.[r.id] || 0;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className={`react-btn react-${r.id}`}
+                      title={r.hint}
+                      aria-label={`${r.label}: ${r.hint}. Adds ${r.score} points.`}
+                      onClick={(e) => reactToArgument(e, focusedArg.id, focusedArg.fighterId, r.id)}
+                    >
+                      <span className="react-label">{r.label}</span>
+                      <span className="react-meaning">{r.meaning}</span>
+                      {count > 0 ? (
+                        <span className="react-count" aria-hidden="true">
+                          {count}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            {awaitingContinue && phase === 'debating' ? (
+              <div className="arg-modal-continue">
+                <button type="button" className="continue-btn modal-continue-btn" onClick={resolveContinue}>
+                  {arguments_.length >= fighters.length
+                    ? 'Done reading — crown a winner'
+                    : 'Done reading — next speaker'}
+                  {autoRemainSec > 0 ? ` · auto in ${autoRemainSec}s` : ''}
+                </button>
               </div>
             ) : null}
           </div>

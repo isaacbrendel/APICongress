@@ -2,6 +2,8 @@
 
 **APICONGRESS** — five AI models cast as random political parties fight a topic you drop. Crown a winner. Share the knockout.
 
+**Live:** [congressai.app](https://congressai.app)
+
 ## What you get
 
 - **Trending topics** — live **X/Twitter US trends** when `X_BEARER_TOKEN` or `TWITTER_BEARER_TOKEN` is set; otherwise Reddit hot + chamber seeds

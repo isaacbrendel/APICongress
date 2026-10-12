@@ -2,6 +2,8 @@
  * Debate casting — random partisan assignments each bout.
  */
 
+import { sanitizeArgumentText } from './sanitizeText';
+
 export const BASE_FIGHTERS = [
   { id: 'chatgpt', name: 'ChatGPT', model: 'ChatGPT', logo: '/logos/chatgpt.png' },
   { id: 'claude', name: 'Claude', model: 'Claude', logo: '/logos/claude.png' },
@@ -55,7 +57,7 @@ export function bestQuote(argumentsList = [], winnerModel) {
   const winnerArgs = argumentsList.filter((a) => a.model === winnerModel);
   const pool = winnerArgs.length ? winnerArgs : argumentsList;
   if (!pool.length) return 'The chamber has spoken.';
-  const text = pool[0].argument || '';
+  const text = sanitizeArgumentText(pool[0].argument || '');
   const clipped = text.length > 180 ? `${text.slice(0, 177).trim()}…` : text;
   return clipped;
 }

@@ -93,3 +93,4 @@ $RECYCLE.BIN/
 
 # Runtime-generated agent data
 backend/memory/
+backend/storage/verdicts/

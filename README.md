@@ -10,7 +10,7 @@ Pick a political topic. Five models (ChatGPT, Claude, Gemini, Grok, Cohere) get 
 2. **Cast** — each model gets Democrat / Republican / Independent (2–2–1, shuffled)
 3. **Debate** — one speaker at a time. After each take, read it (or tap the card for the full text). Hit **Next speaker**, or wait for the reading-time auto-advance. Last take → **Proceed to crown winner**
 4. **Crown** — reaction points (Fire / Clap / Burn) are a scoreboard only. **You pick the winner**, then confirm
-5. **Share** — LinkedIn, X, or copy; rematch with `?topic=` on the URL. Optional bill sign/veto is secondary
+5. **Share** — Export a 1200×630 chamber verdict PNG (Save / Share card). LinkedIn & X link previews use that graphic via `/v/:id`. Optional bill sign/veto is secondary
 
 ## Trending topics
 

@@ -622,7 +622,7 @@
 }
 
 .phase-result {
-  max-width: 540px;
+  max-width: 720px;
   margin: 1.25rem auto;
   animation: rise 0.5s var(--ease-out) both;
 }
@@ -633,6 +633,54 @@
   border: 2.5px solid var(--ink);
   border-radius: var(--radius-sm);
   box-shadow: 8px 8px 0 var(--ink);
+}
+
+.verdict-graphic-wrap {
+  margin: 0.85rem 0 1rem;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+  box-shadow: 5px 5px 0 var(--ink);
+  overflow: hidden;
+  background: var(--concrete);
+  animation: rise 0.45s var(--ease-out) both;
+}
+
+.verdict-graphic {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 1200 / 630;
+  object-fit: cover;
+}
+
+.verdict-graphic-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(42vw, 280px);
+  aspect-ratio: 1200 / 630;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background:
+    linear-gradient(110deg, var(--concrete) 25%, var(--hazard) 45%, var(--concrete) 65%);
+  background-size: 200% 100%;
+  animation: cardShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes cardShimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.share-card-hint {
+  margin: 0.35rem 0 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-mute);
 }
 
 .share-kicker {
@@ -713,7 +761,12 @@
   gap: 0.5rem;
 }
 
-.share-actions .share-rematch {
+.share-actions-graphic {
+  grid-template-columns: 1fr 1fr;
+}
+
+.share-actions .share-rematch,
+.share-actions .share-copy {
   grid-column: 1 / -1;
 }
 
@@ -721,6 +774,8 @@
 .share-linkedin,
 .share-copy,
 .share-rematch,
+.share-download,
+.share-native,
 .sign-btn,
 .veto-btn {
   display: inline-flex;
@@ -750,10 +805,21 @@
   background: var(--ink);
 }
 
+.share-download {
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.share-native {
+  color: var(--hazard-ink);
+  background: var(--hazard);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
 .share-copy {
   color: var(--ink);
   background: var(--concrete);
-  grid-column: 1 / -1;
 }
 
 .share-rematch {
@@ -764,7 +830,9 @@
 .share-x:hover,
 .share-linkedin:hover,
 .share-copy:hover,
-.share-rematch:hover {
+.share-rematch:hover,
+.share-download:hover,
+.share-native:hover {
   transform: translateY(-1px);
 }
 

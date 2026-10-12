@@ -1,5 +1,6 @@
 /**
  * Share + URL helpers — LinkedIn / X / rematch friendly.
+ * Prefer graphic verdict cards over wall-of-text quotes.
  */
 
 export function readTopicFromUrl() {
@@ -32,28 +33,41 @@ export function buildRematchUrl(topic, winnerName) {
   return url.toString();
 }
 
-export function buildSharePayload({ topic, winner, party, quote }) {
-  const rematch = buildRematchUrl(topic, winner);
-  const cleanQuote = (quote || 'The chamber has spoken.').replace(/\s+/g, ' ').trim();
+/**
+ * Short caption for X/LinkedIn — the graphic carries the spectacle.
+ */
+export function buildSharePayload({ topic, winner, party, quote, shareUrl }) {
+  const rematch = shareUrl || buildRematchUrl(topic, winner);
+  const cleanQuote = String(quote || '')
+    .replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
+  const hook = `${winner} (${party}) just took the chamber.`;
   const text = [
-    `APICONGRESS chamber verdict`,
-    `${winner} (${party}) carried the floor.`,
-    ``,
-    `Topic: ${topic}`,
-    `"${cleanQuote}"`,
-    ``,
-    `Open the rematch → ${rematch}`
-  ].join('\n');
+    `APICONGRESS`,
+    hook,
+    topic ? `Topic: ${topic}` : '',
+    rematch
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-  const xIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-    `APICONGRESS: ${winner} (${party}) on "${topic}"\n\n"${cleanQuote.slice(0, 160)}${cleanQuote.length > 160 ? '…' : ''}"\n\n${rematch}`
-  )}`;
+  const xText = [
+    `APICONGRESS — ${winner} crowned`,
+    topic ? `${topic}` : '',
+    cleanQuote ? cleanQuote.slice(0, 120) + (cleanQuote.length > 120 ? '…' : '') : '',
+    rematch
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
-  // LinkedIn share-offsite — Featured / feed grab the og: tags from the URL
+  const xIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xText)}`;
+
+  // LinkedIn share-offsite — scrape /v/:id OG tags (dynamic verdict PNG)
   const linkedInIntent = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(rematch)}`;
 
-  return { text, rematch, xIntent, linkedInIntent };
+  return { text, rematch, xIntent, linkedInIntent, hook };
 }
 
 export async function copyText(text) {
@@ -81,10 +95,14 @@ export async function copyText(text) {
   }
 }
 
-export async function nativeShare({ title, text, url }) {
+export async function nativeShare({ title, text, url, files }) {
   if (!navigator.share) return false;
   try {
-    await navigator.share({ title, text, url });
+    const payload = { title, text, url };
+    if (files?.length && navigator.canShare?.({ files })) {
+      payload.files = files;
+    }
+    await navigator.share(payload);
     return true;
   } catch {
     return false;

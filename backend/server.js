@@ -13,6 +13,7 @@ const { getModelFlavor, getModelFlavors, getAllModelFlavors } = require('./confi
 const { searchPoliticalRAG } = require('./knowledge/politicalRAG');
 const { getTrendingTopics } = require('./services/trending');
 const { composeChamberVoice } = require('./services/chamberVoice');
+const { saveVerdictCard, getVerdictCard } = require('./services/verdictCardStore');
 
 // Initialize intelligent systems
 const debateManager = new DebateContextManager();
@@ -66,7 +67,7 @@ console.log('[SYSTEM INIT] ✓ Party agent mapping ready');
 
 // Express middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '3mb' }));
 
 // Serve images and media with long-lived cache headers (30 days)
 // This prevents GIFs from being re-downloaded on every page load in production
@@ -336,25 +337,25 @@ function generateAdvancedPrompt(party, topic, controversyLevel = 100, strategyNu
   // Few-shot examples for each party (teaches issue-focused argumentation)
   const fewShotExamples = {
     Republican: `Example of strong Republican debate that addresses the SPECIFIC ISSUE:
-TOPIC: "Should we increase the federal minimum wage to $15/hour?"
-RESPONSE: "A $15 minimum wage kills small business jobs. Entry-level workers lose opportunities when labor costs spike. Let markets set wages, not Washington bureaucrats!"
+TOPIC: Should we increase the federal minimum wage to $15/hour?
+RESPONSE: A $15 minimum wage kills small business jobs. Entry-level workers lose opportunities when labor costs spike. Let markets set wages, not Washington bureaucrats!
 
-TOPIC: "Should the government provide free college tuition?"
-RESPONSE: "Free college means taxpayers foot the bill for degrees that don't guarantee jobs. Students need skin in the game. Reform costs, don't subsidize failure!"`,
+TOPIC: Should the government provide free college tuition?
+RESPONSE: Free college means taxpayers foot the bill for degrees that don't guarantee jobs. Students need skin in the game. Reform costs, don't subsidize failure!`,
 
     Democrat: `Example of strong Democrat debate that addresses the SPECIFIC ISSUE:
-TOPIC: "Should we increase the federal minimum wage to $15/hour?"
-RESPONSE: "Workers can't survive on $7.25 an hour. A $15 minimum wage lifts families out of poverty. No one working full-time should be homeless!"
+TOPIC: Should we increase the federal minimum wage to $15/hour?
+RESPONSE: Workers can't survive on $7.25 an hour. A $15 minimum wage lifts families out of poverty. No one working full-time should be homeless!
 
-TOPIC: "Should the government provide free college tuition?"
-RESPONSE: "Student debt crushes an entire generation. Free public college unlocks opportunity for everyone, not just the wealthy. Education is infrastructure for the future!"`,
+TOPIC: Should the government provide free college tuition?
+RESPONSE: Student debt crushes an entire generation. Free public college unlocks opportunity for everyone, not just the wealthy. Education is infrastructure for the future!`,
 
     Independent: `Example of strong Independent debate that addresses the SPECIFIC ISSUE:
-TOPIC: "Should we increase the federal minimum wage to $15/hour?"
-RESPONSE: "Flat $15 ignores regional costs. Index minimum wage to local living costs. One-size-fits-all fails rural and urban workers alike!"
+TOPIC: Should we increase the federal minimum wage to $15/hour?
+RESPONSE: Flat $15 ignores regional costs. Index minimum wage to local living costs. One-size-fits-all fails rural and urban workers alike!
 
-TOPIC: "Should the government provide free college tuition?"
-RESPONSE: "Free college without quality reform wastes money. Fund community colleges and trade schools. Not everyone needs a four-year degree!"`
+TOPIC: Should the government provide free college tuition?
+RESPONSE: Free college without quality reform wastes money. Fund community colleges and trade schools. Not everyone needs a four-year degree!`
   };
 
   // DIRECT DEBATE FRAMING - AUTHENTIC POLITICAL DISCOURSE
@@ -379,6 +380,7 @@ ${party === 'Democrat' ? 'You believe in progressive values: social justice, gov
 7. Use vivid language and concrete examples
 8. Show genuine conviction - this matters to you
 9. End with a line someone would screenshot and post
+10. Output PLAIN speech only — never wrap the whole answer in quotation marks, parentheses, or markdown fences
 </GUIDELINES>
 
 <PERSONA>${personaConfig.name}: ${personaConfig.description}</PERSONA>
@@ -419,7 +421,7 @@ Your opponent just made their case. Now DESTROY their argument from your ${party
 ${contextAddition}
 ${feedbackAddition}
 
-Give your ${party} perspective (40-70 words, confident, quotable, zero bureaucracy):`;
+Give your ${party} perspective (40-70 words, confident, quotable, zero bureaucracy). Do NOT wrap your answer in quotes:`;
 
   console.log(`[GENERATE PROMPT] ✓ Prompt generated successfully`);
 
@@ -511,13 +513,15 @@ async function callLLM(model, party, topic, context = [], controversyLevel = 100
     metadata.mock = false;
     metadata.engine = 'chamber';
   }
-  return composeChamberVoice({
-    model,
-    party,
-    topic,
-    context,
-    controversyLevel
-  });
+  return cleanDebateResponse(
+    composeChamberVoice({
+      model,
+      party,
+      topic,
+      context,
+      controversyLevel
+    })
+  );
 }
 
 /**
@@ -970,12 +974,42 @@ function validateAndCleanResponse(response) {
  * RESPONSE CLEANING SYSTEM
  * Removes AI disclaimers, hedging, and meta-commentary from debate responses
  */
+function stripWrappingQuotes(response) {
+  if (!response || typeof response !== 'string') return response;
+  let text = response.replace(/^\uFEFF/, '').trim();
+
+  // Whole-response markdown fence (models sometimes wrap speeches)
+  const fence = text.match(/^```(?:\w+)?\s*\n?([\s\S]*?)\n?```$/);
+  if (fence) text = fence[1].trim();
+
+  const open = '["\'\u201c\u201d\u2018\u2019\u00ab\u00bb`]';
+  const close = '["\'\u201c\u201d\u2018\u2019\u00ab\u00bb`]';
+
+  for (let i = 0; i < 4; i += 1) {
+    const before = text;
+    const parenQuote = text.match(new RegExp(`^\\(\\s*(${open})([\\s\\S]*?)(${close})\\s*\\)$`));
+    if (parenQuote && parenQuote[2].trim().length >= 8) {
+      text = parenQuote[2].trim();
+      continue;
+    }
+    const quoted = text.match(new RegExp(`^(${open})([\\s\\S]*?)(${close})$`));
+    if (quoted && quoted[2].trim().length >= 8) {
+      text = quoted[2].trim();
+      continue;
+    }
+    if (text === before) break;
+  }
+
+  text = text.replace(new RegExp(`^${open}+`), '').replace(new RegExp(`${close}+$`), '').trim();
+  return text;
+}
+
 function cleanDebateResponse(response) {
   if (!response || typeof response !== 'string') {
     return response;
   }
 
-  let cleaned = response;
+  let cleaned = stripWrappingQuotes(response);
 
   // Remove "As an AI" and similar self-referential phrases
   const aiPhrases = [
@@ -1045,6 +1079,9 @@ function cleanDebateResponse(response) {
 
   // Clean up spacing issues from removals
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  // Peel wrappers again after phrase stripping (models re-wrap cleaned text)
+  cleaned = stripWrappingQuotes(cleaned);
 
   // Ensure first letter is capitalized after cleaning
   if (cleaned.length > 0) {
@@ -2627,13 +2664,15 @@ app.post('/api/llm', async (req, res) => {
   } catch (error) {
     console.error('[API /api/llm POST] Error:', error);
     // Seamless chamber voice — never advertise fallback to the client
-    const response = composeChamberVoice({
-      model: model || 'ChatGPT',
-      party: party || 'Independent',
-      topic: topic || 'general debate',
-      context: context || [],
-      controversyLevel: controversyLevel || 100
-    });
+    const response = cleanDebateResponse(
+      composeChamberVoice({
+        model: model || 'ChatGPT',
+        party: party || 'Independent',
+        topic: topic || 'general debate',
+        context: context || [],
+        controversyLevel: controversyLevel || 100
+      })
+    );
     res.json({ success: true, response });
   }
 });
@@ -2920,6 +2959,112 @@ app.get('/api/trending', async (req, res) => {
       sources: ['error']
     });
   }
+});
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function absoluteUrl(req, pathname) {
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+  const host = req.get('x-forwarded-host') || req.get('host') || 'congressai.app';
+  return `${proto}://${host}${pathname}`;
+}
+
+/**
+ * Publish a rendered verdict PNG for LinkedIn/X OG previews.
+ * Client canvas → base64 → here → /v/:id scrapable card.
+ */
+app.post('/api/verdict-card', (req, res) => {
+  try {
+    const { topic, winner, party, quote, pngBase64 } = req.body || {};
+    if (!pngBase64 || !topic || !winner) {
+      return res.status(400).json({ success: false, error: 'topic, winner, and pngBase64 required' });
+    }
+    const card = saveVerdictCard({ topic, winner, party, quote, pngBase64 });
+    const imageUrl = absoluteUrl(req, `/api/verdict-card/${card.id}.png`);
+    const shareUrl = absoluteUrl(req, `/v/${card.id}`);
+    res.json({
+      success: true,
+      id: card.id,
+      imageUrl,
+      shareUrl
+    });
+  } catch (error) {
+    console.error('[API ERROR] /api/verdict-card:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/verdict-card/:id.png', (req, res) => {
+  const card = getVerdictCard(req.params.id);
+  if (!card?.png) {
+    return res.status(404).send('Card not found');
+  }
+  res.set({
+    'Content-Type': 'image/png',
+    'Cache-Control': 'public, max-age=604800, immutable',
+    'Content-Length': card.png.length
+  });
+  res.send(card.png);
+});
+
+/**
+ * Dynamic OG page for crawlers (LinkedIn/X). Humans bounce into the rematch SPA.
+ */
+app.get('/v/:id', (req, res) => {
+  const card = getVerdictCard(req.params.id);
+  if (!card) {
+    return res.redirect('/');
+  }
+
+  const ua = req.get('User-Agent') || '';
+  const isBot = /linkedinbot|twitterbot|facebookexternalhit|slackbot|discordbot|whatsapp|telegrambot|embedly|quora|pinterest|bingpreview|googlebot/i.test(
+    ua
+  );
+  const rematch = `/?topic=${encodeURIComponent(card.topic)}&champ=${encodeURIComponent(card.winner)}`;
+
+  if (!isBot && req.query.og !== '1') {
+    return res.redirect(rematch);
+  }
+
+  const imageUrl = absoluteUrl(req, `/api/verdict-card/${card.id}.png`);
+  const pageUrl = absoluteUrl(req, `/v/${card.id}`);
+  const title = `APICONGRESS — ${card.winner} crowned`;
+  const description = `${card.winner} (${card.party}) on ${card.topic}`.slice(0, 160);
+
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CongressAI" />
+  <meta property="og:title" content="${escapeHtml(title)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:url" content="${escapeHtml(pageUrl)}" />
+  <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+  <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(title)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+  <meta http-equiv="refresh" content="0;url=${escapeHtml(rematch)}" />
+  <link rel="canonical" href="${escapeHtml(pageUrl)}" />
+</head>
+<body>
+  <p><a href="${escapeHtml(rematch)}">Open APICONGRESS</a></p>
+</body>
+</html>`);
 });
 
 // Catch-all route: serve index.html for any other route (for React Router)

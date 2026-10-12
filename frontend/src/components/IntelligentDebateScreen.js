@@ -2,6 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import { castFighters, partyClass, bestQuote } from '../utils/casting';
 import { buildSharePayload, copyText, writeTopicToUrl, nativeShare } from '../utils/share';
+import { sanitizeArgumentText } from '../utils/sanitizeText';
+import {
+  verdictCardToBlob,
+  verdictCardToDataUrl,
+  downloadBlob,
+  shareVerdictFiles
+} from '../utils/verdictCard';
 import './IntelligentDebateScreen.css';
 
 const REACTIONS = [
@@ -42,6 +49,10 @@ const IntelligentDebateScreen = ({
   const [copyState, setCopyState] = useState('idle');
   const [castTick, setCastTick] = useState(0);
   const [focusedArgId, setFocusedArgId] = useState(null);
+  const [cardPreviewUrl, setCardPreviewUrl] = useState(null);
+  const [cardBlob, setCardBlob] = useState(null);
+  const [cardPublish, setCardPublish] = useState(null);
+  const [cardBusy, setCardBusy] = useState(false);
 
   const initStarted = useRef(false);
   const skipToVoteRef = useRef(false);
@@ -163,7 +174,8 @@ const IntelligentDebateScreen = ({
 
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const data = await response.json();
-      return data.response || data.message || null;
+      const raw = data.response || data.message || null;
+      return raw ? sanitizeArgumentText(raw) : null;
     },
     [topic, controversyLevel]
   );
@@ -336,22 +348,117 @@ const IntelligentDebateScreen = ({
     [arguments_, focusedArgId]
   );
 
+  const winningQuote = useMemo(
+    () => (winner ? bestQuote(arguments_, winner.model) : ''),
+    [winner, arguments_]
+  );
+
   const share = useMemo(() => {
     if (!winner) return null;
     return buildSharePayload({
       topic,
       winner: winner.name,
       party: winner.party,
-      quote: bestQuote(arguments_, winner.model)
+      quote: winningQuote,
+      shareUrl: cardPublish?.shareUrl
     });
-  }, [winner, topic, arguments_]);
+  }, [winner, topic, winningQuote, cardPublish]);
+
+  // Build exportable 1200×630 graphic when verdict lands
+  useEffect(() => {
+    if (phase !== 'result' || !winner) return undefined;
+    let cancelled = false;
+    setCardBusy(true);
+
+    (async () => {
+      try {
+        const opts = {
+          topic,
+          winnerName: winner.name,
+          party: winner.party,
+          quote: winningQuote,
+          logoSrc: winner.logo
+        };
+        const [dataUrl, blob] = await Promise.all([
+          verdictCardToDataUrl(opts),
+          verdictCardToBlob(opts)
+        ]);
+        if (cancelled) return;
+        setCardPreviewUrl(dataUrl);
+        setCardBlob(blob);
+
+        // Publish for LinkedIn/X OG scrapers
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        const res = await fetch(getApiUrl(API_ENDPOINTS.VERDICT_CARD), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic,
+            winner: winner.name,
+            party: winner.party,
+            quote: winningQuote,
+            pngBase64: base64
+          })
+        });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setCardPublish({
+            id: data.id,
+            shareUrl: data.shareUrl,
+            imageUrl: data.imageUrl
+          });
+        }
+      } catch (err) {
+        console.warn('[verdict card]', err);
+      } finally {
+        if (!cancelled) setCardBusy(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, winner, topic, winningQuote]);
+
+  const handleDownloadCard = () => {
+    if (!cardBlob) return;
+    const slug = String(winner?.name || 'verdict').toLowerCase().replace(/\s+/g, '-');
+    downloadBlob(cardBlob, `apicongress-${slug}.png`);
+  };
+
+  const handleShareGraphic = async () => {
+    if (!share || !cardBlob) return;
+    const result = await shareVerdictFiles({
+      blob: cardBlob,
+      title: 'APICONGRESS verdict',
+      text: share.text,
+      url: share.rematch
+    });
+    if (result === 'shared' || result === 'shared-text') {
+      setCopyState('copied');
+      setTimeout(() => setCopyState('idle'), 2000);
+      return;
+    }
+    if (result === 'aborted') return;
+    handleDownloadCard();
+    setCopyState('copied');
+    setTimeout(() => setCopyState('idle'), 2000);
+  };
 
   const handleCopyShare = async () => {
     if (!share) return;
     const shared = await nativeShare({
       title: 'APICONGRESS verdict',
       text: share.text,
-      url: share.rematch
+      url: share.rematch,
+      files: cardBlob
+        ? [new File([cardBlob], 'apicongress-verdict.png', { type: 'image/png' })]
+        : undefined
     });
     if (shared) {
       setCopyState('copied');
@@ -361,6 +468,15 @@ const IntelligentDebateScreen = ({
     const ok = await copyText(share.text);
     setCopyState(ok ? 'copied' : 'failed');
     setTimeout(() => setCopyState('idle'), 2000);
+  };
+
+  const openXShare = () => {
+    if (cardBlob) handleDownloadCard();
+    if (share?.xIntent) window.open(share.xIntent, '_blank', 'noopener,noreferrer');
+  };
+
+  const openLinkedInShare = () => {
+    if (share?.linkedInIntent) window.open(share.linkedInIntent, '_blank', 'noopener,noreferrer');
   };
 
   const leaderId = useMemo(() => {
@@ -608,18 +724,72 @@ const IntelligentDebateScreen = ({
         <section className="phase-result">
           <div className="share-card" role="article">
             <p className="share-kicker">You crowned the winner</p>
-            <div className="share-winner">
-              <img src={winner.logo} alt="" width={64} height={64} />
-              <div>
-                <h2>{winner.name}</h2>
-                <span className={`party-pill ${partyClass(winner.party)}`}>{winner.party}</span>
-              </div>
-            </div>
-            <p className="share-topic">{topic}</p>
             <p className="share-how">
-              Chosen by you — reaction points were just a guide, not an automatic pick.
+              Drop this graphic on LinkedIn or X — it&apos;s the chamber poster, not a wall of text.
             </p>
-            <blockquote className="share-quote">“{bestQuote(arguments_, winner.model)}”</blockquote>
+
+            <div className="verdict-graphic-wrap">
+              {cardPreviewUrl ? (
+                <img
+                  className="verdict-graphic"
+                  src={cardPreviewUrl}
+                  alt={`APICONGRESS verdict — ${winner.name} crowned`}
+                  width={1200}
+                  height={630}
+                />
+              ) : (
+                <div className="verdict-graphic-skeleton" aria-busy="true">
+                  <span>{cardBusy ? 'Printing the chamber card…' : 'Preparing card…'}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="share-actions share-actions-graphic">
+              <button
+                type="button"
+                className="share-download"
+                onClick={handleDownloadCard}
+                disabled={!cardBlob}
+              >
+                Save PNG
+              </button>
+              <button
+                type="button"
+                className="share-native"
+                onClick={handleShareGraphic}
+                disabled={!cardBlob}
+              >
+                {copyState === 'copied' ? 'Shared' : 'Share card'}
+              </button>
+              <button
+                type="button"
+                className="share-linkedin"
+                onClick={openLinkedInShare}
+                disabled={!cardPublish?.shareUrl}
+                title={cardPublish?.shareUrl ? 'Share with graphic preview' : 'Preparing link preview…'}
+              >
+                LinkedIn
+              </button>
+              <button
+                type="button"
+                className="share-x"
+                onClick={openXShare}
+                disabled={!cardBlob}
+              >
+                Post to X
+              </button>
+              <button type="button" className="share-copy" onClick={handleCopyShare}>
+                {copyState === 'failed' ? 'Copy failed' : 'Copy link'}
+              </button>
+              <button type="button" className="share-rematch" onClick={onReturnHome}>
+                New debate
+              </button>
+            </div>
+
+            <p className="share-card-hint">
+              LinkedIn &amp; X link previews pull this exact 1200×630 art. On X, Save PNG then attach the
+              download if the composer doesn&apos;t grab the image.
+            </p>
 
             <button
               type="button"
@@ -628,21 +798,6 @@ const IntelligentDebateScreen = ({
             >
               Re-read chamber speeches
             </button>
-
-            <div className="share-actions">
-              <a className="share-linkedin" href={share.linkedInIntent} target="_blank" rel="noreferrer">
-                LinkedIn
-              </a>
-              <a className="share-x" href={share.xIntent} target="_blank" rel="noreferrer">
-                Post to X
-              </a>
-              <button type="button" className="share-copy" onClick={handleCopyShare}>
-                {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy / Share'}
-              </button>
-              <button type="button" className="share-rematch" onClick={onReturnHome}>
-                New debate
-              </button>
-            </div>
 
             {billDocument && (
               <details className="bill-details">

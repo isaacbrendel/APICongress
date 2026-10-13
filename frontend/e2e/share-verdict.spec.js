@@ -66,8 +66,24 @@ test.describe('APICONGRESS verdict share (graphic-first)', () => {
     await expect(graphic).toBeVisible({ timeout: 20000 });
     const src = await graphic.getAttribute('src');
     expect(src).toMatch(/^data:image\/png;base64,/);
+    expect((src || '').length).toBeGreaterThan(20000);
 
+    // Crop just the graphic for visual proof of the redesigned card
+    await graphic.screenshot({ path: path.join(PROOF_DIR, '04b-card-only.png') });
     await page.screenshot({ path: path.join(PROOF_DIR, '04-verdict-graphic.png'), fullPage: true });
+
+    // Brand must appear fully in the card (no "APICONGRE" clip)
+    const cardMetrics = await page.evaluate(async (dataUrl) => {
+      const img = new Image();
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = rej;
+        img.src = dataUrl;
+      });
+      return { w: img.naturalWidth, h: img.naturalHeight };
+    }, src);
+    expect(cardMetrics.w).toBe(1200);
+    expect(cardMetrics.h).toBe(630);
 
     // LinkedIn: must not open share-offsite with ?topic=
     await page.getByRole('button', { name: /post to linkedin/i }).click();

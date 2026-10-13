@@ -382,7 +382,6 @@ const IntelligentDebateScreen = ({
           topic,
           winnerName: winner.name,
           party: winner.party,
-          quote: winningQuote,
           logoSrc: winner.logo
         };
         const [dataUrl, blob] = await Promise.all([

@@ -639,10 +639,16 @@
   margin: 0.85rem 0 1rem;
   border: 2.5px solid var(--ink);
   border-radius: var(--radius-sm);
-  box-shadow: 5px 5px 0 var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
   overflow: hidden;
   background: var(--concrete);
   animation: rise 0.45s var(--ease-out) both;
+  transform: rotate(-0.25deg);
+}
+
+.verdict-graphic-wrap:hover {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: 8px 8px 0 var(--ink);
 }
 
 .verdict-graphic {

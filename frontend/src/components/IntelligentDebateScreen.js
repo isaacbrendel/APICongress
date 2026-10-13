@@ -6,7 +6,9 @@ import {
   copyText,
   writeTopicToUrl,
   sharePngNative,
-  copyImageToClipboard
+  copyImageToClipboard,
+  openNetworkCompose,
+  getDeviceKind
 } from '../utils/share';
 import { sanitizeArgumentText } from '../utils/sanitizeText';
 import {
@@ -441,39 +443,40 @@ const IntelligentDebateScreen = ({
   };
 
   /**
-   * LinkedIn / X web intents CANNOT attach images.
-   * 1) OS share sheet with the PNG file (mobile gold path)
-   * 2) Copy PNG to clipboard + open blank composer → paste
-   * 3) Download PNG + open composer → attach from Photos/Files
-   * Never dump ?topic= URLs or quote walls into the feed.
+   * LinkedIn / X:
+   * 1) OS share sheet WITH the PNG → pick LinkedIn/X app → new post + image (mobile gold)
+   * 2) Else copy PNG + open native app compose (Android intent / same-tab universal link)
+   *    — never window.open(linkedin.com) on phones (that's the web sign-in wall)
+   * 3) Desktop: copy PNG + web composer tab + paste coach
    */
   const shareToNetwork = async (target) => {
     if (!cardBlob || !share) return;
     setCopyState('idle');
+    const caption = share.caption || share.text;
+    const device = getDeviceKind();
 
-    const native = await sharePngNative({
-      blob: cardBlob,
-      filename: cardFilename(),
-      text: share.caption || share.text
-    });
-    if (native === 'shared') {
-      setCopyState('copied');
-      setTimeout(() => setCopyState('idle'), 2500);
-      return;
+    // Phones: prefer the system sheet — LinkedIn/X apps appear there with the image
+    if (device !== 'desktop') {
+      const native = await sharePngNative({
+        blob: cardBlob,
+        filename: cardFilename(),
+        text: caption
+      });
+      if (native === 'shared' || native === 'shared-text') {
+        setCopyState('copied');
+        setTimeout(() => setCopyState('idle'), 2500);
+        return;
+      }
+      if (native === 'aborted') return;
     }
-    if (native === 'aborted') return;
 
     const clipped = await copyImageToClipboard(cardBlob);
     if (!clipped) {
       downloadBlob(cardBlob, cardFilename());
     }
-    await copyText(share.caption || share.text);
+    await copyText(caption);
 
-    const composer =
-      target === 'linkedin'
-        ? 'https://www.linkedin.com/feed/?shareActive=true'
-        : 'https://twitter.com/compose/tweet';
-    window.open(composer, '_blank', 'noopener,noreferrer');
+    openNetworkCompose(target, caption);
 
     setShareCoach({
       target,
@@ -804,8 +807,8 @@ const IntelligentDebateScreen = ({
             </div>
 
             <p className="share-card-hint">
-              Posts the graphic — not a raw link. On phone, pick LinkedIn/X in the share sheet. On
-              desktop, we copy the card so you can paste it into the composer.
+              On phone: the share sheet opens — pick LinkedIn or X and the card is already attached.
+              Desktop: we copy the PNG; paste it into the new post.
             </p>
 
             <button
@@ -863,29 +866,35 @@ const IntelligentDebateScreen = ({
             <ol className="share-coach-steps">
               {shareCoach.mode === 'paste' ? (
                 <>
-                  <li>Composer is open — tap the post field.</li>
+                  <li>
+                    {shareCoach.target === 'linkedin'
+                      ? 'LinkedIn should open on Start a post.'
+                      : shareCoach.target === 'x'
+                        ? 'X should open on a new post.'
+                        : 'Composer should be open.'}{' '}
+                    Tap the post field.
+                  </li>
                   <li>
                     Paste ({typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent || '')
                       ? '⌘V or long-press → Paste'
                       : 'Ctrl+V or long-press → Paste'}
-                    ). The APICONGRESS graphic should land.
+                    ). The chamber card lands in the post.
                   </li>
-                  <li>Caption is already on your clipboard if you want text under it.</li>
+                  <li>Caption is on your clipboard too if you want text under it.</li>
                 </>
               ) : (
                 <>
-                  <li>The PNG downloaded to your device.</li>
+                  <li>The PNG saved to your device.</li>
                   <li>
-                    In{' '}
+                    In the{' '}
                     {shareCoach.target === 'linkedin'
                       ? 'LinkedIn'
                       : shareCoach.target === 'x'
                         ? 'X'
-                        : 'your app'}
-                    , tap the photo / image button and pick{' '}
-                    <strong>{cardFilename()}</strong>.
+                        : ''}{' '}
+                    app, start a post → photo → pick <strong>{cardFilename()}</strong>.
                   </li>
-                  <li>Short caption is on your clipboard — paste if you want it.</li>
+                  <li>Caption is on your clipboard — paste if you want it.</li>
                 </>
               )}
             </ol>

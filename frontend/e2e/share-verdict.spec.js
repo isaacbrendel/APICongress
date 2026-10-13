@@ -85,7 +85,7 @@ test.describe('APICONGRESS verdict share (graphic-first)', () => {
     expect(cardMetrics.w).toBe(1200);
     expect(cardMetrics.h).toBe(630);
 
-    // LinkedIn: must not open share-offsite with ?topic=
+    // LinkedIn: Start a post composer — never share-offsite / ?topic= dumps
     await page.getByRole('button', { name: /post to linkedin/i }).click();
     await expect(page.locator('.share-coach')).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: path.join(PROOF_DIR, '05-linkedin-coach.png'), fullPage: true });
@@ -93,8 +93,12 @@ test.describe('APICONGRESS verdict share (graphic-first)', () => {
     const openedAfterLi = await page.evaluate(() => window.__openedUrls.slice());
     const clipboardAfterLi = await page.evaluate(() => window.__clipboardWrites.slice());
 
-    expect(openedAfterLi.some((u) => u.includes('linkedin.com'))).toBeTruthy();
-    expect(openedAfterLi.some((u) => u.includes('share-offsite') && u.includes('topic='))).toBeFalsy();
+    expect(
+      openedAfterLi.some(
+        (u) => u.includes('linkedin.com') && u.includes('shareActive=true')
+      )
+    ).toBeTruthy();
+    expect(openedAfterLi.some((u) => u.includes('share-offsite'))).toBeFalsy();
     expect(openedAfterLi.some((u) => u.includes('?topic='))).toBeFalsy();
 
     const textWrites = clipboardAfterLi.filter((w) => w.type === 'text').map((w) => w.text);
@@ -128,5 +132,53 @@ test.describe('APICONGRESS verdict share (graphic-first)', () => {
         2
       )
     );
+  });
+
+  test('Android LinkedIn uses app intent (not browser sign-in tab)', async ({ browser }) => {
+    const context = await browser.newContext({
+      userAgent:
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36'
+    });
+    const page = await context.newPage();
+    await stubShareApis(page, { mobileUa: true });
+    // No Web Share API → fall through to intent:// compose
+    await page.addInitScript(() => {
+      navigator.share = undefined;
+      navigator.canShare = undefined;
+    });
+    await mockChamberApis(page);
+    await page.goto('/');
+
+    await page.getByPlaceholder(/topic|fight|drop/i).fill('Should the US ban TikTok?');
+    await page.getByRole('button', { name: /open floor|begin|debate/i }).click();
+
+    for (let i = 0; i < 8; i += 1) {
+      if (await page.getByText(/you pick the winner/i).isVisible().catch(() => false)) break;
+      const next = page.getByRole('button', { name: /next speaker|proceed to crown winner/i });
+      if (await next.isVisible().catch(() => false)) {
+        await next.click();
+        continue;
+      }
+      await page.waitForTimeout(400);
+    }
+
+    await expect(page.getByText(/you pick the winner/i)).toBeVisible({ timeout: 20000 });
+    await page.locator('button.vote-name').first().click();
+    await page.getByRole('button', { name: /confirm winner/i }).click();
+    await expect(page.locator('img.verdict-graphic')).toBeVisible({ timeout: 20000 });
+
+    await page.getByRole('button', { name: /post to linkedin/i }).click();
+    await expect(page.locator('.share-coach')).toBeVisible({ timeout: 10000 });
+
+    const opened = await page.evaluate(() => window.__openedUrls.slice());
+    const intentHit = opened.find(
+      (u) => u.startsWith('intent://') && u.includes('linkedin') && u.includes('shareActive=true')
+    );
+    expect(intentHit).toBeTruthy();
+    expect(intentHit).toContain('com.linkedin.android');
+    expect(opened.some((u) => u.includes('share-offsite'))).toBeFalsy();
+
+    await page.screenshot({ path: path.join(PROOF_DIR, '07-android-linkedin-intent.png'), fullPage: true });
+    await context.close();
   });
 });

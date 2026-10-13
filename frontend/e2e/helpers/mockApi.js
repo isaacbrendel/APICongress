@@ -86,21 +86,49 @@ async function mockChamberApis(page) {
   });
 }
 
-async function stubShareApis(page) {
-  await page.addInitScript(() => {
+async function stubShareApis(page, { mobileUa } = {}) {
+  await page.addInitScript((opts) => {
     window.__shareCalls = [];
     window.__clipboardWrites = [];
     window.__openedUrls = [];
+    window.__locationAssigns = [];
 
-    // Force desktop fallback path (no OS share sheet with files)
-    navigator.share = undefined;
-    navigator.canShare = undefined;
+    // Force desktop fallback path (no OS share sheet with files) unless testing mobile
+    if (!opts?.mobileUa) {
+      navigator.share = undefined;
+      navigator.canShare = undefined;
+    }
 
     const open = window.open.bind(window);
     window.open = (url, ...rest) => {
       window.__openedUrls.push(String(url));
       return open('about:blank', ...rest);
     };
+
+    // Capture same-tab app handoffs (Android intent / iOS linkedin://)
+    try {
+      const desc = Object.getOwnPropertyDescriptor(window.Location.prototype, 'href');
+      if (desc?.set) {
+        Object.defineProperty(window.location, 'href', {
+          configurable: true,
+          enumerable: true,
+          get() {
+            return desc.get.call(window.location);
+          },
+          set(value) {
+            const s = String(value);
+            window.__locationAssigns.push(s);
+            window.__openedUrls.push(s);
+            if (/^https?:/i.test(s) && !/linkedin\.com|twitter\.com|x\.com|intent:/i.test(s)) {
+              desc.set.call(window.location, value);
+            }
+            // Block external / intent / scheme navigations in the test page
+          }
+        });
+      }
+    } catch {
+      /* ignore */
+    }
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText = async (text) => {
@@ -120,7 +148,7 @@ async function stubShareApis(page) {
         }
       };
     }
-  });
+  }, { mobileUa: Boolean(mobileUa) });
 }
 
 module.exports = { mockChamberApis, stubShareApis, SPEECHES };

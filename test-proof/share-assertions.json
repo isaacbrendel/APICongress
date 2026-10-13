@@ -1,0 +1,26 @@
+{
+  "openedUrls": [
+    "https://www.linkedin.com/feed/?shareActive=true",
+    "https://twitter.com/compose/tweet"
+  ],
+  "clipboardWrites": [
+    {
+      "type": "items",
+      "count": 1
+    },
+    {
+      "type": "text",
+      "text": "APICONGRESS — ChatGPT crowned\nDemocrat\nShould the US ban TikTok?\ncongressai.app"
+    },
+    {
+      "type": "items",
+      "count": 1
+    },
+    {
+      "type": "text",
+      "text": "APICONGRESS — ChatGPT crowned\nDemocrat\nShould the US ban TikTok?\ncongressai.app"
+    }
+  ],
+  "graphicIsPngDataUrl": true,
+  "feedHadWrappedQuotes": false
+}

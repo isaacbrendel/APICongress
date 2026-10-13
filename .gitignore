@@ -7,6 +7,9 @@ package-lock.json
 # Testing
 /coverage
 *.test.js.snap
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
 
 # Production
 /build

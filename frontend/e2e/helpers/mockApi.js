@@ -1,0 +1,126 @@
+/**
+ * Mock chamber APIs so Playwright can finish a full bout without LLM keys.
+ */
+
+const SPEECHES = [
+  '("TikTok is a CCP data vacuum and banning it protects Americans from surveillance at scale.")',
+  '“Free speech online still requires a sovereign platform, not a foreign influence machine.”',
+  'A ban without a real competitor just hands the feed to the next cartel. Regulate access, do not cosplay liberty.',
+  'National security is not a vibe. If the data leaves the country, the app leaves the store.',
+  'Force a sale under US law. Shutdown theater helps politicians more than users.'
+];
+
+let llmHits = 0;
+
+async function mockChamberApis(page) {
+  llmHits = 0;
+
+  await page.route('**/api/trending**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        topics: [
+          { topic: 'Should the US ban TikTok?', heat: 95, source: 'curated' }
+        ],
+        sources: ['curated'],
+        xLive: false
+      })
+    });
+  });
+
+  await page.route('**/api/llm**', async (route) => {
+    const speech = SPEECHES[llmHits % SPEECHES.length];
+    llmHits += 1;
+    // Simulate network + generation latency
+    await new Promise((r) => setTimeout(r, 120));
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        response: speech
+      })
+    });
+  });
+
+  await page.route('**/api/verdict-card', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          id: 'testcard1',
+          shareUrl: 'https://congressai.app/v/testcard1',
+          imageUrl: 'https://congressai.app/api/verdict-card/testcard1.png'
+        })
+      });
+      return;
+    }
+    await route.fallback();
+  });
+
+  await page.route('**/api/bill/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        document: {
+          party: 'Republican',
+          title: 'The Platform Security Act',
+          billNumber: 'H.R. 4242',
+          fullText: 'A BILL\nTo secure platforms.'
+        }
+      })
+    });
+  });
+
+  await page.route('**/api/vote/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true })
+    });
+  });
+}
+
+async function stubShareApis(page) {
+  await page.addInitScript(() => {
+    window.__shareCalls = [];
+    window.__clipboardWrites = [];
+    window.__openedUrls = [];
+
+    // Force desktop fallback path (no OS share sheet with files)
+    navigator.share = undefined;
+    navigator.canShare = undefined;
+
+    const open = window.open.bind(window);
+    window.open = (url, ...rest) => {
+      window.__openedUrls.push(String(url));
+      return open('about:blank', ...rest);
+    };
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText = async (text) => {
+        window.__clipboardWrites.push({ type: 'text', text: String(text) });
+      };
+      navigator.clipboard.write = async (items) => {
+        window.__clipboardWrites.push({ type: 'items', count: items?.length || 0 });
+      };
+    }
+
+    // ClipboardItem may be used for PNG copy
+    if (typeof ClipboardItem === 'undefined') {
+      // eslint-disable-next-line no-global-assign
+      window.ClipboardItem = class ClipboardItem {
+        constructor(items) {
+          this.items = items;
+        }
+      };
+    }
+  });
+}
+
+module.exports = { mockChamberApis, stubShareApis, SPEECHES };

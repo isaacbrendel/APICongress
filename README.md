@@ -84,5 +84,8 @@ docs/                      older design notes (not product truth)
 |-------|---------|------|
 | `frontend/` | `npm start` | Dev UI |
 | `frontend/` | `npm run build` | Production bundle |
+| `frontend/` | `npm run test:e2e:share` | Playwright: debate → crown → graphic share (no `?topic=` dumps) |
 | `backend/` | `node server.js` | API (and prod static) |
 | root | `docker compose up` | Optional container on host `:8080` |
+
+Proof screenshots from the last local E2E run live in `test-proof/` (home → casting → voting → verdict graphic → LinkedIn/X coach).

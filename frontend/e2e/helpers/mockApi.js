@@ -106,29 +106,11 @@ async function stubShareApis(page, { mobileUa } = {}) {
     };
 
     // Capture same-tab app handoffs (Android intent / iOS linkedin://)
-    try {
-      const desc = Object.getOwnPropertyDescriptor(window.Location.prototype, 'href');
-      if (desc?.set) {
-        Object.defineProperty(window.location, 'href', {
-          configurable: true,
-          enumerable: true,
-          get() {
-            return desc.get.call(window.location);
-          },
-          set(value) {
-            const s = String(value);
-            window.__locationAssigns.push(s);
-            window.__openedUrls.push(s);
-            if (/^https?:/i.test(s) && !/linkedin\.com|twitter\.com|x\.com|intent:/i.test(s)) {
-              desc.set.call(window.location, value);
-            }
-            // Block external / intent / scheme navigations in the test page
-          }
-        });
-      }
-    } catch {
-      /* ignore */
-    }
+    window.__shareNavigate = (url) => {
+      const s = String(url);
+      window.__locationAssigns.push(s);
+      window.__openedUrls.push(s);
+    };
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText = async (text) => {

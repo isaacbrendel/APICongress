@@ -1,7 +1,7 @@
 {
   "openedUrls": [
-    "https://www.linkedin.com/feed/?shareActive=true",
-    "https://twitter.com/compose/tweet"
+    "https://www.linkedin.com/feed/?shareActive=true&text=APICONGRESS%20%E2%80%94%20ChatGPT%20crowned%0ADemocrat%0AShould%20the%20US%20ban%20TikTok%3F%0Acongressai.app",
+    "https://twitter.com/intent/tweet?text=APICONGRESS%20%E2%80%94%20ChatGPT%20crowned%0ADemocrat%0AShould%20the%20US%20ban%20TikTok%3F%0Acongressai.app"
   ],
   "clipboardWrites": [
     {
@@ -10,7 +10,7 @@
     },
     {
       "type": "text",
-      "text": "APICONGRESS — ChatGPT crowned\nIndependent\nShould the US ban TikTok?\ncongressai.app"
+      "text": "APICONGRESS — ChatGPT crowned\nDemocrat\nShould the US ban TikTok?\ncongressai.app"
     },
     {
       "type": "items",
@@ -18,7 +18,7 @@
     },
     {
       "type": "text",
-      "text": "APICONGRESS — ChatGPT crowned\nIndependent\nShould the US ban TikTok?\ncongressai.app"
+      "text": "APICONGRESS — ChatGPT crowned\nDemocrat\nShould the US ban TikTok?\ncongressai.app"
     }
   ],
   "graphicIsPngDataUrl": true,

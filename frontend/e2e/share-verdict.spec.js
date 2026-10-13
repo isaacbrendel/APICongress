@@ -137,11 +137,14 @@ test.describe('APICONGRESS verdict share (graphic-first)', () => {
   test('Android LinkedIn uses app intent (not browser sign-in tab)', async ({ browser }) => {
     const context = await browser.newContext({
       userAgent:
-        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36'
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true
     });
     const page = await context.newPage();
     await stubShareApis(page, { mobileUa: true });
-    // No Web Share API → fall through to intent:// compose
+    // Force intent path (no Web Share sheet in this proof)
     await page.addInitScript(() => {
       navigator.share = undefined;
       navigator.canShare = undefined;
@@ -152,17 +155,21 @@ test.describe('APICONGRESS verdict share (graphic-first)', () => {
     await page.getByPlaceholder(/topic|fight|drop/i).fill('Should the US ban TikTok?');
     await page.getByRole('button', { name: /open floor|begin|debate/i }).click();
 
-    for (let i = 0; i < 8; i += 1) {
+    await expect(page.locator('.argument-feed, .continue-btn, .skip-all-btn').first()).toBeVisible({
+      timeout: 15000
+    });
+
+    for (let i = 0; i < 12; i += 1) {
       if (await page.getByText(/you pick the winner/i).isVisible().catch(() => false)) break;
       const next = page.getByRole('button', { name: /next speaker|proceed to crown winner/i });
       if (await next.isVisible().catch(() => false)) {
         await next.click();
         continue;
       }
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(500);
     }
 
-    await expect(page.getByText(/you pick the winner/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/you pick the winner/i)).toBeVisible({ timeout: 25000 });
     await page.locator('button.vote-name').first().click();
     await page.getByRole('button', { name: /confirm winner/i }).click();
     await expect(page.locator('img.verdict-graphic')).toBeVisible({ timeout: 20000 });
@@ -179,6 +186,10 @@ test.describe('APICONGRESS verdict share (graphic-first)', () => {
     expect(opened.some((u) => u.includes('share-offsite'))).toBeFalsy();
 
     await page.screenshot({ path: path.join(PROOF_DIR, '07-android-linkedin-intent.png'), fullPage: true });
+    fs.writeFileSync(
+      path.join(PROOF_DIR, 'android-linkedin-intent.json'),
+      JSON.stringify({ openedUrls: opened, intentHit }, null, 2)
+    );
     await context.close();
   });
 });

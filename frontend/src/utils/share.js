@@ -117,20 +117,30 @@ export function openNetworkCompose(target, caption) {
     return { opened: web, mode: 'desktop-tab' };
   }
 
+  const go = (url) => {
+    // Test seam (Playwright) — production always same-tab assign
+    if (typeof window.__shareNavigate === 'function') {
+      window.__shareNavigate(url);
+      return;
+    }
+    // assign() (not window.open) so the OS can hand off to the installed app
+    window.location.assign(url);
+  };
+
   // iOS custom schemes: try app, fall back to HTTPS if still in Safari
   if (kind === 'ios' && (target === 'x' || target === 'linkedin')) {
     const started = Date.now();
-    window.location.href = app;
+    go(app);
     window.setTimeout(() => {
       if (Date.now() - started < 1600) {
-        window.location.href = web;
+        go(web);
       }
     }, 700);
     return { opened: app, mode: 'ios-scheme' };
   }
 
   // Android intent — MUST be same-tab (not window.open)
-  window.location.href = app;
+  go(app);
   return { opened: app, mode: 'android-intent' };
 }
 

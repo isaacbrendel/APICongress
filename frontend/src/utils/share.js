@@ -1,6 +1,6 @@
 /**
- * Share + URL helpers — LinkedIn / X / rematch friendly.
- * Prefer graphic verdict cards over wall-of-text quotes.
+ * Share helpers — graphic-first. Intent URLs cannot attach images;
+ * never dump raw ?topic= links into someone's feed.
  */
 
 export function readTopicFromUrl() {
@@ -33,41 +33,26 @@ export function buildRematchUrl(topic, winnerName) {
   return url.toString();
 }
 
-/**
- * Short caption for X/LinkedIn — the graphic carries the spectacle.
- */
-export function buildSharePayload({ topic, winner, party, quote, shareUrl }) {
-  const rematch = shareUrl || buildRematchUrl(topic, winner);
-  const cleanQuote = String(quote || '')
-    .replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  const hook = `${winner} (${party}) just took the chamber.`;
-  const text = [
-    `APICONGRESS`,
-    hook,
-    topic ? `Topic: ${topic}` : '',
-    rematch
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const xText = [
+/** Ultra-short caption — the PNG is the post. */
+export function buildShareCaption({ winner, party, topic, site = 'congressai.app' }) {
+  const lines = [
     `APICONGRESS — ${winner} crowned`,
-    topic ? `${topic}` : '',
-    cleanQuote ? cleanQuote.slice(0, 120) + (cleanQuote.length > 120 ? '…' : '') : '',
-    rematch
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+    party ? `${party}` : null,
+    topic ? String(topic).slice(0, 90) : null,
+    site
+  ].filter(Boolean);
+  return lines.join('\n');
+}
 
-  const xIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xText)}`;
-
-  // LinkedIn share-offsite — scrape /v/:id OG tags (dynamic verdict PNG)
-  const linkedInIntent = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(rematch)}`;
-
-  return { text, rematch, xIntent, linkedInIntent, hook };
+export function buildSharePayload({ topic, winner, party, shareUrl }) {
+  const caption = buildShareCaption({ winner, party, topic });
+  const rematch = shareUrl || 'https://congressai.app/';
+  // Keep intents as last-resort text-only shells (never include ugly query dumps)
+  const xIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`;
+  const linkedInIntent = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+    rematch.startsWith('http') ? rematch : 'https://congressai.app/'
+  )}`;
+  return { text: caption, rematch, xIntent, linkedInIntent, caption };
 }
 
 export async function copyText(text) {
@@ -95,10 +80,70 @@ export async function copyText(text) {
   }
 }
 
+/** Copy PNG to clipboard so user can paste into LinkedIn/X composers. */
+export async function copyImageToClipboard(blob) {
+  if (!blob || typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+    return false;
+  }
+  try {
+    // Some browsers require a Promise-valued ClipboardItem for images
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'image/png': blob
+      })
+    ]);
+    return true;
+  } catch {
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': Promise.resolve(blob)
+        })
+      ]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
+ * Share the verdict PNG via the OS sheet (only path that attaches an image
+ * to LinkedIn / X without their APIs). Do NOT pass a ugly rematch URL —
+ * targets often drop the file and keep only the link.
+ */
+export async function sharePngNative({ blob, filename = 'apicongress-verdict.png', text }) {
+  if (!blob || !navigator.share) return 'unsupported';
+  const file = new File([blob], filename, { type: 'image/png' });
+  const withFiles = { files: [file], title: 'APICONGRESS', text: text || 'APICONGRESS verdict' };
+
+  try {
+    if (navigator.canShare?.(withFiles)) {
+      await navigator.share(withFiles);
+      return 'shared';
+    }
+  } catch (err) {
+    if (err?.name === 'AbortError') return 'aborted';
+  }
+
+  // Some iOS versions want files alone
+  try {
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file] });
+      return 'shared';
+    }
+  } catch (err) {
+    if (err?.name === 'AbortError') return 'aborted';
+  }
+
+  return 'unsupported';
+}
+
 export async function nativeShare({ title, text, url, files }) {
   if (!navigator.share) return false;
   try {
-    const payload = { title, text, url };
+    const payload = { title, text };
+    if (url) payload.url = url;
     if (files?.length && navigator.canShare?.({ files })) {
       payload.files = files;
     }

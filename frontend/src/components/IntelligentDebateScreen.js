@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import { castFighters, partyClass, bestQuote } from '../utils/casting';
-import { buildSharePayload, copyText, writeTopicToUrl, nativeShare } from '../utils/share';
+import {
+  buildSharePayload,
+  copyText,
+  writeTopicToUrl,
+  sharePngNative,
+  copyImageToClipboard
+} from '../utils/share';
 import { sanitizeArgumentText } from '../utils/sanitizeText';
 import {
   verdictCardToBlob,
   verdictCardToDataUrl,
-  downloadBlob,
-  shareVerdictFiles
+  downloadBlob
 } from '../utils/verdictCard';
 import './IntelligentDebateScreen.css';
 
@@ -53,6 +58,7 @@ const IntelligentDebateScreen = ({
   const [cardBlob, setCardBlob] = useState(null);
   const [cardPublish, setCardPublish] = useState(null);
   const [cardBusy, setCardBusy] = useState(false);
+  const [shareCoach, setShareCoach] = useState(null); // { target, mode }
 
   const initStarted = useRef(false);
   const skipToVoteRef = useRef(false);
@@ -425,58 +431,74 @@ const IntelligentDebateScreen = ({
     };
   }, [phase, winner, topic, winningQuote]);
 
+  const cardFilename = () => {
+    const slug = String(winner?.name || 'verdict').toLowerCase().replace(/\s+/g, '-');
+    return `apicongress-${slug}.png`;
+  };
+
   const handleDownloadCard = () => {
     if (!cardBlob) return;
-    const slug = String(winner?.name || 'verdict').toLowerCase().replace(/\s+/g, '-');
-    downloadBlob(cardBlob, `apicongress-${slug}.png`);
+    downloadBlob(cardBlob, cardFilename());
+  };
+
+  /**
+   * LinkedIn / X web intents CANNOT attach images.
+   * 1) OS share sheet with the PNG file (mobile gold path)
+   * 2) Copy PNG to clipboard + open blank composer → paste
+   * 3) Download PNG + open composer → attach from Photos/Files
+   * Never dump ?topic= URLs or quote walls into the feed.
+   */
+  const shareToNetwork = async (target) => {
+    if (!cardBlob || !share) return;
+    setCopyState('idle');
+
+    const native = await sharePngNative({
+      blob: cardBlob,
+      filename: cardFilename(),
+      text: share.caption || share.text
+    });
+    if (native === 'shared') {
+      setCopyState('copied');
+      setTimeout(() => setCopyState('idle'), 2500);
+      return;
+    }
+    if (native === 'aborted') return;
+
+    const clipped = await copyImageToClipboard(cardBlob);
+    if (!clipped) {
+      downloadBlob(cardBlob, cardFilename());
+    }
+    await copyText(share.caption || share.text);
+
+    const composer =
+      target === 'linkedin'
+        ? 'https://www.linkedin.com/feed/?shareActive=true'
+        : 'https://twitter.com/compose/tweet';
+    window.open(composer, '_blank', 'noopener,noreferrer');
+
+    setShareCoach({
+      target,
+      mode: clipped ? 'paste' : 'attach'
+    });
   };
 
   const handleShareGraphic = async () => {
-    if (!share || !cardBlob) return;
-    const result = await shareVerdictFiles({
+    if (!cardBlob || !share) return;
+    const native = await sharePngNative({
       blob: cardBlob,
-      title: 'APICONGRESS verdict',
-      text: share.text,
-      url: share.rematch
+      filename: cardFilename(),
+      text: share.caption || share.text
     });
-    if (result === 'shared' || result === 'shared-text') {
+    if (native === 'shared') {
       setCopyState('copied');
-      setTimeout(() => setCopyState('idle'), 2000);
+      setTimeout(() => setCopyState('idle'), 2500);
       return;
     }
-    if (result === 'aborted') return;
-    handleDownloadCard();
-    setCopyState('copied');
-    setTimeout(() => setCopyState('idle'), 2000);
-  };
-
-  const handleCopyShare = async () => {
-    if (!share) return;
-    const shared = await nativeShare({
-      title: 'APICONGRESS verdict',
-      text: share.text,
-      url: share.rematch,
-      files: cardBlob
-        ? [new File([cardBlob], 'apicongress-verdict.png', { type: 'image/png' })]
-        : undefined
-    });
-    if (shared) {
-      setCopyState('copied');
-      setTimeout(() => setCopyState('idle'), 2000);
-      return;
-    }
-    const ok = await copyText(share.text);
-    setCopyState(ok ? 'copied' : 'failed');
-    setTimeout(() => setCopyState('idle'), 2000);
-  };
-
-  const openXShare = () => {
-    if (cardBlob) handleDownloadCard();
-    if (share?.xIntent) window.open(share.xIntent, '_blank', 'noopener,noreferrer');
-  };
-
-  const openLinkedInShare = () => {
-    if (share?.linkedInIntent) window.open(share.linkedInIntent, '_blank', 'noopener,noreferrer');
+    if (native === 'aborted') return;
+    const clipped = await copyImageToClipboard(cardBlob);
+    if (!clipped) handleDownloadCard();
+    await copyText(share.caption || share.text);
+    setShareCoach({ target: 'any', mode: clipped ? 'paste' : 'attach' });
   };
 
   const leaderId = useMemo(() => {
@@ -747,39 +769,35 @@ const IntelligentDebateScreen = ({
             <div className="share-actions share-actions-graphic">
               <button
                 type="button"
-                className="share-download"
-                onClick={handleDownloadCard}
-                disabled={!cardBlob}
+                className="share-linkedin"
+                onClick={() => shareToNetwork('linkedin')}
+                disabled={!cardBlob || cardBusy}
               >
-                Save PNG
+                Post to LinkedIn
+              </button>
+              <button
+                type="button"
+                className="share-x"
+                onClick={() => shareToNetwork('x')}
+                disabled={!cardBlob || cardBusy}
+              >
+                Post to X
               </button>
               <button
                 type="button"
                 className="share-native"
                 onClick={handleShareGraphic}
-                disabled={!cardBlob}
+                disabled={!cardBlob || cardBusy}
               >
-                {copyState === 'copied' ? 'Shared' : 'Share card'}
+                {copyState === 'copied' ? 'Shared ✓' : 'Share card'}
               </button>
               <button
                 type="button"
-                className="share-linkedin"
-                onClick={openLinkedInShare}
-                disabled={!cardPublish?.shareUrl}
-                title={cardPublish?.shareUrl ? 'Share with graphic preview' : 'Preparing link preview…'}
-              >
-                LinkedIn
-              </button>
-              <button
-                type="button"
-                className="share-x"
-                onClick={openXShare}
+                className="share-download"
+                onClick={handleDownloadCard}
                 disabled={!cardBlob}
               >
-                Post to X
-              </button>
-              <button type="button" className="share-copy" onClick={handleCopyShare}>
-                {copyState === 'failed' ? 'Copy failed' : 'Copy link'}
+                Save PNG
               </button>
               <button type="button" className="share-rematch" onClick={onReturnHome}>
                 New debate
@@ -787,8 +805,8 @@ const IntelligentDebateScreen = ({
             </div>
 
             <p className="share-card-hint">
-              LinkedIn &amp; X link previews pull this exact 1200×630 art. On X, Save PNG then attach the
-              download if the composer doesn&apos;t grab the image.
+              Posts the graphic — not a raw link. On phone, pick LinkedIn/X in the share sheet. On
+              desktop, we copy the card so you can paste it into the composer.
             </p>
 
             <button
@@ -824,6 +842,67 @@ const IntelligentDebateScreen = ({
             )}
           </div>
         </section>
+      )}
+
+      {shareCoach && (
+        <div
+          className="share-coach-backdrop"
+          role="presentation"
+          onClick={() => setShareCoach(null)}
+        >
+          <div
+            className="share-coach"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="share-coach-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="share-coach-kicker">Almost there</p>
+            <h2 id="share-coach-title">
+              {shareCoach.mode === 'paste' ? 'Paste the chamber card' : 'Attach the chamber card'}
+            </h2>
+            <ol className="share-coach-steps">
+              {shareCoach.mode === 'paste' ? (
+                <>
+                  <li>Composer is open — tap the post field.</li>
+                  <li>
+                    Paste ({typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent || '')
+                      ? '⌘V or long-press → Paste'
+                      : 'Ctrl+V or long-press → Paste'}
+                    ). The APICONGRESS graphic should land.
+                  </li>
+                  <li>Caption is already on your clipboard if you want text under it.</li>
+                </>
+              ) : (
+                <>
+                  <li>The PNG downloaded to your device.</li>
+                  <li>
+                    In{' '}
+                    {shareCoach.target === 'linkedin'
+                      ? 'LinkedIn'
+                      : shareCoach.target === 'x'
+                        ? 'X'
+                        : 'your app'}
+                    , tap the photo / image button and pick{' '}
+                    <strong>{cardFilename()}</strong>.
+                  </li>
+                  <li>Short caption is on your clipboard — paste if you want it.</li>
+                </>
+              )}
+            </ol>
+            {cardPreviewUrl && (
+              <img className="share-coach-thumb" src={cardPreviewUrl} alt="" width={600} height={315} />
+            )}
+            <div className="share-coach-actions">
+              <button type="button" className="share-download" onClick={handleDownloadCard}>
+                Save PNG again
+              </button>
+              <button type="button" className="crown-yes" onClick={() => setShareCoach(null)}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Full argument reader */}

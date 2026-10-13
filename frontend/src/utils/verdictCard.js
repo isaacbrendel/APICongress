@@ -255,20 +255,13 @@ export function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
-export async function shareVerdictFiles({ blob, title, text, url }) {
+export async function shareVerdictFiles({ blob, title, text }) {
+  // Never pass `url` here — LinkedIn/X often drop the file and keep only the link.
   const file = new File([blob], 'apicongress-verdict.png', { type: 'image/png' });
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title, text, url });
+      await navigator.share({ files: [file], title, text });
       return 'shared';
-    } catch (err) {
-      if (err?.name === 'AbortError') return 'aborted';
-    }
-  }
-  if (navigator.share) {
-    try {
-      await navigator.share({ title, text, url });
-      return 'shared-text';
     } catch (err) {
       if (err?.name === 'AbortError') return 'aborted';
     }
